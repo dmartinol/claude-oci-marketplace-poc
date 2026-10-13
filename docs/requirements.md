@@ -58,7 +58,7 @@ Complete this spike before implementing the full workflow:
 - Determine the exact extension-owned OCI catalog filename and validate its minimum schema.
 - Report evidence and blockers, then stop and wait for explicit approval before implementing the remaining workflow.
 
-Documentation is a starting point; no local integration has been validated yet.
+Validated findings accumulate in [feasibility-report.md](feasibility-report.md). Full implementation remains gated until the feasibility spike is complete and explicitly approved.
 
 ## Out of scope
 

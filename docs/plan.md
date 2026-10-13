@@ -47,16 +47,16 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T003 — Verify the mod interaction model
 
-- **Status:** In progress
+- **Status:** Done
 - **Requirements:** R2, R9, R13, R14
 - **Depends on:** T002
 - **Outcome:** Establish whether the required deterministic command and native update interaction are supported.
 - **Evidence:** `docs/feasibility-report.md#mod-apis`
 - **Done when:**
-  - [ ] Mod support is confirmed for the installed Claude version.
-  - [ ] A deterministic namespaced command is registered and its exact name is recorded.
-  - [ ] A non-blocking indicator and native confirmation dialog are demonstrated.
-  - [ ] The transition from confirmation to Claude's standard permission flow is demonstrated or documented as a blocker.
+  - [x] Mod support is confirmed for the installed Claude version.
+  - [x] A deterministic namespaced command is registered and its exact name is recorded.
+  - [x] A non-blocking indicator and native confirmation dialog are demonstrated.
+  - [x] The transition from confirmation to Claude's standard permission flow is demonstrated or documented as a blocker.
 
 ### T004 — Verify registered-marketplace discovery
 

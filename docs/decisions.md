@@ -10,7 +10,7 @@ The regular `/plugin` UI shows the OCI marketplace manager plugin. Individual OC
 
 ### D2 — Marketplace add contract
 
-The manager's namespaced marketplace command accepts a Git URL and registers it at user scope with the same behavior as `claude plugin marketplace add <URL>`.
+The manager command is `/oci-marketplace`. Its future `add <git-url>` action registers the URL at user scope with the same behavior as `claude plugin marketplace add <URL>`.
 
 ### D3 — OCI catalog separation
 
@@ -32,6 +32,8 @@ Adding a valid Claude marketplace without an OCI catalog still succeeds. It rema
 
 Available updates produce a non-blocking indicator and one summary with per-skill selection. Applying an update requires a native mod confirmation followed by Claude's standard permission flow.
 
+Claude Code 2.1.296 supports this path with `$.ui.toast`, `$.ui.ask`, and a permission-checked `$.tool.call`. The manager may use `$.ui.status` while the permission request is pending.
+
 ### D8 — Alert dismissal
 
 Dismissing an available-update alert suppresses it for the current session only. It returns at the next startup or manual refresh while the update remains applicable.
@@ -46,8 +48,6 @@ Agents complete the feasibility spike, report evidence and blockers, and stop fo
 
 ## Open feasibility questions
 
-- What exact namespaced command does the manager plugin register on the installed Claude version?
-- Which mod APIs are available for commands, non-blocking indicators, confirmation dialogs, and the transition to Claude's permission flow?
 - Which `skillctl` version and commands support metadata resolution, authenticated retrieval, unpacking, and the required OCI artifact layout?
 - How can the manager enumerate Claude's registered marketplace sources and resolve their local caches without maintaining separate registration state?
 - Which standard mechanism makes newly installed or updated skills available: `reloadSkills`, `/reload-plugins`, or a new session?

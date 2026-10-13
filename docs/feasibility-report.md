@@ -181,3 +181,107 @@ An explicit user-scope enable attempt returned `failureCode: "already_in_goal_st
 
 T002 passes. Stock Claude Code accepts the repository as a hosted marketplace, displays it in `/plugin`, and installs and enables its single manager plugin. T003 and T004 are ready to begin. No product requirement or decision change is required from this task.
 
+## Mod APIs
+
+**Task:** T003 — Verify the mod interaction model
+
+**Result:** Pass
+
+**Observed:** 2026-10-13 (Europe/Rome)
+
+### Installed-version API evidence
+
+Claude Code 2.1.296 loaded the manager as a mod from the standard plugin shape:
+
+```text
+plugins/oci-marketplace/
+├── .claude-plugin/plugin.json
+└── hooks/
+    ├── hooks.json
+    └── register.js
+```
+
+Loading that directory with `--plugin-dir` generated the installed version's TypeScript declarations under the ignored `.claude-plugin/types/` directory. Those declarations confirm:
+
+- `$.command.register` registers deterministic slash commands.
+- Command names permit letters, digits, `_`, and `-`, but not `:`.
+- `$.ui.toast` provides a non-blocking plugin indicator.
+- `$.ui.ask` opens Claude's native `AskUserQuestion` dialog.
+- `$.tool.call` passes through the normal tool hooks, permission check, and approval dialog before running the tool.
+- `$.ui.status` can show and clear a pending-operation line.
+
+The initially tested name `/marketplace` was refused because Claude reserves it as a built-in alias for `/plugin`. The accepted, namespaced manager command is therefore:
+
+```text
+/oci-marketplace
+```
+
+The future URL-registration spelling is `/oci-marketplace add <git-url>`.
+
+### Deterministic interaction spike
+
+Plugin version 0.1.1 registers `/oci-marketplace` during `session.start`. Its temporary feasibility action is:
+
+```text
+/oci-marketplace verify-update-flow
+```
+
+That action performs this deterministic sequence:
+
+1. Shows the non-blocking toast `A newer OCI skill digest is available.`
+2. Opens a native `OCI update` dialog with `Apply update` and `Not now` choices.
+3. Treats `Not now` as dismissal and performs no tool call.
+4. After `Apply update`, shows a pending status and calls the built-in Bash tool with `skillctl --version`.
+5. Lets Claude perform its standard permission check and display its standard approval screen before the command can run.
+
+The permission screen identified the action as a Bash command from the `oci-marketplace` plugin, displayed its description and command, stated that approval was required, and offered `Yes` and `No`. Approving it completed with:
+
+```text
+oci-marketplace: Claude permission granted and skillctl verification completed.
+```
+
+The probe uses `skillctl --version` only to demonstrate the permission boundary; it does not retrieve or mutate OCI content. The full update summary, selection state, and session dismissal lifecycle remain assigned to T402.
+
+### Hosted installation and validation
+
+Commit `fc4d5d4` published the mod as plugin version 0.1.1. Claude refreshed the registered Git marketplace and updated the existing user-scope installation:
+
+```json
+{
+  "plugin": "oci-marketplace@claude-oci-marketplace",
+  "scope": "user",
+  "updateOutcome": "updated",
+  "oldVersion": "0.1.0",
+  "newVersion": "0.1.1"
+}
+```
+
+A fresh stock Claude session, started without `--plugin-dir`, successfully ran `/oci-marketplace` and the complete `verify-update-flow` sequence. This confirms the behavior comes from the marketplace-installed manager plugin rather than only from the development loader.
+
+Strict validation reports the expected hooks and calls:
+
+```text
+hooks: session.start, command.run{command=oci-marketplace}
+answers its own command: command.run{command=oci-marketplace}
+calls: $.command.register, $.tool.call, $.ui.ask, $.ui.status, $.ui.toast
+Validation passed
+```
+
+The mod test suite covers command registration, dismissal after the non-blocking indicator, and transition from native confirmation to the permissioned tool call:
+
+```text
+3 pass
+0 fail
+```
+
+### T003 acceptance
+
+- [x] Mod support is confirmed for Claude Code 2.1.296.
+- [x] The deterministic command `/oci-marketplace` is registered and recorded.
+- [x] A non-blocking toast and native confirmation dialog are demonstrated.
+- [x] Confirmation transitions to Claude's standard permission flow and completes after explicit approval.
+
+### Conclusion
+
+T003 passes with no blocker. The installed Claude version supports the required deterministic command, non-blocking update indication, native confirmation, and standard permission transition. The exact command and available mod APIs are no longer open feasibility questions. Full update behavior remains out of scope until Gate G1 is cleared.
+
