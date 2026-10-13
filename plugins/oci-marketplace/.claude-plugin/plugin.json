@@ -1,0 +1,10 @@
+{
+  "name": "oci-marketplace",
+  "displayName": "OCI Marketplace",
+  "version": "0.1.0",
+  "description": "Browse, install, and update skills distributed as OCI artifacts",
+  "author": {
+    "name": "dmartinol"
+  },
+  "repository": "https://github.com/dmartinol/claude-oci-marketplace-poc"
+}
