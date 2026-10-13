@@ -34,20 +34,20 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T002 — Prove standard marketplace integration
 
-- **Status:** Ready
+- **Status:** Done
 - **Requirements:** R2, R9
 - **Depends on:** T001
 - **Outcome:** Prove that the repository can be a valid Claude marketplace containing one installable manager plugin.
 - **Evidence:** `docs/feasibility-report.md#standard-marketplace`
 - **Done when:**
-  - [ ] A minimal marketplace and manager plugin shape passes `claude plugin validate`.
-  - [ ] The repository can be added as a marketplace from its Git URL.
-  - [ ] `/plugin` displays the marketplace and manager plugin.
-  - [ ] The manager plugin can be installed and enabled.
+  - [x] A minimal marketplace and manager plugin shape passes `claude plugin validate`.
+  - [x] The repository can be added as a marketplace from its Git URL.
+  - [x] `/plugin` displays the marketplace and manager plugin.
+  - [x] The manager plugin can be installed and enabled.
 
 ### T003 — Verify the mod interaction model
 
-- **Status:** Backlog
+- **Status:** Ready
 - **Requirements:** R2, R9, R13, R14
 - **Depends on:** T002
 - **Outcome:** Establish whether the required deterministic command and native update interaction are supported.
@@ -60,7 +60,7 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T004 — Verify registered-marketplace discovery
 
-- **Status:** Backlog
+- **Status:** Ready
 - **Requirements:** R10, R11, R12
 - **Depends on:** T002
 - **Outcome:** Discover compatible catalogs from Claude's authoritative registration state without creating a second registry.
