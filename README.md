@@ -9,6 +9,7 @@ The project is currently in the documentation and feasibility-spike phase. No lo
 - [Repository instructions](AGENTS.md)
 - [Requirements and acceptance criteria](docs/requirements.md)
 - [Product decisions and open questions](docs/decisions.md)
+- [Prioritized implementation plan](docs/plan.md)
 
 ## Development setup
 

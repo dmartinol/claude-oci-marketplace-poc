@@ -5,7 +5,8 @@
 - Read `docs/requirements.md` and `docs/decisions.md` before changing the implementation.
 - Treat `docs/requirements.md` as the normative product specification.
 - Keep resolved product choices in `docs/decisions.md`; do not silently replace them when an API behaves differently.
-- Keep README links and developer guidance consistent with both documents.
+- Use `docs/plan.md` for task order, dependencies, status, and completion evidence.
+- Keep README links and developer guidance consistent with these documents.
 
 ## Required workflow
 
