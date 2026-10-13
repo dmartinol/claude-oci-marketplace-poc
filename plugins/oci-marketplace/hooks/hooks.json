@@ -1,0 +1,4 @@
+{
+  "description": "OCI Marketplace manager mod",
+  "modules": ["./register.js"]
+}

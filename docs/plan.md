@@ -47,7 +47,7 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T003 — Verify the mod interaction model
 
-- **Status:** Ready
+- **Status:** In progress
 - **Requirements:** R2, R9, R13, R14
 - **Depends on:** T002
 - **Outcome:** Establish whether the required deterministic command and native update interaction are supported.
