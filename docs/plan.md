@@ -22,19 +22,19 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T001 — Inventory the demo environment
 
-- **Status:** Ready
+- **Status:** Done
 - **Requirements:** R1, R4, R9
 - **Depends on:** None
 - **Outcome:** Establish the actual macOS, Claude Code, `skillctl`, Git, and registry environment used by the demo.
 - **Evidence:** `docs/feasibility-report.md#environment`
 - **Done when:**
-  - [ ] macOS and executable locations are recorded.
-  - [ ] `claude --version` and `skillctl version` output are recorded.
-  - [ ] The supplied registry configuration is confirmed available without exposing credentials.
+  - [x] macOS and executable locations are recorded.
+  - [x] `claude --version` and the supported `skillctl --version` output are recorded.
+  - [x] The supplied registry configuration is confirmed available without exposing credentials.
 
 ### T002 — Prove standard marketplace integration
 
-- **Status:** Backlog
+- **Status:** Ready
 - **Requirements:** R2, R9
 - **Depends on:** T001
 - **Outcome:** Prove that the repository can be a valid Claude marketplace containing one installable manager plugin.

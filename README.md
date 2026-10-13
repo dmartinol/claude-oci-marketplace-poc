@@ -10,6 +10,7 @@ The project is currently in the documentation and feasibility-spike phase. No lo
 - [Requirements and acceptance criteria](docs/requirements.md)
 - [Product decisions and open questions](docs/decisions.md)
 - [Prioritized implementation plan](docs/plan.md)
+- [Feasibility evidence](docs/feasibility-report.md)
 
 ## Development setup
 
