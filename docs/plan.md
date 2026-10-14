@@ -112,21 +112,21 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T008 — Publish the feasibility report
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R1–R14
 - **Depends on:** T001–T007
 - **Outcome:** Provide enough evidence to approve, revise, or stop the full implementation.
 - **Evidence:** `docs/feasibility-report.md`
 - **Done when:**
-  - [ ] Commands, relevant output, observed APIs, and limitations are recorded.
-  - [ ] Every open feasibility question in `docs/decisions.md` is answered or marked blocked.
-  - [ ] Requirement conflicts and proposed changes are explicitly listed.
-  - [ ] The report ends with a clear go, revise, or no-go recommendation.
-  - [ ] Work stops at Gate G1.
+- [x] Commands, relevant output, observed APIs, and limitations are recorded.
+- [x] Every open feasibility question in `docs/decisions.md` is answered or marked blocked.
+- [x] Requirement conflicts and proposed changes are explicitly listed.
+- [x] The report ends with a clear go, revise, or no-go recommendation.
+- [x] Work stops at Gate G1.
 
 ## Gate G1 — Explicit approval
 
-- **Status:** Blocked pending completion of T008 and explicit user approval
+- **Status:** Blocked pending explicit user approval
 - **Entry condition:** T001–T008 are Done.
 - **Exit condition:** The feasibility evidence and any proposed requirement changes are reviewed and full implementation is explicitly approved.
 - **Rule:** Do not start P1–P5 before this gate is cleared.

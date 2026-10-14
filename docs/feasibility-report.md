@@ -594,6 +594,8 @@ Reloaded: 17 plugins · 47 skills · 20 agents · 9 hooks · 0 plugin LSP server
 
 An existing project skill directory was then replaced in place between two fresh sessions. The first invocation returned `T006 replacement v1 ready.`; after updating the same `SKILL.md`, the next session returned `T006 replacement v2 ready.`. This confirms the new-session fallback observes the replacement. The replacement fixture used a unique skill name to avoid conflating it with any pre-existing skill of the same name.
 
+A preliminary replacement using the shared sample name `claude-oci-demo` returned the original text after the file was changed. The cause was not isolated; a pre-existing same-name skill definition may have conflicted with the disposable project. The controlled unique-name replacement above is the passing result. The maintained manager must verify its on-disk namespacing when the same skill name is installed from multiple marketplaces.
+
 The official [Claude Code command reference](https://code.claude.com/docs/en/commands) describes `/reload-skills` as a skill and command directory rescan and `/reload-plugins` as reloading active plugins. The [hooks reference](https://code.claude.com/docs/en/hooks#sessionstart-decision-control) documents `SessionStart`'s `reloadSkills` field.
 
 ### T006 acceptance
@@ -660,4 +662,42 @@ This validates the contract with disposable fixtures only. Validation by the mai
 ### Conclusion
 
 T007 passes with no blocker. The tested provisional filename is finalized as `oci-catalog.json`; the minimum contract follows R3, and T005's metadata-only inspection provides version and digest values. No requirement change is needed.
+
+## Feasibility summary and recommendation
+
+**Task:** T008 — Publish the feasibility report
+
+**Result:** Pass
+
+**Observed:** 2026-10-14 (Europe/Rome)
+
+### P0 results
+
+| Task | Result | Requirements |
+| --- | --- | --- |
+| T001 — Demo environment | Pass | R1, R4, R9 |
+| T002 — Standard marketplace | Pass | R2, R9 |
+| T003 — Mod interaction | Pass | R2, R9, R13, R14 |
+| T004 — Marketplace discovery | Pass | R10, R11, R12 |
+| T005 — `skillctl` capabilities | Pass | R3, R4, R5, R7 |
+| T006 — Skill discovery and reload | Pass, with same-name collision caveat recorded above | R6, R9 |
+| T007 — OCI catalog contract | Pass with disposable fixtures | R3, R5, R12 |
+
+Claude Code was 2.1.296 during T001/T002/T003 and 2.1.299 during T006. This is observed environment version drift between probe dates, not a feasibility failure. `skillctl` remained at 0.4.0.
+
+### Requirement conflicts and limitations
+
+No requirement conflicts were found, and no requirement changes are proposed. The P0 spike verifies feasibility prerequisites; it does not claim that the full demo acceptance flow has been implemented. In particular, transactional replacement and rollback (R8), update selection/dismissal behavior (R13/R14), and production validation by the maintained loader remain implementation work after G1. T007 validates the selected catalog contract with fixtures, not production code. T006's ambiguous preliminary same-name result is recorded; the actual manager must verify namespaced on-disk installation for same-named skills from different marketplaces.
+
+### T008 acceptance
+
+- [x] Commands, relevant output, observed APIs, and limitations are recorded.
+- [x] Every open feasibility question in `docs/decisions.md` is answered or marked blocked.
+- [x] Requirement conflicts and proposed changes are explicitly listed.
+- [x] The report ends with a clear go, revise, or no-go recommendation.
+- [x] Work stops at Gate G1.
+
+### Recommendation
+
+**Go to G1 review.** All P0 feasibility tasks are complete, and the prior reload and catalog questions in `docs/decisions.md` are resolved. Review this report and authorize full implementation explicitly before starting P1–P5. This recommendation does not clear G1 by itself.
 

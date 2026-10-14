@@ -2,7 +2,7 @@
 
 Developer proof of concept for browsing, installing, using, and updating OCI-distributed skills entirely inside stock Claude Code.
 
-The project is currently in the feasibility-spike phase. T001–T007 are complete; T008 remains pending. Full workflow implementation remains gated by G1.
+The feasibility spike is complete (T001–T008). The report recommends proceeding to G1 review; full workflow implementation remains gated by explicit approval.
 
 ## Project documentation
 
@@ -27,11 +27,11 @@ Before making implementation changes, read [AGENTS.md](AGENTS.md). Begin with th
 
 ## Installation
 
-Installation instructions will be added after the feasibility spike validates the marketplace and plugin packaging flow.
+Installation instructions for the maintained manager will be added after G1 approves the full implementation. The feasibility report records the validated marketplace and plugin packaging flow.
 
 ## Usage
 
-Usage instructions will be added after the feasibility spike establishes the actual namespaced command, mod UI, permission flow, and reload behavior.
+Full manager usage instructions will be added after G1 approval. The feasibility report records the verified namespaced command, mod UI, permission flow, and skill reload behavior.
 
 ## References
 
