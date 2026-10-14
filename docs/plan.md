@@ -16,7 +16,7 @@ For P1–P5, the checklist under each task is its acceptance gate. Check an item
 
 ## Current priority
 
-The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. On 2026-10-14, the user clarified that the product is a general marketplace manager and OCI support is an extension. T304 is complete; continue with T501, T502, and T503 in dependency order, preserving each outcome and blocker.
+The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. On 2026-10-14, the user clarified that the product is a general marketplace manager and OCI support is an extension. T304 is complete, T501 and T502 remain blocked on live acceptance prerequisites, and T503's final audit is complete.
 
 ## P0 — Feasibility spike
 
@@ -360,12 +360,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T503 — Final validation and secret review
 
-- **Status:** Ready — T304 is complete and T501/T502 outcomes and remaining blockers are recorded.
+- **Status:** Done — final validation, acceptance results, secret review, and the no-go recommendation are recorded. T501 and T502 remain blocked on live acceptance prerequisites.
 - **Requirements:** R1–R14
 - **Depends on:** T304, T501, and T502 outcomes and remaining acceptance gaps recorded
-- **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
+- **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-secret-review)
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
-- **Progress:** Strict marketplace/plugin validation and installer failure checks pass in this container. The unchanged v0.3.2 implementation passed all 23 plugin tests in the supported Claude Code 2.1.299 environment recorded under T501. The current Claude Code 2.1.156 cannot rerun `claude plugin test`, and `skillctl` is unavailable; both limits and all acceptance results are recorded in the report. Local links and tracked content were reviewed.
+- **Progress:** On Claude Code 2.1.299 with `skillctl` 0.4.0, strict repository/plugin validation, all 24 plugin tests, installer failure-injection checks, and validation of all four local skill fixtures passed. The README replay passed through manager setup, registration, listing, and v1-to-v2 catalog edits. Registry operations returned HTTP 401 and model invocation requires login, so T501/T502 remain blocked. Local links, tracked/staged content, and credential/machine-local data were reviewed; the two external rehearsal catalogs were restored to their documented v2 references at the user's direction.
 - **Completion checks:**
   - [x] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass on the final implementation.
   - [x] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
