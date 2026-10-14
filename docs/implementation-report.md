@@ -126,11 +126,31 @@ $ claude plugin test ./plugins/oci-marketplace
 
 Failure injection uses a local `skillctl` stub and does not require registry access. T005 separately verified authenticated retrieval from the supplied Quay repository. End-to-end install through Claude and invocation of the sample remain T303 acceptance checks.
 
+## T301 — Marketplace source registration
+
+**Result:** Pass
+
+`add <source>` passes the supplied source as a safely quoted argument to `claude plugin marketplace add --scope user`, then refreshes discovery through Claude's `marketplace list --json` output. The manager leaves source-format handling to Claude's command; the installed CLI help confirms it accepts URLs, paths, and GitHub repositories. A successful standard-only fixture reports that normal `/plugin` behavior is unchanged, while an OCI-enabled fixture appears in the refreshed catalog count. A Claude command error is returned clearly without attempting discovery refresh. The deterministic add runs through Claude's permission-checked Bash tool call.
+
+```text
+$ claude plugin marketplace add --help
+Add a marketplace from a URL, path, or GitHub repo
+
+$ claude plugin test ./plugins/oci-marketplace
+16 pass
+0 fail
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+```
+
+The interaction test mocks Claude's command result and marketplace list to avoid changing live user registrations. T004 independently recorded a real user-scope registration and removal of a standard-only marketplace; T003 verified the permission-checked mod tool flow.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
-- T201 is complete.
 - P2 (T201–T204) is complete.
-- P3–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
+- T301 is complete. T302 and T303 remain pending their plan dependencies and end-to-end acceptance evidence.
+- P4–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

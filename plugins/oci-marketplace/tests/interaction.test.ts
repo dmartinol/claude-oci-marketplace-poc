@@ -222,3 +222,58 @@ test('reports skillctl process and metadata failures clearly', async ($, on) => 
     ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
   ])
 })
+
+test('adds standard-only and OCI marketplaces at user scope, then refreshes discovery', async ($, on) => {
+  let marketplaceName = 'standard-only'
+  let hasCatalog = false
+  const commands: string[] = []
+  on('tool.call', { tool: 'Bash' }, (_, event) => {
+    commands.push(event.command)
+    if (event.command.includes('oci.git')) {
+      marketplaceName = 'oci-enabled'
+      hasCatalog = true
+    }
+    return { result: { text: `Successfully added marketplace: ${marketplaceName}` } }
+  })
+  on('process.run', (_, event) => ({
+    value: {
+      exitCode: 0,
+      stdout: JSON.stringify([{ name: marketplaceName, installLocation: `/tmp/${marketplaceName}` }]),
+      stderr: '',
+      isStdoutTruncated: false,
+      isStderrTruncated: false,
+    },
+  }))
+  on('fs.exists', () => ({ value: hasCatalog }))
+  on('fs.read', () => ({
+    value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }),
+  }))
+
+  const standard = await $.command.run({ command: 'oci-marketplace', args: 'add https://example.invalid/standard.git' })
+  const oci = await $.command.run({ command: 'oci-marketplace', args: 'add ssh://git@example.invalid/oci.git' })
+
+  expect(standard.text).toContain('No OCI catalog was found; standard marketplace behavior is unchanged.')
+  expect(oci.text).toContain('Discovered 1 OCI skill.')
+  expect(commands).toEqual([
+    "claude plugin marketplace add --scope user 'https://example.invalid/standard.git'",
+    "claude plugin marketplace add --scope user 'ssh://git@example.invalid/oci.git'",
+  ])
+})
+
+test('returns Claude marketplace-add errors without refreshing discovery', async ($, on) => {
+  let listCalls = 0
+  on('tool.call', { tool: 'Bash' }, () => ({
+    result: { isError: true, text: 'invalid marketplace source' },
+    isError: true,
+    text: 'invalid marketplace source',
+  }))
+  on('process.run', () => {
+    listCalls += 1
+    return { value: { exitCode: 0, stdout: '[]', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'add https://example.invalid/bad.git' })
+
+  expect(answer.text).toContain('Marketplace registration failed: invalid marketplace source')
+  expect(listCalls).toBe(0)
+})

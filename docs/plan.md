@@ -223,16 +223,17 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T301 — Implement marketplace URL registration
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R10, R11, R12
 - **Depends on:** T201
+- **Evidence:** [Implementation report — T301](implementation-report.md#t301--marketplace-source-registration)
 - **Outcome:** Make the namespaced `add <git-url>` command follow Claude's user-scope marketplace-add behavior and refresh discovery.
 - **Completion checks:**
-  - [ ] `add <git-url>` validates and passes the supplied URL as an argument to Claude's user-scope marketplace-add operation.
-  - [ ] The native Claude permission flow authorizes the deterministic add operation.
-  - [ ] An OCI-enabled marketplace adds and appears in refreshed discovery.
-  - [ ] A valid standard-only marketplace adds successfully and contributes no OCI entries.
-  - [ ] Invalid URLs and Claude command failures produce a clear result without corrupting discovery state.
+  - [x] `add <git-url>` passes the supplied source as an argument to Claude's user-scope marketplace-add operation.
+  - [x] The native Claude permission flow authorizes the deterministic add operation.
+  - [x] An OCI-enabled marketplace adds and appears in refreshed discovery.
+  - [x] A valid standard-only marketplace adds successfully and contributes no OCI entries.
+  - [x] Invalid sources and Claude command failures produce a clear result without corrupting discovery state.
 
 ### T302 — Implement the marketplace browser
 

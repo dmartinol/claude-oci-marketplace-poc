@@ -302,8 +302,8 @@ async function reviewUpdates($) {
 }
 
 async function addMarketplace($, source) {
-  if (!/^(https:\/\/|ssh:\/\/|git@)[^\s]+$/.test(source)) {
-    return 'Provide an HTTPS, SSH, or git@ Git URL.'
+  if (typeof source !== 'string' || source.trim() === '' || /[\x00-\x1f\x7f]/.test(source)) {
+    return 'Provide a non-empty marketplace source.'
   }
   const call = await $.tool.call({
     tool: 'Bash',
