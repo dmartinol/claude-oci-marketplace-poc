@@ -20,7 +20,9 @@ if [ "${TEST_MODE:-}" = fail-fetch ]; then
   exit 9
 fi
 mkdir -p "$stage/$TEST_SKILL"
-printf '%s\n' '---' "name: $TEST_SKILL" 'description: temporary fixture' '---' "# $TEST_CONTENT" > "$stage/$TEST_SKILL/SKILL.md"
+skill_name=$TEST_SKILL
+if [ "${TEST_MODE:-}" = wrong-name ]; then skill_name=unexpected-skill; fi
+printf '%s\n' '---' "name: $skill_name" 'description: temporary fixture' '---' "# $TEST_CONTENT" > "$stage/$TEST_SKILL/SKILL.md"
 if [ "${TEST_MODE:-}" != missing-card ]; then
   printf '%s\n' 'apiVersion: skillimage.io/v1alpha1' > "$stage/$TEST_SKILL/skill.yaml"
 fi
@@ -42,16 +44,23 @@ chmod +x "$work/bin/mv"
 
 digest="sha256:$(printf 'a%.0s' $(seq 1 64))"
 export PATH="$work/bin:$PATH"
-export TEST_SKILL=demo-skill TEST_DIGEST="$digest" TEST_CONTENT=v2
+export TEST_SKILL=demo-skill TEST_DIGEST="$digest" TEST_CONTENT=v1
 
 stage="$work/new-stage"
 target="$work/skills/demo@marketplace"
 backup="$work/skills/.backup"
 TEST_MODE=ok TEST_STAGE_ROOT="$stage" "$installer" quay.io/example/demo:2.0.0 "$digest" "$TEST_SKILL" "$stage" "$target" "$backup" > "$work/new-install.out"
-grep -q '# v2' "$target/SKILL.md"
+grep -q '# v1' "$target/SKILL.md"
 [ ! -e "$stage" ]
 
-for mode in fail-fetch missing-card mismatch fail-activate; do
+stage="$work/update-stage"
+backup="$work/.backup-update"
+TEST_CONTENT=v2 TEST_MODE=ok TEST_STAGE_ROOT="$stage" "$installer" quay.io/example/demo:2.0.0 "$digest" "$TEST_SKILL" "$stage" "$target" "$backup" > "$work/update.out"
+grep -q '# v2' "$target/SKILL.md"
+[ ! -e "$stage" ]
+[ ! -e "$backup" ]
+
+for mode in fail-fetch missing-card wrong-name mismatch fail-activate; do
   target="$work/skills/demo@marketplace"
   stage="$work/stage-$mode"
   backup="$work/skills/.backup-$mode"
@@ -72,4 +81,4 @@ for mode in fail-fetch missing-card mismatch fail-activate; do
   [ ! -e "$backup" ]
 done
 
-echo 'PASS: install activates a valid artifact; fetch, digest, validation, and activation failures preserve the prior installation.'
+echo 'PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.'

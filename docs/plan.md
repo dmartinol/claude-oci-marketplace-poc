@@ -208,15 +208,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T204 — Implement staged installation and replacement
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R4, R8
 - **Depends on:** T202, T203
+- **Evidence:** [Implementation report — T204](implementation-report.md#t204--staged-installation-and-replacement)
 - **Outcome:** Install and update through validation and atomic replacement while preserving the working installation on failure.
 - **Completion checks:**
-  - [ ] Retrieval stages into a temporary location and validates digest, skill files, and declared skill name before activation.
-  - [ ] Activation targets a deterministic marketplace-qualified skill directory and replaces it atomically.
-  - [ ] A successful install/update makes the validated staged skill active and only then updates installed state.
-  - [ ] Injected fetch, digest, unpack/validation, and activation failures preserve the prior skill and its state.
+  - [x] Retrieval stages into a temporary location and validates digest, skill files, and declared skill name before activation.
+  - [x] Activation targets a deterministic marketplace-qualified skill directory and replaces it atomically.
+  - [x] A successful install/update makes the validated staged skill active and only then updates installed state.
+  - [x] Injected fetch, digest, unpack/validation, and activation failures preserve the prior skill and its state.
 
 ## P3 — Browse and install workflow
 

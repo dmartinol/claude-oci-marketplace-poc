@@ -107,11 +107,30 @@ Validation passed
 
 These tests exercise process errors and timeout propagation with disposable mocks; an actual install through Claude's permission UI and the staged replacement are validated in T204/T303.
 
+## T204 — Staged installation and replacement
+
+**Result:** Pass
+
+The deterministic installer pulls into a unique staging directory under the Claude skills root, checks that the pull digest matches the inspected digest, requires regular `SKILL.md` and `skill.yaml` files, and verifies the declared skill name before activation. It moves an existing target to a same-filesystem backup, activates the staged directory, removes the backup only after success, and restores the backup on activation failure. The target directory is marketplace-qualified. The manager writes installed state only after its permission-checked helper call succeeds, as verified by T202's success and failure interaction fixtures.
+
+The disposable fixture exercised both a first install and v1-to-v2 replacement, then injected fetch, digest mismatch, missing SkillCard, wrong skill name, and activation failures while asserting the prior v1 files remained in place:
+
+```text
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+
+$ claude plugin test ./plugins/oci-marketplace
+14 pass
+0 fail
+```
+
+Failure injection uses a local `skillctl` stub and does not require registry access. T005 separately verified authenticated retrieval from the supplied Quay repository. End-to-end install through Claude and invocation of the sample remain T303 acceptance checks.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - T201 is complete.
-- T202 installed-state persistence and T203 deterministic `skillctl` operations are complete. T204 staged replacement remains under implementation.
+- P2 (T201–T204) is complete.
 - P3–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.
