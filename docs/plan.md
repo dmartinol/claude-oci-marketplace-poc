@@ -329,11 +329,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** Backlog — waiting for T501 completion
+- **Status:** Blocked — the README procedure is written and its catalog snippets validate, but the isolated Claude replay cannot run in the current environment.
 - **Requirements:** R1, R2, R6, R10
 - **Depends on:** T501
 - **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
-- **Outcome:** Replace the README's pending sections with tested setup, installation, command, permission, and reload instructions.
+- **Outcome:** Provide reproducible clean setup, installation, multi-marketplace v1-to-v2, permission, and reload instructions.
+- **Progress:** README now includes the full two-catalog procedure and expected versions, digests, and invocation responses. Its generated local catalogs pass available marketplace validation and their documented v1-to-v2 tag transition is asserted. Live verification is pending the supported Claude/`skillctl` rehearsal environment.
 - **Completion checks:**
   - [x] README prerequisites and setup steps are verified on an isolated Claude config on macOS.
   - [x] README records the tested marketplace registration and manager installation path.

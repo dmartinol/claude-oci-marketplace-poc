@@ -351,9 +351,13 @@ The requested `/Users/...` checkout is not mounted in this environment; the avai
 
 ## T502 — README guidance
 
-**Result:** Backlog — the README now documents the second skill artifact and marketplace fixture, but its clean two-update reproduction steps remain pending T501.
+**Result:** Blocked — the README now contains a complete clean-profile and two-catalog v1-to-v2 procedure, but the live isolated Claude replay could not be run in this execution environment.
 
-The README now documents the tested Claude Code and `skillctl` versions, strict validation, Git marketplace registration, manager installation, all five manager commands, standard-only behavior, the supplied v2 catalog reference, the confirmation and Bash permission sequence, and `/reload-skills` with new-session fallback. Clean-config marketplace registration and manager installation succeeded in T501. A fresh user has not yet reproduced the complete multi-update acceptance flow, so T502 is not marked Done.
+The procedure starts from the tested macOS prerequisites, creates a fresh `CLAUDE_CONFIG_DIR`, registers the Git marketplace, installs the manager, creates temporary demo and guide catalogs with the supplied v1 tags, and registers both local catalogs. It documents the installed v1 versions and digests, reload and invocation responses, the v2 tag switch, multi-select update approval, v2 records/digests, second reload, and expected updated responses. It uses only the already-published artifacts and existing `quay.io/dmartino/claude-oci-demo` repository.
+
+I extracted and executed both Python heredocs from the README with a temporary `REHEARSAL_DIR`. Both catalog-only manifests passed `claude plugin validate` with the expected `Marketplace has no plugins defined` warning. Assertions confirmed the first step writes the demo `0.1.1-draft` and guide `claude-oci-guide-0.1.0-draft` references, and the second changes them to the supplied v2 tags. This checks the documented fixture generation and tag transition.
+
+The actual clean-profile workflow remains unverified here: the rehearsal configs are absent, this container has Claude Code 2.1.156 instead of 2.1.299, `skillctl` is unavailable, and this CLI rejects `claude plugin test` as an unknown command. Marketplace registration, manager installation, browse, artifact installation, update selection, reload, and invocation were not run from the revised README. The final clean-user checklist item remains open.
 
 ## T503 — Final validation and verdict
 
