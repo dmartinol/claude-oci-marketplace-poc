@@ -2,7 +2,7 @@
 
 Developer proof of concept for browsing, installing, using, and updating OCI-distributed skills entirely inside stock Claude Code.
 
-The project is currently in the feasibility-spike phase. T001–T006 are complete; T007–T008 remain pending. Full workflow implementation remains gated by G1.
+The project is currently in the feasibility-spike phase. T001–T007 are complete; T008 remains pending. Full workflow implementation remains gated by G1.
 
 ## Project documentation
 

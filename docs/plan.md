@@ -99,16 +99,16 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T007 — Resolve the OCI catalog contract
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R3, R5, R12
 - **Depends on:** T004, T005
 - **Outcome:** Select the extension-owned catalog filename and its minimum validated schema.
 - **Evidence:** `docs/feasibility-report.md#oci-catalog`
 - **Done when:**
-  - [ ] The filename and discovery location are recorded.
-  - [ ] Required catalog and skill fields are defined.
-  - [ ] Version, tag, repository, and resolved-digest semantics are defined.
-  - [ ] `<skill-name>@<marketplace-name>` identity and duplicate-name behavior are demonstrated.
+- [x] The filename and discovery location are recorded.
+- [x] Required catalog and skill fields are defined.
+- [x] Version, tag, repository, and resolved-digest semantics are defined.
+- [x] `<skill-name>@<marketplace-name>` identity and duplicate-name behavior are demonstrated.
 
 ### T008 — Publish the feasibility report
 

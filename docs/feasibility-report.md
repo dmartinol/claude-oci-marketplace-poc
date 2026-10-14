@@ -607,3 +607,57 @@ The official [Claude Code command reference](https://code.claude.com/docs/en/com
 
 T006 passes with no blocker. Use Claude's standard `/reload-skills` refresh after an interactive install when same-session availability is desired; a fresh session also discovers replacement content. A `SessionStart` installer can return `reloadSkills: true` for skills it places before the first prompt. The manager requires no custom hot reload.
 
+## OCI catalog
+
+**Task:** T007 — Resolve the OCI catalog contract
+
+**Result:** Pass
+
+**Observed:** 2026-10-14 (Europe/Rome)
+
+### Selected catalog contract
+
+The extension-owned catalog is `oci-catalog.json` at the registered marketplace's root, alongside the standard `.claude-plugin/marketplace.json`. The minimum shape is an object with a `skills` array. Each entry requires non-empty `name`, `description`, and `repository` strings; `repository` is a tagged OCI image reference. For example:
+
+```json
+{
+  "skills": [
+    {
+      "name": "claude-oci-demo",
+      "description": "Demonstrates OCI skill distribution and reload behavior",
+      "repository": "quay.io/dmartino/claude-oci-demo:0.1.1-draft"
+    }
+  ]
+}
+```
+
+Catalog identity is `<skill-name>@<registered-marketplace-name>`. A skill name may appear once per catalog; repeated names within one catalog are invalid. The same name in separate OCI-enabled marketplaces yields separate entries. A registered marketplace without the root catalog remains a standard Claude marketplace and contributes no OCI entries.
+
+The repository reference supplies the registry host, repository path, and tag used to inspect a publication. The tag is a lookup selector, not the SkillCard version. T005's verified `skillctl inspect` result for tag `0.1.1-draft` reported SkillCard version `0.1.1` and digest `sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3`. The catalog stores the tagged reference; it does not store version or digest. `inspect` supplies current version and resolved digest without downloading layers. The manager derives source registry from the reference's host.
+
+### Fixture validation
+
+The disposable fixture probe exercised the selected path, fields, identity, duplicates, and standard-only behavior. It did not alter Claude marketplace registrations or add a production parser:
+
+```text
+$ python3 /tmp/t007_catalog_probe.py
+PASS: root filename/minimum fields; identities claude-oci-demo@marketplace-one != claude-oci-demo@marketplace-two
+PASS: duplicate name rejected within one catalog (duplicate skill name in catalog: claude-oci-demo)
+PASS: each required skill field is enforced
+PASS: standard-only marketplace with no root catalog contributes zero OCI entries
+PASS: T005 inspect evidence distinguishes tag, SkillCard version, and resolved digest
+```
+
+This validates the contract with disposable fixtures only. Validation by the maintained marketplace loader remains implementation work after Gate G1.
+
+### T007 acceptance
+
+- [x] The filename and discovery location are recorded.
+- [x] Required catalog and skill fields are defined.
+- [x] Version, tag, repository, and resolved-digest semantics are defined.
+- [x] `<skill-name>@<marketplace-name>` identity and duplicate-name behavior are demonstrated.
+
+### Conclusion
+
+T007 passes with no blocker. The tested provisional filename is finalized as `oci-catalog.json`; the minimum contract follows R3, and T005's metadata-only inspection provides version and digest values. No requirement change is needed.
+

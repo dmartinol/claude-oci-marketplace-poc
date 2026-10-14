@@ -14,7 +14,7 @@ The manager command is `/oci-marketplace`. Its future `add <git-url>` action reg
 
 ### D3 — OCI catalog separation
 
-OCI metadata lives in a separate extension-owned catalog file. Claude's `.claude-plugin/marketplace.json` remains standard.
+OCI metadata lives in a separate extension-owned `oci-catalog.json` at the marketplace root. Claude's `.claude-plugin/marketplace.json` remains standard. The catalog is an object with a `skills` array; each entry requires non-empty `name`, `description`, and `repository` strings. The `repository` is a tagged OCI image reference.
 
 ### D4 — Marketplace source of truth
 
@@ -22,7 +22,7 @@ Claude's registered marketplace configuration is authoritative. The manager disc
 
 ### D5 — Multiple catalogs and identity
 
-Multiple OCI-enabled marketplaces are supported. Skills use the standard marketplace-style identity `<skill-name>@<marketplace-name>`.
+Multiple OCI-enabled marketplaces are supported. Skills use the standard marketplace-style identity `<skill-name>@<marketplace-name>`. Skill names must be unique within one catalog; the same name in separate marketplaces remains distinct. A marketplace without `oci-catalog.json` contributes no OCI skills.
 
 ### D6 — Standard-only marketplace compatibility
 
@@ -52,9 +52,9 @@ The manager enumerates registered marketplaces through Claude Code's `claude plu
 
 ### D12 — `skillctl` distribution contract
 
-The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI skill artifacts. A Claude-compatible artifact contains both `SKILL.md` and `skill.yaml`; `inspect` resolves the published digest without downloading layers, and `pull` retrieves and unpacks the artifact. Protected Quay credentials are reused from the local container credential stores.
+The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI skill artifacts. A Claude-compatible artifact contains both `SKILL.md` and `skill.yaml`; `inspect` resolves the published digest without downloading layers, and `pull` retrieves and unpacks the artifact. A catalog's tagged repository reference selects the published artifact; SkillCard version and resolved digest come from `inspect` and are not stored in the catalog. The source registry is the host in the repository reference. Protected Quay credentials are reused from the local container credential stores.
 
 ## Open feasibility questions
 
-- What exact filename and minimum schema should the extension-owned OCI catalog use?
+None. The P0 feasibility questions are resolved; full implementation remains gated by G1.
 
