@@ -4,7 +4,7 @@ This report records evidence for P1–P5 tasks in [plan.md](plan.md). The P0 fea
 
 ## Scope revision — general marketplace management
 
-On 2026-10-14, the user clarified that this product is a general marketplace manager, with OCI skill handling as an optional extension. The current `/oci-marketplace` implementation lists OCI skills but hides standard-only marketplace rows. It does not meet the clarified request. Requirements R2, R10–R12, decisions D1, D2, D6, D11, and D14, and plan task T304 now track the generic `/marketplace-manager` entry point and complete marketplace listing. The previous T503 audit and go verdict apply only to the narrower OCI-focused scope and are superseded for the expanded MVP until T304 is implemented and T503 reruns.
+On 2026-10-14, the user clarified that this product is a general marketplace manager, with OCI skill handling as an optional extension. Before T304, the `/oci-marketplace` implementation listed OCI skills but hid standard-only marketplace rows. Requirements R2, R10–R12, decisions D1, D2, D6, D11, and D14, and plan task T304 tracked the generic `/marketplace-manager` entry point and complete marketplace listing. T304 is now implemented and live-validated; the earlier T503 audit remains superseded until the expanded T501–T503 tasks finish.
 
 ## T101 — Validated plugin scaffold
 
@@ -410,13 +410,68 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | Apply a selected update through confirmation and permission, reload, and invoke v2 | Pass for demo | T403 records the complete live demo v2 flow. Guide v2 invocation and independent installed-record verification remain pending under T501. |
 | Preserve installed v1 after fetch, digest, validation, or activation failure | Pass | T403 fixtures and the final install-script failure-injection run. |
 
-**Verdict:** The prior go recommendation applies only to the OCI-focused install-and-update implementation. The expanded MVP is not yet ready for a go recommendation: the generic command, all-marketplace list, standard-only classification, and their live checks remain unimplemented under T304. T501 and T502 also retain the limitations recorded above. T503 must be rerun after the clarified scope is implemented. No registry coordinates were invented and no artifacts were republished.
+**Historical verdict (superseded by T304):** At the time of this audit, the expanded MVP was not ready for a go recommendation because the generic command and complete marketplace list were not implemented. T304 has since completed those items and records live checks below. T501 and T502 still require their expanded-scope rechecks, and T503 must rerun after them. No registry coordinates were invented and no artifacts were republished.
 
 ## T304 — General marketplace manager
 
-**Result:** Ready — implementation has not started.
+**Result:** Done.
 
-The user clarified that marketplace management is the core product and OCI skill management is an extension. The existing code and live evidence cover only the OCI-focused command and browser. T304 therefore tracks renaming the command to `/marketplace-manager` (with live collision validation), listing every marketplace from Claude's registered marketplace output, classifying standard-only and OCI-enabled entries, and adding either marketplace type while retaining the OCI workflow. No implementation or live validation evidence is claimed for these checks yet.
+The implementation now exposes one general `marketplace-manager` plugin and registers `/marketplace-manager`. Its `list` action reads `claude plugin marketplace list --json`, shows each registration's name and source, and classifies it by the presence of `oci-catalog.json` at Claude's reported `installLocation`. Standard-only entries stay visible in this list and are not parsed into OCI skill entries. `add <source>` invokes Claude's user-scope marketplace registration command and then renders the complete refreshed list. OCI browse/install/update actions remain on the same manager; standard plugin browsing and installation stay in Claude's `/plugin` interface.
+
+### Validation and live evidence
+
+The supported tools in this environment are:
+
+```text
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl --version
+skillctl version 0.4.0
+
+$ claude plugin marketplace list --json
+[]
+```
+
+The last output is the current default profile's authoritative marketplace list. I tested registration and listing in a fresh temporary `CLAUDE_CONFIG_DIR`, leaving the default profile unchanged. On Claude Code 2.1.299, the actual plugin runtime loaded and executed `/marketplace-manager list` successfully. The command did not collide with a built-in command or alias; T003's earlier `/marketplace` built-in alias conflict remains the reason for the longer command name.
+
+Through the manager command in that disposable profile, I added a temporary strict-valid standard-only marketplace and the repository marketplace, which contains the supplied OCI catalog. Each add refreshed the complete list:
+
+```text
+[standard add]
+Successfully added marketplace: manager-live-standard (declared in user settings)
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+
+[OCI add]
+Successfully added marketplace: claude-oci-marketplace (declared in user settings)
+- claude-oci-marketplace | directory: <repository path> | OCI-enabled
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+
+[complete list]
+- claude-oci-marketplace | directory: <repository path> | OCI-enabled
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+```
+
+The live `list` output also directs users to `/plugin` for standard plugins and to `/marketplace-manager browse` for OCI skills. Interaction tests prove the list uses only Claude's authoritative registration output, standard-only marketplaces are omitted from OCI browsing, and add performs user-scope registration then refreshes all rows after both standard-only and OCI-enabled adds. Existing OCI update/install tests continue to pass.
+
+I also added the local repository marketplace and installed the renamed plugin through Claude's native plugin manager in a fresh profile. `claude plugin list` showed `marketplace-manager@claude-oci-marketplace`, version 0.4.0, enabled at user scope, and a new session without `--plugin-dir` successfully ran `/marketplace-manager list`.
+
+```text
+$ claude plugin validate --strict .
+Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+24 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+```
+
+The plugin marketplace entry now identifies the plugin as `marketplace-manager` version 0.4.0. README installation and command guidance use the generic plugin and command names. Historical OCI-only commands remain in earlier report sections as evidence for the superseded implementation and are labeled by their task and date.
 
 ## Current implementation status
 
@@ -424,6 +479,7 @@ The user clarified that marketplace management is the core product and OCI skill
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
 - P4 (T401–T403) is complete.
-- The clarified general-marketplace scope is incomplete: T304 is ready; T501 and T502 have remaining live verification and guidance work; T503's prior audit is superseded and must be rerun after T304.
+- T304's general-marketplace implementation and live manager checks are complete.
+- T501 must recheck remaining acceptance items and the live registry workflow; T502 must complete the user guide and its reproducibility check; T503 must rerun the final audit after those outcomes.
 
 No credentials, authentication files, or machine-local configuration files are staged or tracked. `.serena/` and `openshell/` were not staged or modified.

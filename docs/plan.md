@@ -16,7 +16,7 @@ For P1–P5, the checklist under each task is its acceptance gate. Check an item
 
 ## Current priority
 
-The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. On 2026-10-14, the user clarified that the product is a general marketplace manager and OCI support is an extension. Execute P1–P5 plus the new T304 scope task in dependency order; retain evidence and task status in this tracker.
+The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. On 2026-10-14, the user clarified that the product is a general marketplace manager and OCI support is an extension. T304 is complete; continue with T501, T502, and T503 in dependency order, preserving each outcome and blocker.
 
 ## P0 — Feasibility spike
 
@@ -264,18 +264,18 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T304 — Make the manager general-purpose and list all marketplaces
 
-- **Status:** Ready
+- **Status:** Done
 - **Requirements:** R2, R10, R11, R12
 - **Depends on:** T201, T301–T303
 - **Evidence:** [Implementation report — T304](implementation-report.md#t304--general-marketplace-manager)
 - **Outcome:** Replace the OCI-specific command entry point with the generic marketplace manager, show all registered marketplaces, and retain OCI skill workflows as an extension.
 - **Completion checks:**
-  - [ ] The delivered command is `/marketplace-manager`, accepted by the supported Claude version without colliding with built-in commands or aliases; user-facing command docs, tests, and help use the generic entry point, with historical evidence clearly labeled.
-  - [ ] A `list` action displays every marketplace from Claude's authoritative registration output, with its name/source and standard-only or OCI-enabled classification.
-  - [ ] Standard-only marketplace rows remain visible in the manager list while contributing no OCI skill entries to the OCI skill browser.
-  - [ ] `add <source>` registers both standard-only and OCI-enabled marketplaces and refreshes the complete list.
-  - [ ] OCI browse/install/update behavior remains available for OCI-enabled entries, while standard plugin operations remain available through Claude's `/plugin` UI.
-  - [ ] Interaction tests cover complete marketplace listing, classification, adding both marketplace types, and the generic command name.
+  - [x] The delivered command is `/marketplace-manager`, accepted by the supported Claude version without colliding with built-in commands or aliases; user-facing command docs, tests, and help use the generic entry point, with historical evidence clearly labeled.
+  - [x] A `list` action displays every marketplace from Claude's authoritative registration output, with its name/source and standard-only or OCI-enabled classification.
+  - [x] Standard-only marketplace rows remain visible in the manager list while contributing no OCI skill entries to the OCI skill browser.
+  - [x] `add <source>` registers both standard-only and OCI-enabled marketplaces and refreshes the complete list.
+  - [x] OCI browse/install/update behavior remains available for OCI-enabled entries, while standard plugin operations remain available through Claude's `/plugin` UI.
+  - [x] Interaction tests cover complete marketplace listing, classification, adding both marketplace types, and the generic command name.
 
 ## P4 — Update workflow
 

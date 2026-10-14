@@ -1,5 +1,5 @@
 {
-  "description": "OCI Marketplace manager mod",
+  "description": "Claude Marketplace Manager mod",
   "modules": ["./register.js"],
   "hooks": {
     "SessionStart": [

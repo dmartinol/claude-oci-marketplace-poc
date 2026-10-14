@@ -34,7 +34,7 @@ Validate and register the repository, then install its manager plugin at user sc
 claude plugin validate --strict .
 claude plugin validate --strict ./plugins/oci-marketplace
 claude plugin marketplace add git@github.com:dmartinol/claude-oci-marketplace-poc.git --scope user
-claude plugin install oci-marketplace@claude-oci-marketplace --scope user
+claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 claude plugin list
 ```
 
@@ -44,26 +44,27 @@ If the marketplace is already registered, refresh it after publishing marketplac
 
 ```bash
 claude plugin marketplace update claude-oci-marketplace
-claude plugin update oci-marketplace@claude-oci-marketplace
+claude plugin update marketplace-manager@claude-oci-marketplace
 ```
 
 The OCI catalog is `oci-catalog.json` at the marketplace root. The main marketplace sample points to `quay.io/dmartino/claude-oci-demo:0.2.0-draft`. The second, uniquely named `claude-oci-guide` sample uses the same supplied Quay repository with tags `claude-oci-guide-0.1.0-draft` and `claude-oci-guide-0.2.0-draft`; its catalog fixture is [examples/claude-oci-guide-marketplace](examples/claude-oci-guide-marketplace). The tag selects the artifact; `skillctl inspect` supplies the SkillCard version and resolved digest. The registry host (`quay.io`) is the displayed source. No second registry repository or namespace is used.
 
 ## Usage
 
-### Scope update
+### Marketplace manager
 
-The accepted product scope is broader than the current implementation: the generic `/marketplace-manager` command must list all registered marketplaces, including standard-only marketplaces, while OCI skill operations remain an add-on. T304 in the plan tracks the command rename and unified marketplace list. Until T304 is implemented, the command table and rehearsal below describe the current OCI-specific `/oci-marketplace` implementation and do not satisfy the expanded scope.
+The `/marketplace-manager` command lists every marketplace registered with Claude and identifies each as standard-only or OCI-enabled. Add either marketplace type at user scope with `add <source>`. Standard-only marketplaces remain usable through Claude’s native `/plugin` interface; OCI skill browsing, installation, and updates apply only to OCI-enabled marketplaces.
 
-Current implementation commands:
+Manager commands:
 
 | Command | Action |
 | --- | --- |
-| `/oci-marketplace browse` | Inspect registered OCI catalogs and choose a skill. Browsing resolves metadata only; it does not pull artifact layers. |
-| `/oci-marketplace add <git-url>` | Add a marketplace at user scope through Claude's standard `claude plugin marketplace add` command. A marketplace without `oci-catalog.json` remains usable in `/plugin` and contributes no OCI skills. |
-| `/oci-marketplace install <skill@marketplace>` | Install or update the named catalog entry. |
-| `/oci-marketplace updates` | Review available digest changes and select skills to update. |
-| `/oci-marketplace installed` | Show each installed identity, version, source registry, and digest. |
+| `/marketplace-manager list` | List every registered marketplace, its source, and whether it is standard-only or OCI-enabled. |
+| `/marketplace-manager browse` | Inspect OCI catalogs from OCI-enabled marketplaces and choose a skill. Browsing resolves metadata only; it does not pull artifact layers. |
+| `/marketplace-manager add <source>` | Add a standard-only or OCI-enabled marketplace at user scope through Claude's standard registration command, then refresh the complete list. |
+| `/marketplace-manager install <skill@marketplace>` | Install or update the named catalog entry. |
+| `/marketplace-manager updates` | Review available digest changes and select skills to update. |
+| `/marketplace-manager installed` | Show each installed identity, version, source registry, and digest. |
 
 ### Rehearse two updates in a clean profile
 
@@ -79,7 +80,7 @@ printf 'CLAUDE_CONFIG_DIR=%s\nREHEARSAL_DIR=%s\n' "$CLAUDE_CONFIG_DIR" "$REHEARS
 claude plugin validate --strict .
 claude plugin validate --strict ./plugins/oci-marketplace
 claude plugin marketplace add git@github.com:dmartinol/claude-oci-marketplace-poc.git --scope user
-claude plugin install oci-marketplace@claude-oci-marketplace --scope user
+claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 ```
 
 Create two temporary local catalogs that start at v1. Their marketplace names keep the two skill identities distinct:
@@ -126,7 +127,7 @@ claude plugin marketplace list --json
 claude
 ```
 
-Keep the printed `CLAUDE_CONFIG_DIR` and `REHEARSAL_DIR` values for the second terminal below. In Claude Code, confirm `/plugin` lists the manager, then run `/oci-marketplace browse` and install `claude-oci-demo@claude-oci-demo-rehearsal` and `claude-oci-guide@claude-oci-guide-rehearsal`. Approve each native confirmation and Claude's standard Bash permission prompt. `/oci-marketplace installed` should show demo v0.1.1 with digest `sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3` and guide v0.1.0 with digest `sha256:53def93598a4af5848dbe4169dcf4aa67269fcc166e43030336e01ea87a5b3a5`. Run `/reload-skills`, then invoke both qualified names; expect `T005 sample skill ready.` and `T501 guide skill ready.` respectively.
+Keep the printed `CLAUDE_CONFIG_DIR` and `REHEARSAL_DIR` values for the second terminal below. In Claude Code, confirm `/plugin` lists the manager, then run `/marketplace-manager browse` and install `claude-oci-demo@claude-oci-demo-rehearsal` and `claude-oci-guide@claude-oci-guide-rehearsal`. Approve each native confirmation and Claude's standard Bash permission prompt. `/marketplace-manager installed` should show demo v0.1.1 with digest `sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3` and guide v0.1.0 with digest `sha256:53def93598a4af5848dbe4169dcf4aa67269fcc166e43030336e01ea87a5b3a5`. Run `/reload-skills`, then invoke both qualified names; expect `T005 sample skill ready.` and `T501 guide skill ready.` respectively.
 
 In a second terminal, paste the same two values printed above when prompted, then change both local catalogs to their already-published v2 tags:
 
@@ -154,7 +155,7 @@ for marketplace, repository in repositories.items():
 PY
 ```
 
-Back in the Claude session, run `/oci-marketplace updates`, select both skills, and approve the native confirmation and Claude permission prompt. Because these catalogs are registered from local directories, the manager reads the edited files at their Claude-reported `installLocation` on refresh. Run `/oci-marketplace installed`; both entries should report v0.2.0 from `quay.io`, with demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. Run `/reload-skills`, then invoke `/claude-oci-demo@claude-oci-demo-rehearsal` and `/claude-oci-guide@claude-oci-guide-rehearsal`. Expected responses are `T005 sample skill updated to v0.2.0.` and `T501 guide skill updated to v0.2.0.`
+Back in the Claude session, run `/marketplace-manager updates`, select both skills, and approve the native confirmation and Claude permission prompt. Because these catalogs are registered from local directories, the manager reads the edited files at their Claude-reported `installLocation` on refresh. Run `/marketplace-manager installed`; both entries should report v0.2.0 from `quay.io`, with demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. Run `/reload-skills`, then invoke `/claude-oci-demo@claude-oci-demo-rehearsal` and `/claude-oci-guide@claude-oci-guide-rehearsal`. Expected responses are `T005 sample skill updated to v0.2.0.` and `T501 guide skill updated to v0.2.0.`
 
 The catalog-only fixtures have no plugins, so Claude may display its expected marketplace validation warning when registering them. A marketplace without `oci-catalog.json` remains supported and contributes no OCI skills.
 

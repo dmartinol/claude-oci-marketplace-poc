@@ -2,6 +2,7 @@ import {
   catalogsFromRegistrations,
   identityFor,
   installDirectoryName,
+  marketplacesFromRegistrations,
   parseInspection,
   runProcess,
   shellQuote,
@@ -11,7 +12,7 @@ import {
 const STORE_KEY = 'installedSkills'
 const DISMISS_KEY = 'dismissedSessionId'
 const CATALOG_FILE = 'oci-catalog.json'
-const COMMAND_NAME = 'oci-marketplace'
+const COMMAND_NAME = 'marketplace-manager'
 
 function errorText(error) {
   return error instanceof Error ? error.message : String(error)
@@ -19,14 +20,17 @@ function errorText(error) {
 
 function usage() {
   return [
-    'OCI Marketplace manager',
+    'Claude Marketplace Manager',
     '',
     'Commands:',
-    '  /oci-marketplace browse',
-    '  /oci-marketplace add <git-url>',
-    '  /oci-marketplace install <skill@marketplace>',
-    '  /oci-marketplace updates',
-    '  /oci-marketplace installed',
+    '  /marketplace-manager list',
+    '  /marketplace-manager add <source>',
+    '  /marketplace-manager browse  (OCI-enabled marketplaces only)',
+    '  /marketplace-manager install <skill@marketplace>',
+    '  /marketplace-manager updates',
+    '  /marketplace-manager installed',
+    '',
+    'Standard marketplace plugins remain available through Claude’s /plugin interface.',
   ].join('\n')
 }
 
@@ -46,14 +50,39 @@ async function dismissAlerts($) {
   await $.store.set(DISMISS_KEY, await $.session.id())
 }
 
-async function registeredCatalogs($) {
+async function registeredMarketplaces($) {
   const output = await runProcess((argv, options) => $.process.run(argv, options), ['claude', 'plugin', 'marketplace', 'list', '--json'])
   const registrations = JSON.parse(output)
+  if (!Array.isArray(registrations)) throw new Error('Claude marketplace list did not return an array')
+  return registrations
+}
+
+async function registeredCatalogs($, registrations = undefined) {
+  registrations ??= await registeredMarketplaces($)
   return catalogsFromRegistrations(registrations, async (registration) => {
     const catalogPath = `${registration.installLocation}/${CATALOG_FILE}`
     if (!(await $.fs.exists(catalogPath))) return undefined
     return $.fs.read(catalogPath)
   })
+}
+
+function formatMarketplaces(marketplaces) {
+  if (marketplaces.length === 0) return 'No Claude marketplaces are registered.'
+  return [
+    'Registered Claude marketplaces:',
+    ...marketplaces.map((marketplace) => `- ${marketplace.name} | ${marketplace.source} | ${marketplace.classification}`),
+    '',
+    'Use /plugin to browse and install standard marketplace plugins.',
+    'Use /marketplace-manager browse for OCI skills from OCI-enabled marketplaces.',
+  ].join('\n')
+}
+
+async function listMarketplaces($, registrations = undefined) {
+  registrations ??= await registeredMarketplaces($)
+  const marketplaces = await marketplacesFromRegistrations(registrations, async (registration) =>
+    $.fs.exists(`${registration.installLocation}/${CATALOG_FILE}`),
+  )
+  return formatMarketplaces(marketplaces)
 }
 
 async function inspectSkill($, skill) {
@@ -118,7 +147,7 @@ async function announceUpdates($) {
     const { updates, errors } = await checkInstalledUpdates($)
     for (const error of errors) $.ui.log(`OCI Marketplace startup check: ${error}`, { to: 'debug' })
     if (updates.length) {
-      $.ui.toast(`${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} available. Run /oci-marketplace updates to review.`, { timeoutMs: 10000 })
+      $.ui.toast(`${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} available. Run /marketplace-manager updates to review.`, { timeoutMs: 10000 })
     }
   } catch (error) {
     $.ui.log(`OCI Marketplace startup check failed: ${errorText(error)}`, { to: 'debug' })
@@ -129,7 +158,7 @@ async function browse($) {
   const { catalogs, errors } = await registeredCatalogs($)
   const entries = flattenCatalogs(catalogs)
   if (entries.length === 0 && errors.length === 0) {
-    return 'No registered marketplaces contain an OCI catalog. Standard Claude marketplaces remain available through /plugin.'
+    return 'No registered marketplaces contain an OCI catalog. Standard marketplace plugins remain available through /plugin. Run /marketplace-manager list to see every registered marketplace.'
   }
 
   const installed = await readInstalled($)
@@ -173,7 +202,7 @@ async function chooseSkill($, checked) {
 async function showInstalled($) {
   const installed = await readInstalled($)
   const entries = Object.values(installed)
-  if (entries.length === 0) return 'No OCI skills are installed yet. Run /oci-marketplace browse.'
+  if (entries.length === 0) return 'No OCI skills are installed yet. Run /marketplace-manager browse.'
   return [
     'Installed OCI skills:',
     ...entries.map((item) => `- ${identityFor(item.name, item.marketplace)}: v${item.version} | ${item.registry} | ${item.digest}`),
@@ -324,16 +353,15 @@ async function addMarketplace($, source) {
   })
   if (call.deny) return `Marketplace registration was not approved: ${call.deny}`
   if (call.isError) return `Marketplace registration failed: ${call.text || 'Claude reported an error'}`
-  const { catalogs, errors } = await registeredCatalogs($)
-  const count = flattenCatalogs(catalogs).length
-  const note = count ? ` Discovered ${count} OCI skill${count === 1 ? '' : 's'}.` : ' No OCI catalog was found; standard marketplace behavior is unchanged.'
-  return `${call.text || 'Marketplace added.'}${note}${errors.length ? ` Catalog warnings: ${errors.join('; ')}` : ''}`
+  const registrations = await registeredMarketplaces($)
+  return `${call.text || 'Marketplace added.'}\n\n${await listMarketplaces($, registrations)}`
 }
 
 async function dispatch($, args) {
   if (!args) return usage()
   const [action, ...rest] = args.split(/\s+/)
   const value = rest.join(' ').trim()
+  if (action === 'list' && !value) return listMarketplaces($)
   if (action === 'browse' && !value) return browse($)
   if (action === 'installed' && !value) return showInstalled($)
   if (action === 'updates' && !value) return reviewUpdates($)
@@ -346,8 +374,8 @@ export function register(on) {
   on('session.start', async ($, event, next) => {
     await $.command.register({
       name: COMMAND_NAME,
-      description: 'Browse, install, and update OCI skills from registered Claude marketplaces',
-      argumentHint: '[browse|add <git-url>|install <skill@marketplace>|updates|installed]',
+      description: 'List and add Claude marketplaces, with OCI skill management for OCI-enabled marketplaces',
+      argumentHint: '[list|add <source>|browse|install <skill@marketplace>|updates|installed]',
     })
     const result = await next(event)
     void announceUpdates($)

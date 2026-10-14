@@ -5,7 +5,7 @@ const newDigest = `sha256:${'b'.repeat(64)}`
 const inspectOutput = (digest: string) =>
   `Skill:        quay.io/example/guide\nVersion:      1.2.0\nDigest:       ${digest}\nLayers:       1\n`
 
-test('registers the namespaced command and shows the available actions', async ($, on) => {
+test('registers the generic marketplace manager command and shows its actions', async ($, on) => {
   let registeredCommand: Record<string, unknown> = {}
   on('command.register', (_, event) => {
     registeredCommand = event
@@ -17,12 +17,39 @@ test('registers the namespaced command and shows the available actions', async (
   on('session.start', (_, event) => ({ cwd: event.cwd }))
 
   await $.session.start({ cwd: '/tmp/oci-marketplace-test', surface: null, isInteractive: false })
-  const answer = await $.command.run({ command: 'oci-marketplace', args: '' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: '' })
 
-  expect(registeredCommand.name).toBe('oci-marketplace')
-  expect(registeredCommand.argumentHint).toBe('[browse|add <git-url>|install <skill@marketplace>|updates|installed]')
-  expect(answer.text).toContain('/oci-marketplace browse')
-  expect(answer.text).toContain('/oci-marketplace updates')
+  expect(registeredCommand.name).toBe('marketplace-manager')
+  expect(registeredCommand.argumentHint).toBe('[list|add <source>|browse|install <skill@marketplace>|updates|installed]')
+  expect(answer.text).toContain('/marketplace-manager list')
+  expect(answer.text).toContain('/marketplace-manager updates')
+})
+
+test('lists every registered marketplace with its source and capability', async ($, on) => {
+  const registrations = [
+    {
+      name: 'standard-marketplace', source: 'github', repo: 'example/standard',
+      installLocation: '/tmp/standard-marketplace',
+    },
+    {
+      name: 'oci-marketplace', source: 'git', url: 'https://example.invalid/oci.git',
+      installLocation: '/tmp/oci-marketplace',
+    },
+  ]
+  const invocations: string[][] = []
+  on('process.run', (_, event) => {
+    invocations.push(event.argv)
+    return { value: { exitCode: 0, stdout: JSON.stringify(registrations), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-marketplace/oci-catalog.json' }))
+
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'list' })
+
+  expect(answer.text).toContain('- standard-marketplace | github: example/standard | standard-only')
+  expect(answer.text).toContain('- oci-marketplace | git: https://example.invalid/oci.git | OCI-enabled')
+  expect(answer.text).toContain('Use /plugin to browse and install standard marketplace plugins.')
+  expect(answer.text).toContain('/marketplace-manager browse')
+  expect(invocations).toEqual([['claude', 'plugin', 'marketplace', 'list', '--json']])
 })
 
 test('browses multiple OCI catalogs and ignores standard-only marketplaces', async ($, on) => {
@@ -54,7 +81,7 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
     result: { questions: event.questions, answers: { [event.questions[0].question]: 'Done' } },
   }))
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'browse' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
 
   expect(answer.text).toContain('guide@marketplace-one')
   expect(answer.text).toContain('guide@marketplace-two')
@@ -91,7 +118,7 @@ test('selects a browser entry and can cancel before retrieval', async ($, on) =>
     return { result: { text: 'unexpected install' } }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'browse' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
 
   expect(answer.text).toContain('guide@marketplace-one')
   expect(answer.text).toContain('install cancelled')
@@ -124,7 +151,7 @@ test('refreshes browse status after a successful install', async ($, on) => {
   })
   on('tool.call', { tool: 'Bash' }, () => ({ result: { text: 'Activated skill' } }))
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'browse' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
 
   expect(answer.text).toContain(`installed v1.2.0 (${digest})`)
   expect(answer.text).not.toContain('not installed')
@@ -162,10 +189,10 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
     return { result: { questions: event.questions, answers: { [event.questions[0].question]: 'Dismiss' } } }
   })
 
-  const first = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
-  const second = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const first = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
+  const second = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
   currentSessionId = 'next-session'
-  const nextSession = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const nextSession = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
 
   expect(first.text).toContain('Dismissed 1 OCI skill update')
   expect(second.text).toContain('dismissed for this session')
@@ -198,7 +225,7 @@ test('manual update check reports unchanged skills without an alert', async ($, 
     return { value: undefined }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
 
   expect(answer.text).toBe('No installed OCI skill updates are available.')
   expect(toasts).toBe(0)
@@ -254,7 +281,7 @@ test('isolates update digests by marketplace and reports one catalog metadata er
     return { result: { questions: event.questions, answers: { [event.questions[0].question]: 'Dismiss' } } }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
 
   expect(answer.text).toContain('Dismissed 1 OCI skill update for this session.')
   expect(answer.text).toContain('Check warnings: guide@marketplace-three: registry unavailable')
@@ -324,7 +351,7 @@ test('summarizes multiple updates, retains a subset, and postpones without pulli
     return { result: { text: 'unexpected install' } }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
 
   expect(answer.text).toContain('OCI skill updates postponed for this session.')
   expect(prompts).toHaveLength(2)
@@ -393,7 +420,7 @@ test('applies only selected updates and persists only their new metadata', async
     return { result: { text: 'Activated selected skill' } }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
   const updatedState = state.installedSkills as Record<string, Record<string, unknown>>
 
   expect(answer.text).toContain('Installed guide@marketplace-one v0.2.0')
@@ -444,7 +471,7 @@ test('failed selected update preserves v1 installed state', async ($, on) => {
     text: 'simulated activation failure',
   }))
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
 
   expect(answer.text).toContain('Update failed for guide@marketplace-one')
   expect(answer.text).toContain('simulated activation failure')
@@ -482,7 +509,7 @@ test('persists a successful install and shows it in a later installed view', asy
     return { result: { text: 'Activated skill at /tmp/demo-home/.claude/skills/guide@marketplace-one' } }
   })
 
-  const installed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const installed = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
   const record = (store.installedSkills as Record<string, Record<string, unknown>>)?.['guide@marketplace-one']
   expect(installed.text).toContain('Installed guide@marketplace-one v1.2.0')
   expect(actionOrder).toEqual(['native confirmation', 'permission-checked installer'])
@@ -501,7 +528,7 @@ test('persists a successful install and shows it in a later installed view', asy
     installedAt: new Date(1791936000000).toISOString(),
   })
 
-  const laterView = await $.command.run({ command: 'oci-marketplace', args: 'installed' })
+  const laterView = await $.command.run({ command: 'marketplace-manager', args: 'installed' })
   expect(laterView.text).toContain('guide@marketplace-one: v1.2.0 | quay.io |')
   expect(laterView.text).toContain(digest)
 })
@@ -553,8 +580,8 @@ test('cancelled and failed installs do not change installed state', async ($, on
     }
   })
 
-  const cancelled = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
-  const failed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const cancelled = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
+  const failed = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
   expect(cancelled.text).toContain('update cancelled')
   expect(failed.text).toContain('permission denied')
   expect(bashCalls).toBe(1)
@@ -582,9 +609,9 @@ test('reports skillctl process and metadata failures clearly', async ($, on) => 
   on('fs.exists', () => ({ value: true }))
   on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
 
-  const processFailure = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const processFailure = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
   failureMode = 'metadata'
-  const metadataFailure = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const metadataFailure = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
 
   expect(processFailure.text).toContain('registry refused request')
   expect(metadataFailure.text).toContain('did not include a version and sha256 digest')
@@ -595,36 +622,41 @@ test('reports skillctl process and metadata failures clearly', async ($, on) => 
 })
 
 test('adds standard-only and OCI marketplaces at user scope, then refreshes discovery', async ($, on) => {
-  let marketplaceName = 'standard-only'
-  let hasCatalog = false
+  let registrations: Array<Record<string, string>> = []
   const commands: string[] = []
   on('tool.call', { tool: 'Bash' }, (_, event) => {
     commands.push(event.command)
-    if (event.command.includes('oci.git')) {
-      marketplaceName = 'oci-enabled'
-      hasCatalog = true
+    if (event.command.includes('standard.git')) {
+      registrations = [{
+        name: 'standard-only', source: 'github', repo: 'example/standard',
+        installLocation: '/tmp/standard-only',
+      }]
+      return { result: { text: 'Successfully added marketplace: standard-only' } }
     }
-    return { result: { text: `Successfully added marketplace: ${marketplaceName}` } }
+    registrations.push({
+      name: 'oci-enabled', source: 'git', url: 'https://example.invalid/oci.git',
+      installLocation: '/tmp/oci-enabled',
+    })
+    return { result: { text: 'Successfully added marketplace: oci-enabled' } }
   })
   on('process.run', (_, event) => ({
     value: {
       exitCode: 0,
-      stdout: JSON.stringify([{ name: marketplaceName, installLocation: `/tmp/${marketplaceName}` }]),
+      stdout: JSON.stringify(registrations),
       stderr: '',
       isStdoutTruncated: false,
       isStderrTruncated: false,
     },
   }))
-  on('fs.exists', () => ({ value: hasCatalog }))
-  on('fs.read', () => ({
-    value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }),
-  }))
+  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-enabled/oci-catalog.json' }))
 
-  const standard = await $.command.run({ command: 'oci-marketplace', args: 'add https://example.invalid/standard.git' })
-  const oci = await $.command.run({ command: 'oci-marketplace', args: 'add ssh://git@example.invalid/oci.git' })
+  const standard = await $.command.run({ command: 'marketplace-manager', args: 'add https://example.invalid/standard.git' })
+  const oci = await $.command.run({ command: 'marketplace-manager', args: 'add ssh://git@example.invalid/oci.git' })
 
-  expect(standard.text).toContain('No OCI catalog was found; standard marketplace behavior is unchanged.')
-  expect(oci.text).toContain('Discovered 1 OCI skill.')
+  expect(standard.text).toContain('- standard-only | github: example/standard | standard-only')
+  expect(standard.text).toContain('/plugin to browse and install standard marketplace plugins')
+  expect(oci.text).toContain('- standard-only | github: example/standard | standard-only')
+  expect(oci.text).toContain('- oci-enabled | git: https://example.invalid/oci.git | OCI-enabled')
   expect(commands).toEqual([
     "claude plugin marketplace add --scope user 'https://example.invalid/standard.git'",
     "claude plugin marketplace add --scope user 'ssh://git@example.invalid/oci.git'",
@@ -643,7 +675,7 @@ test('returns Claude marketplace-add errors without refreshing discovery', async
     return { value: { exitCode: 0, stdout: '[]', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
 
-  const answer = await $.command.run({ command: 'oci-marketplace', args: 'add https://example.invalid/bad.git' })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'add https://example.invalid/bad.git' })
 
   expect(answer.text).toContain('Marketplace registration failed: invalid marketplace source')
   expect(listCalls).toBe(0)

@@ -10,7 +10,7 @@ The regular `/plugin` UI remains Claude's native interface for standard marketpl
 
 ### D2 — Marketplace add contract
 
-The manager command is the generic `/marketplace-manager`, subject to validation against the supported Claude version's built-in command and alias set. It replaces the OCI-specific `/oci-marketplace` entry point; T003 found that `/marketplace` conflicts with a built-in alias. Its `list` action shows every Claude-registered marketplace; `add <source>` registers a standard or OCI-enabled marketplace at user scope through Claude's marketplace registration command. The existing OCI skill commands remain an extension of this general manager.
+The manager command is the generic `/marketplace-manager`, subject to validation against the supported Claude version's built-in command and alias set. It replaces the OCI-specific `/oci-marketplace` entry point; T003 found that `/marketplace` conflicts with a built-in alias. Its `list` action shows every Claude-registered marketplace; `add <source>` registers a standard or OCI-enabled marketplace at user scope through Claude's marketplace registration command and refreshes the complete list. The existing OCI skill commands remain an extension of this general manager. On Claude Code 2.1.299, T304 loaded and executed `/marketplace-manager list` from the marketplace manager plugin without a built-in command collision.
 
 ### D3 — OCI catalog separation
 
@@ -62,7 +62,7 @@ When `CLAUDE_CONFIG_DIR` is set, the manager installs skills under `<CLAUDE_CONF
 
 ### D14 — General marketplace manager with OCI extension
 
-Marketplace listing and source registration are the manager's general-purpose core and apply to standard as well as OCI-enabled Claude marketplaces. OCI catalog parsing, skill installation, and skill updates are optional capabilities layered onto entries that provide `oci-catalog.json`. Standard plugin browsing and installation continue through Claude's native `/plugin` interface. The user clarified this product scope on 2026-10-14; T304 tracks implementation and live validation.
+Marketplace listing and source registration are the manager's general-purpose core and apply to standard as well as OCI-enabled Claude marketplaces. OCI catalog parsing, skill installation, and skill updates are optional capabilities layered onto entries that provide `oci-catalog.json`. Standard plugin browsing and installation continue through Claude's native `/plugin` interface. The user clarified this product scope on 2026-10-14; T304 implements it and records live validation.
 
 ## Open feasibility questions
 

@@ -1,8 +1,8 @@
 {
-  "name": "oci-marketplace",
-  "displayName": "OCI Marketplace",
-  "version": "0.3.2",
-  "description": "Browse, install, and update skills distributed as OCI artifacts",
+  "name": "marketplace-manager",
+  "displayName": "Claude Marketplace Manager",
+  "version": "0.4.0",
+  "description": "List and add Claude marketplaces, with OCI skill discovery, installation, and updates as an extension",
   "author": {
     "name": "dmartinol"
   },

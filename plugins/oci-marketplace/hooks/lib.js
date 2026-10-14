@@ -149,6 +149,42 @@ export async function catalogsFromRegistrations(registrations, readCatalog) {
   return { catalogs, errors }
 }
 
+function marketplaceSource(registration) {
+  const source = registration.source
+  const type = typeof source === 'string' && source.trim() ? source.trim() : undefined
+  const location = [registration.repo, registration.url, registration.path]
+    .find((value) => typeof value === 'string' && value.trim())
+  if (type && location) return `${type}: ${location}`
+  if (location) return location
+  if (type) return type
+  if (source && typeof source === 'object') {
+    const objectType = typeof source.source === 'string' ? source.source : typeof source.type === 'string' ? source.type : undefined
+    const objectLocation = [source.repo, source.url, source.path]
+      .find((value) => typeof value === 'string' && value.trim())
+    if (objectType && objectLocation) return `${objectType}: ${objectLocation}`
+    if (objectLocation) return objectLocation
+    if (objectType) return objectType
+  }
+  return 'source unavailable'
+}
+
+export async function marketplacesFromRegistrations(registrations, hasCatalog) {
+  if (!Array.isArray(registrations)) {
+    throw new Error('Claude marketplace list did not return an array')
+  }
+  return Promise.all(registrations.map(async (registration) => {
+    if (typeof registration?.name !== 'string' || registration.name.trim() === '' ||
+        typeof registration.installLocation !== 'string' || registration.installLocation.trim() === '') {
+      throw new Error('Claude returned a marketplace without a name or installLocation')
+    }
+    return {
+      name: registration.name,
+      source: marketplaceSource(registration),
+      classification: await hasCatalog(registration) ? 'OCI-enabled' : 'standard-only',
+    }
+  }))
+}
+
 export function parseInspection(output) {
   const fields = Object.fromEntries(
     output.split(/\r?\n/).map((line) => {
