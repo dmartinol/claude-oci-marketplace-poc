@@ -12,6 +12,9 @@ skill_name=$3
 stage_root=$4
 target=$5
 backup=$6
+repository_path=${repository%:*}
+artifact_directory=${repository_path##*/}
+pulled="$stage_root/$artifact_directory"
 staged="$stage_root/$skill_name"
 had_backup=0
 
@@ -38,11 +41,15 @@ if [ "$pulled_digest" != "$expected_digest" ]; then
   exit 1
 fi
 
-if [ ! -f "$staged/SKILL.md" ] || [ -L "$staged/SKILL.md" ]; then
+if [ ! -d "$pulled" ] || [ -L "$pulled" ]; then
+  echo 'Artifact was not unpacked into its repository directory.' >&2
+  exit 1
+fi
+if [ ! -f "$pulled/SKILL.md" ] || [ -L "$pulled/SKILL.md" ]; then
   echo 'Artifact is missing a regular SKILL.md file.' >&2
   exit 1
 fi
-if [ ! -f "$staged/skill.yaml" ] || [ -L "$staged/skill.yaml" ]; then
+if [ ! -f "$pulled/skill.yaml" ] || [ -L "$pulled/skill.yaml" ]; then
   echo 'Artifact is missing a regular skill.yaml file.' >&2
   exit 1
 fi
@@ -51,7 +58,15 @@ awk -v expected="$skill_name" '
   $0 == "---" { exit }
   /^name:[[:space:]]*/ { value = $0; sub(/^name:[[:space:]]*/, "", value); if (value == expected) found = 1 }
   END { exit !found }
-' "$staged/SKILL.md"
+' "$pulled/SKILL.md"
+
+if [ "$pulled" != "$staged" ]; then
+  if [ -e "$staged" ] || [ -L "$staged" ]; then
+    echo 'Artifact staging directory conflicts with the skill name.' >&2
+    exit 1
+  fi
+  mv "$pulled" "$staged"
+fi
 
 if [ -e "$target" ]; then
   mv "$target" "$backup"

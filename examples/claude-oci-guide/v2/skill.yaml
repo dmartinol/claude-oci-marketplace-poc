@@ -1,0 +1,15 @@
+apiVersion: skillimage.io/v1alpha1
+kind: SkillCard
+metadata:
+  name: claude-oci-guide
+  namespace: dmartino
+  version: 0.2.0
+  description: Demonstrates a second uniquely named OCI skill update
+  display-name: Claude OCI Guide
+  license: Apache-2.0
+  compatibility: claude
+  authors:
+    - name: dmartinol
+spec:
+  prompt: |
+    Reply with exactly: T501 guide skill updated to v0.2.0.

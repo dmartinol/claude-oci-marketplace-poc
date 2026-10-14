@@ -312,7 +312,8 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R1–R14
 - **Depends on:** T301–T303, T401–T403, supplied registry coordinates
 - **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
-- **Outcome:** Run all acceptance scenarios from a clean macOS environment using sample v1 and v2 in the supplied Quay namespace.
+- **Outcome:** Run all acceptance scenarios from a clean macOS environment using two uniquely named v1/v2 skills in the supplied Quay namespace.
+- **Progress:** Published the unique `claude-oci-guide` v1/v2 tags and added a second catalog fixture. The first live install exposed a `skillctl pull` repository-basename mismatch; the installer now normalizes the pulled directory and passes failure-preservation checks. The live two-update rehearsal is being rerun.
 - **Completion checks:**
   - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
   - [x] A standard-only marketplace registers and the manager's live browse excludes it from OCI entries; the disposable registration is removed after the check.
@@ -327,7 +328,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** In progress
+- **Status:** Backlog — waiting for T501 completion
 - **Requirements:** R1, R2, R6, R10
 - **Depends on:** T501
 - **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
@@ -340,15 +341,15 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T503 — Final validation and secret review
 
-- **Status:** Done
+- **Status:** Backlog — rerun after T501 and T502 because the installer and rehearsal evidence changed
 - **Requirements:** R1–R14
 - **Depends on:** T501 and T502 outcomes and remaining acceptance gaps recorded
 - **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
 - **Completion checks:**
-  - [x] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass.
-  - [x] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
-  - [x] README, requirements, decisions, plan, and implementation report agree on behavior and status; local documentation links resolve.
-  - [x] Git review finds no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content staged or tracked.
-  - [x] The implementation verdict and remaining limitations are recorded, then this audit commit is pushed to `origin/main`.
+  - [ ] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass on the final implementation.
+  - [ ] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
+  - [ ] README, requirements, decisions, plan, and implementation report agree on behavior and status; local documentation links resolve.
+  - [ ] Git review finds no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content staged or tracked.
+  - [ ] The implementation verdict and remaining limitations are recorded, then this audit commit is pushed to `origin/main`.
 

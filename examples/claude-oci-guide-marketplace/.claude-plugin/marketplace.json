@@ -1,0 +1,8 @@
+{
+  "name": "claude-oci-guide-marketplace",
+  "description": "A second OCI skill catalog for the multi-marketplace demo",
+  "owner": {
+    "name": "dmartinol"
+  },
+  "plugins": []
+}

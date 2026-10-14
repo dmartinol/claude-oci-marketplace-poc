@@ -273,7 +273,7 @@ The live flow used the already supplied Quay repository and a native Claude perm
 
 ## T501 — End-to-end demo rehearsal
 
-**Result:** Partial — the one-skill install/update path passes; the multi-marketplace live rehearsal needs a second unique skill artifact.
+**Result:** In progress — the second unique skill is published and both catalogs are live in an isolated Claude config; the first install uncovered a real unpack-path mismatch, now fixed and covered by tests. The two-update interaction is pending rerun with the updated plugin.
 
 The clean-config setup used Claude Code 2.1.299 and `skillctl` 0.4.0. I created an isolated `CLAUDE_CONFIG_DIR`, added the supplied Git marketplace URL, installed `oci-marketplace@claude-oci-marketplace` at user scope, and confirmed the plugin was enabled at v0.3.0. The isolated config was removed after the check. The first clone attempt was blocked by the restricted network; the same supplied URL succeeded when retried with network access.
 
@@ -290,17 +290,46 @@ $ CLAUDE_CONFIG_DIR=/tmp/claude-p5-clean-20261014 claude plugin install oci-mark
 
 Strict repository and plugin validation passed. A strict-valid disposable standard-only marketplace was added to the live Claude user registration; the manager's browse output continued to list only `claude-oci-demo@claude-oci-marketplace`. The temporary marketplace registration and its fixture directory were removed afterward. T201/T402 fixtures already prove same-name entries retain marketplace-qualified identities, standard-only exclusion, and multi-update subset/dismissal behavior. T303 and T401–T403 record the live v1 install, v2 detection, selected update, permission, reload, and invocation.
 
-The supplied registry currently has one unique sample skill name/repository, with v1 and v2 tags. No second unique-skill artifact coordinate was supplied. To honor D10 and the user's choice to avoid triggering the duplicate-name caveat in the demo, the plan now separates fixture coverage for same-name identity from the missing live two-catalog demonstration. No new registry reference was invented or published. T501 remains in progress until a second unique skill is available in the supplied registry namespace.
+The user approved publishing a second skill under the existing supplied Quay repository. Added `examples/claude-oci-guide/v1` and `v2` with distinct `claude-oci-guide` identity and visibly different responses. The tags below use the existing `quay.io/dmartino/claude-oci-demo` repository; no repository or namespace was invented:
+
+```text
+$ skillctl validate examples/claude-oci-guide/v1
+✓ examples/claude-oci-guide/v1/skill.yaml is valid
+
+$ skillctl validate examples/claude-oci-guide/v2
+✓ examples/claude-oci-guide/v2/skill.yaml is valid
+
+$ skillctl inspect quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.1.0-draft
+Version:      0.1.0
+Digest:       sha256:53def93598a4af5848dbe4169dcf4aa67269fcc166e43030336e01ea87a5b3a5
+
+$ skillctl inspect quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.2.0-draft
+Version:      0.2.0
+Digest:       sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1
+```
+
+The first build attempt passed `--tag` a `name:version` value instead of the version tag alone, and the resulting local references could not be tagged or pushed (`resolving ...: not found`). No remote tags were changed by those failed commands. Rebuilding with the version from `skill.yaml` as the tag produced valid local refs; both unique tags then pushed successfully and remote `skillctl inspect` resolved the digests above.
+
+Added a second Claude marketplace fixture at `examples/claude-oci-guide-marketplace`. Strict validation reports the expected warning `Marketplace has no plugins defined`; normal validation and live user-scope registration succeed. In an isolated `CLAUDE_CONFIG_DIR`, the manager plugin was enabled at v0.3.0, both the supplied Git marketplace and the guide fixture were registered, and a real manager browse showed two distinct entries:
+
+```text
+claude-oci-guide@claude-oci-guide-marketplace: v0.1.0 | quay.io | sha256:53def93598a4af5848dbe4169dcf4aa67269fcc166e43030336e01ea87a5b3a5 | not installed
+claude-oci-demo@claude-oci-marketplace: v0.1.1 | quay.io | sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3 | not installed
+```
+
+The native install confirmation appeared for the guide artifact. After confirmation, `skillctl pull` unpacked files under the OCI repository basename `claude-oci-demo`, while the installer had assumed the unpack directory was the skill name `claude-oci-guide`; activation correctly failed before replacing any existing skill. A first sandboxed attempt also confirmed the helper writes to Claude's normal `$HOME/.claude/skills` regardless of `CLAUDE_CONFIG_DIR`; the rehearsal was rerun with the required filesystem access. The installer now derives the unpack directory from the tagged repository path, validates the skill files and expected frontmatter name there, then moves it to the deterministic marketplace-qualified target. Direct installation of the published v1 artifact into a disposable `/tmp` target succeeded with the expected digest. The installer regression suite, all 23 plugin tests, and strict plugin validation pass after the fix.
+
+This live install fixed the original T501 artifact-availability gap but did not yet complete the two-skill update acceptance: the corrected plugin still needs to be loaded into the rehearsal config, both v1 skills installed, both catalogs advanced to v2, and the selected updates invoked after `/reload-skills`. No credentials or machine-local files were staged.
 
 ## T502 — README guidance
 
-**Result:** In progress — verified setup, commands, permission, registry, and reload instructions are now documented; the full clean-user acceptance replay is pending T501.
+**Result:** Backlog — the README now documents the second skill artifact and marketplace fixture, but its clean two-update reproduction steps remain pending T501.
 
 The README now documents the tested Claude Code and `skillctl` versions, strict validation, Git marketplace registration, manager installation, all five manager commands, standard-only behavior, the supplied v2 catalog reference, the confirmation and Bash permission sequence, and `/reload-skills` with new-session fallback. Clean-config marketplace registration and manager installation succeeded in T501. A fresh user has not yet reproduced the complete multi-update acceptance flow, so T502 is not marked Done.
 
 ## T503 — Final validation and verdict
 
-**Result:** Pass for repository validation and security review; the product verdict is conditional because T501's second unique OCI skill is still unavailable.
+**Result:** Backlog — final validation and security review must be rerun after T501/T502 because the installer and demo artifacts changed.
 
 Final checks on this checkout:
 

@@ -15,16 +15,18 @@ repository=$2
 shift 2
 [ "$1" = -o ]
 stage=$2
+repository_path=${repository%:*}
+artifact_directory=${repository_path##*/}
 if [ "${TEST_MODE:-}" = fail-fetch ]; then
   echo 'simulated fetch failure' >&2
   exit 9
 fi
-mkdir -p "$stage/$TEST_SKILL"
+mkdir -p "$stage/$artifact_directory"
 skill_name=$TEST_SKILL
 if [ "${TEST_MODE:-}" = wrong-name ]; then skill_name=unexpected-skill; fi
-printf '%s\n' '---' "name: $skill_name" 'description: temporary fixture' '---' "# $TEST_CONTENT" > "$stage/$TEST_SKILL/SKILL.md"
+printf '%s\n' '---' "name: $skill_name" 'description: temporary fixture' '---' "# $TEST_CONTENT" > "$stage/$artifact_directory/SKILL.md"
 if [ "${TEST_MODE:-}" != missing-card ]; then
-  printf '%s\n' 'apiVersion: skillimage.io/v1alpha1' > "$stage/$TEST_SKILL/skill.yaml"
+  printf '%s\n' 'apiVersion: skillimage.io/v1alpha1' > "$stage/$artifact_directory/skill.yaml"
 fi
 digest=${TEST_PULL_DIGEST:-$TEST_DIGEST}
 printf 'Pulled %s\nDigest: %s\n' "$repository" "$digest"

@@ -1,0 +1,9 @@
+{
+  "skills": [
+    {
+      "name": "claude-oci-guide",
+      "description": "Demonstrates a second uniquely named OCI skill",
+      "repository": "quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.2.0-draft"
+    }
+  ]
+}

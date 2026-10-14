@@ -47,7 +47,7 @@ claude plugin marketplace update claude-oci-marketplace
 claude plugin update oci-marketplace@claude-oci-marketplace
 ```
 
-The OCI catalog is `oci-catalog.json` at the marketplace root. The current sample entry points to `quay.io/dmartino/claude-oci-demo:0.2.0-draft`. The tag selects the artifact; `skillctl inspect` supplies the SkillCard version and resolved digest. The registry host (`quay.io`) is the displayed source. Registry coordinates are limited to the locally supplied namespace.
+The OCI catalog is `oci-catalog.json` at the marketplace root. The main marketplace sample points to `quay.io/dmartino/claude-oci-demo:0.2.0-draft`. The second, uniquely named `claude-oci-guide` sample uses the same supplied Quay repository with tags `claude-oci-guide-0.1.0-draft` and `claude-oci-guide-0.2.0-draft`; its catalog fixture is [examples/claude-oci-guide-marketplace](examples/claude-oci-guide-marketplace). The tag selects the artifact; `skillctl inspect` supplies the SkillCard version and resolved digest. The registry host (`quay.io`) is the displayed source. No second registry repository or namespace is used.
 
 ## Usage
 
@@ -61,9 +61,17 @@ Use the manager inside Claude Code:
 | `/oci-marketplace updates` | Review available digest changes and select skills to update. |
 | `/oci-marketplace installed` | Show each installed identity, version, source registry, and digest. |
 
+To register the second OCI catalog for the multi-marketplace rehearsal, run this from the repository root:
+
+```bash
+claude plugin marketplace add ./examples/claude-oci-guide-marketplace --scope user
+```
+
+Claude accepts this catalog-only fixture with a validation warning because it defines no plugins; it registers successfully and contributes `claude-oci-guide@claude-oci-guide-marketplace` to the OCI browser.
+
 For an install or update, choose the skill and continue through the manager's native confirmation. Claude then shows its standard Bash permission prompt for the deterministic installer. Artifact retrieval starts only after that permission is approved. After success, run `/reload-skills`; if Claude does not discover the replacement, start a new session. Invoke the marketplace-qualified skill, for example `/claude-oci-demo@claude-oci-marketplace`.
 
-The published sample versions are `0.1.1-draft` (v0.1.1) and `0.2.0-draft` (v0.2.0). The latter returns `T005 sample skill updated to v0.2.0.` A repeatable v1-to-v2 update demo requires the marketplace catalog to advertise v1 for the initial install, then v2 for digest detection. The interaction tests cover multi-skill selection and dismissal. The supplied registry currently contains only this unique skill, so the live demo uses one installed update at a time and avoids loading duplicate skill names; see the [implementation report](docs/implementation-report.md#t501--end-to-end-demo-rehearsal) for the remaining acceptance limit.
+The published demo versions are `0.1.1-draft` and `0.2.0-draft`; v2 returns `T005 sample skill updated to v0.2.0.` The guide versions are `claude-oci-guide-0.1.0-draft` and `claude-oci-guide-0.2.0-draft`; guide v2 returns `T501 guide skill updated to v0.2.0.` To rehearse two simultaneous updates, both registered catalogs must advertise their v1 tags for initial installation and their v2 tags for digest detection. The [implementation report](docs/implementation-report.md#t501--end-to-end-demo-rehearsal) records the current live rehearsal status and evidence.
 
 ## References
 
