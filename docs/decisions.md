@@ -50,9 +50,12 @@ Agents complete the feasibility spike, report evidence and blockers, and stop fo
 
 The manager enumerates registered marketplaces through Claude Code's `claude plugin marketplace list --json` output, uses each entry's `installLocation` as the authoritative content location, and treats only marketplaces containing the finalized extension-owned catalog file as OCI-enabled. It does not create or maintain a second marketplace registry.
 
+### D12 — `skillctl` distribution contract
+
+The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI skill artifacts. A Claude-compatible artifact contains both `SKILL.md` and `skill.yaml`; `inspect` resolves the published digest without downloading layers, and `pull` retrieves and unpacks the artifact. Protected Quay credentials are reused from the local container credential stores.
+
 ## Open feasibility questions
 
-- Which `skillctl` version and commands support metadata resolution, authenticated retrieval, unpacking, and the required OCI artifact layout?
 - Which standard mechanism makes newly installed or updated skills available: `reloadSkills`, `/reload-plugins`, or a new session?
 - What exact filename and minimum schema should the extension-owned OCI catalog use?
 

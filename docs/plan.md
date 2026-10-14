@@ -73,16 +73,16 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T005 — Verify `skillctl` capabilities
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R3, R4, R5, R7
 - **Depends on:** T001 and supplied registry coordinates
 - **Outcome:** Prove metadata resolution, authentication reuse, retrieval, and unpacking against the configured demo registry.
 - **Evidence:** `docs/feasibility-report.md#skillctl`
 - **Done when:**
-  - [ ] Supported commands and artifact layout are recorded.
-  - [ ] A resolved digest can be obtained without downloading artifact layers.
-  - [ ] One supplied or purpose-built sample skill can be retrieved and unpacked.
-  - [ ] Authentication and common failure behavior are documented without exposing credentials.
+  - [x] Supported commands and artifact layout are recorded.
+  - [x] A resolved digest can be obtained without downloading artifact layers.
+  - [x] One supplied or purpose-built sample skill can be retrieved and unpacked.
+  - [x] Authentication and common failure behavior are documented without exposing credentials.
 
 ### T006 — Verify skill discovery and reload
 

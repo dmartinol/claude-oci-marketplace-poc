@@ -2,7 +2,7 @@
 
 Developer proof of concept for browsing, installing, using, and updating OCI-distributed skills entirely inside stock Claude Code.
 
-The project is currently in the documentation and feasibility-spike phase. No local integration has been validated yet.
+The project is currently in the feasibility-spike phase. T001–T005 are complete; T006–T008 remain pending.
 
 ## Project documentation
 

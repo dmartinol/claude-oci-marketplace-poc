@@ -450,3 +450,112 @@ After verification, the temporary plugin and both temporary marketplaces were re
 
 T004 passes with no blocker. Claude's `plugin marketplace list --json` output provides the authoritative marketplace enumeration and content location needed by the manager. A standard-only marketplace remains fully usable through Claude's normal plugin path and contributes no OCI entries. The exact OCI catalog filename and schema remain open for T007.
 
+## skillctl
+
+**Task:** T005 — Verify `skillctl` capabilities
+
+**Result:** Pass
+
+**Observed:** 2026-10-14 (Europe/Rome)
+
+### Supported commands and artifact layout
+
+`skillctl` 0.4.0 supports the operations required by the manager:
+
+```text
+build
+inspect
+install
+list
+pull
+push
+tag
+validate
+```
+
+A Claude-compatible OCI skill artifact contains:
+
+```text
+<skill-name>/
+├── SKILL.md
+└── skill.yaml
+```
+
+`SKILL.md` supplies Claude’s standard skill instructions. `skill.yaml` supplies the SkillCard metadata used by `skillctl`. The purpose-built sample `claude-oci-demo` used both files and validated successfully:
+
+```text
+skillctl validate /tmp/claude-t005-skill
+✓ /tmp/claude-t005-skill/skill.yaml is valid
+```
+
+The sample was built and tagged as:
+
+```text
+quay.io/dmartino/claude-oci-demo:0.1.1-draft
+```
+
+### Resolved digest without layer download
+
+Remote metadata inspection succeeded without pulling the artifact layer:
+
+```text
+skillctl inspect quay.io/dmartino/claude-oci-demo:0.1.1-draft
+```
+
+Observed result:
+
+```text
+Skill:        quay.io/dmartino/claude-oci-demo
+Version:      0.1.1
+Digest:       sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3
+Layers:       1
+```
+
+This confirms that the manager can resolve a published digest without downloading artifact content.
+
+### Retrieval and unpacking
+
+The published artifact was retrieved and unpacked with:
+
+```text
+skillctl pull quay.io/dmartino/claude-oci-demo:0.1.1-draft -o /tmp/claude-t005-pulled-0.1.1
+```
+
+Observed result:
+
+```text
+Pulled quay.io/dmartino/claude-oci-demo:0.1.1-draft
+Digest: sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3
+Unpacked to /tmp/claude-t005-pulled-0.1.1
+```
+
+The unpacked directory contained both `SKILL.md` and `skill.yaml`.
+
+### Authentication and failure behavior
+
+Protected Quay credentials were available in the local Docker and Podman credential stores and were reused by `skillctl`. No credential values were printed, decoded, copied, or committed.
+
+Two failure modes were observed:
+
+- Pushing a local reference directly to a remote name failed before registry access because the local store did not contain that remote reference.
+- Pushing to the incorrect namespace `quay.io/dmartinol/claude-oci-demo` returned `401 Unauthorized`.
+
+After tagging the local image to the correct supplied namespace and repository, the push succeeded:
+
+```text
+skillctl tag dmartino/claude-oci-demo:0.1.1-draft quay.io/dmartino/claude-oci-demo:0.1.1-draft
+skillctl push quay.io/dmartino/claude-oci-demo:0.1.1-draft
+Pushed quay.io/dmartino/claude-oci-demo:0.1.1-draft
+```
+
+### T005 acceptance
+
+- [x] Supported commands and artifact layout are recorded.
+- [x] A resolved digest can be obtained without downloading artifact layers.
+- [x] One supplied or purpose-built sample skill can be retrieved and unpacked.
+- [x] Authentication and common failure behavior are documented without exposing credentials.
+
+### Conclusion
+
+T005 passes with no blocker. `skillctl` 0.4.0 supports the required build, metadata inspection, authenticated push, retrieval, and unpacking workflow, and the sample artifact is compatible with Claude’s standard skill file layout.
+
