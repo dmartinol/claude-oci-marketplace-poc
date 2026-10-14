@@ -277,7 +277,7 @@ The live flow used the already supplied Quay repository and a native Claude perm
 
 ## T501 — End-to-end demo rehearsal
 
-**Result:** Blocked — the remaining live checks could not be resumed from the current execution environment. The prior checkpoint evidence remains useful, but the guide v2 invocation and installed-record recheck are not claimed complete.
+**Result:** Blocked — the current environment can exercise the supported manager and marketplace workflows, but Quay rejects the supplied artifact requests with HTTP 401 and Claude model invocation reports that the profile is not logged in. The installed-v2 record/digest recheck and guide v2 invocation are not claimed complete.
 
 The clean-config setup used Claude Code 2.1.299 and `skillctl` 0.4.0. I created an isolated `CLAUDE_CONFIG_DIR`, added the supplied Git marketplace URL, installed `oci-marketplace@claude-oci-marketplace` at user scope, and confirmed the plugin was enabled at v0.3.0. The isolated config was removed after the check. The first clone attempt was blocked by the restricted network; the same supplied URL succeeded when retried with network access.
 
@@ -331,7 +331,7 @@ The manager now chooses `<CLAUDE_CONFIG_DIR>/skills` when that environment varia
 
 The user-provided continuation checkpoint reports that plugin v0.3.2 was loaded in the isolated profile, both marketplace-qualified skills were updated to v2, demo v2 returned `T005 sample skill updated to v0.2.0.`, and guide v1 had been invoked. It supplies the demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. The guide v2 response is expected to be `T501 guide skill updated to v0.2.0.` These are checkpoint claims; the installed records and guide v2 response could not be re-observed here.
 
-Resume checks in this execution environment:
+Prior container resume checks (historical; superseded by the current recheck below):
 
 ```text
 $ git rev-parse HEAD
@@ -354,6 +354,51 @@ error: unknown command 'test' (this Claude Code version suggests 'list')
 ```
 
 The requested `/Users/...` checkout is not mounted in this environment; the available checkout is the same repository at the supplied `e743ab9` checkpoint. The global `/sandbox/.claude/skills` directory was inspected and is empty, so there were no rehearsal artifacts here to clean up. Neither `.serena/` nor `openshell/` exists in this checkout, and neither path is tracked. Prior live outputs and the supplied checkpoint are recorded above; rechecking installed records/digests, guide v2 invocation, and the live multi-update interaction requires the original rehearsal environment and supported tools. No artifact was republished.
+
+### Current-environment recheck — 2026-10-14
+
+This recheck ran on the updated `origin/main` checkout. It used Claude Code 2.1.299, `skillctl` 0.4.0, and disposable `CLAUDE_CONFIG_DIR` directories; the default profile was left unchanged. Its current registration output is empty:
+
+```text
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl --version
+skillctl version 0.4.0
+
+$ claude plugin marketplace list --json
+[]
+```
+
+The supplied origin was added through `/marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git`. Claude cloned and validated it, the manager refreshed the complete list, and the native plugin manager installed `marketplace-manager@claude-oci-marketplace` version 0.4.0 at user scope. A fresh session without `--plugin-dir` then executed `/marketplace-manager list`. In a separate clean profile, a valid standard-only fixture and the supplied Git marketplace both appeared in the complete list with the expected classifications; `/marketplace-manager browse` showed only the OCI entry. A second clean profile added both OCI marketplaces; the list showed `claude-oci-demo@claude-oci-marketplace` and `claude-oci-guide@claude-oci-guide-marketplace` as separate catalog entries. Browse attempted metadata-only inspection and showed both identities without retrieving layers. These live manager checks succeeded; the OCI metadata checks failed on registry authentication as recorded below.
+
+All four local demo skill fixtures validate with the installed `skillctl`:
+
+```text
+$ skillctl validate examples/claude-oci-demo/v1
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-demo/v2
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-guide/v1
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-guide/v2
+✓ skill.yaml is valid
+```
+
+Metadata checks used only the supplied references from the catalogs and README:
+
+```text
+quay.io/dmartino/claude-oci-demo:0.1.1-draft                  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:0.2.0-draft                  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.1.0-draft  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.2.0-draft  → HTTP 401 Unauthorized
+```
+
+The first guide-v2 request briefly returned `invalid OCI Image Index: EOF`; an immediate retry returned the same 401 response as the other three tags. A `skillctl pull` of the supplied demo-v1 reference to a temporary path also failed with `401 Unauthorized`. No artifact layers were downloaded and no registry content was published or modified. The failure means the previously recorded checkpoint digests cannot be independently verified in this environment; installed-v2 records cannot be created for this recheck.
+
+`claude -p /reload-skills` succeeded in a clean profile. Invoking the locally copied guide-v2 fixture immediately afterward failed with `Not logged in · Please run /login`, so the expected model response could not be observed. No login flow was attempted and no credentials were requested or exposed. The local fixture copy was temporary and removed automatically after the check.
+
+The remaining blocker is external state: the supplied Quay artifacts are not readable with the credential stores available to this process, and the Claude print session has no model login. T501 therefore remains blocked on the v2 installed-record/digest checks and guide-v2 invocation. The standard-only classification, both-OCI-catalog listing, remote Git marketplace install, and supported CLI/tool versions were rechecked successfully.
 
 ## T502 — README guidance
 
@@ -399,7 +444,7 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | --- | --- | --- |
 | Validate the repository and add it from Git | Pass | T002 validation and live registration; clean-profile registration is recorded under T501. |
 | Show and install the manager through `/plugin` | Pass | T002 live marketplace and plugin checks. |
-| List every registered marketplace in the manager and classify standard-only versus OCI-enabled | Pending | The current OCI-specific implementation does not show standard-only marketplace rows; T304 tracks implementation and live verification. |
+| List every registered marketplace in the manager and classify standard-only versus OCI-enabled | Pass | T304 live isolated profiles show complete lists after standard-only and OCI-enabled adds; the current default profile list is empty. |
 | Add a standard-only marketplace and exclude it from OCI entries | Pass | T301/T501 registration and live browse evidence. |
 | Load two OCI marketplaces with distinct skill identities | Pass | T501 live browse listed the demo and guide entries under separate marketplace names. |
 | Publish sample v1 with the supplied registry coordinates | Pass | T005 and T303 report `skillctl` build, push, inspect, and resolved digest evidence. |

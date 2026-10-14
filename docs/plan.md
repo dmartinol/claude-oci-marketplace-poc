@@ -323,16 +323,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T501 — Exercise the complete demo acceptance flow
 
-- **Status:** Blocked — the checkpoint rehearsal config and macOS toolchain are unavailable in this execution environment.
+- **Status:** Blocked — the current environment has the supported Claude and `skillctl` versions, but the supplied Quay references return HTTP 401 and Claude model invocation reports that the profile is not logged in.
 - **Requirements:** R1–R14
 - **Depends on:** T301–T304, T401–T403, supplied registry coordinates
 - **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using two uniquely named v1/v2 skills in the supplied Quay namespace.
-- **Progress:** The supplied checkpoint reports both skills installed and updated through plugin v0.3.2, demo v2 invoked, and guide v1 invoked; guide v2 invocation and rechecking installed records remain. In this execution environment the requested macOS checkout, both supplied rehearsal paths, and `skillctl` are absent; Claude Code is 2.1.156 rather than the tested 2.1.299. The unavailable live checks are recorded in the implementation report and remain open.
+- **Progress:** Rechecked on Claude Code 2.1.299 and `skillctl` 0.4.0. The manager added the supplied Git marketplace and a standard-only fixture at user scope in disposable profiles; its complete list showed both types. It also listed and browsed two distinct OCI catalogs. All four local v1/v2 skill fixtures validate. Live `skillctl inspect` and `pull` against the supplied Quay tags return 401 Unauthorized; direct skill invocation returns `Not logged in · Please run /login`. The installed-v2 record/digest checks and guide-v2 invocation remain open. Full evidence is in the implementation report.
 - **Completion checks:**
   - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
   - [x] A standard-only marketplace registers and the OCI skill browser excludes it from OCI skill entries; the disposable registration is removed after the check.
-  - [ ] The generic manager's live marketplace list shows all registered standard-only and OCI-enabled marketplaces with correct classifications.
+  - [x] The generic manager's live marketplace list shows all registered standard-only and OCI-enabled marketplaces with correct classifications.
   - [x] Catalog fixtures prove cross-marketplace marketplace-qualified identity for same-name skills and reject duplicate names within one catalog. Keep live demo skill names unique per D10.
   - [x] Sample v1 was published in the supplied Quay repository and metadata browsing used `skillctl inspect` without pulling artifact layers.
   - [x] The approved install displayed version, source, and digest; sample v1 was invoked after standard reload.
@@ -345,12 +345,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** Backlog — revise and verify the guide after T304's generic command and unified marketplace list are implemented.
+- **Status:** Ready — T304 is complete and T501's current-environment results and blockers are recorded.
 - **Requirements:** R1, R2, R6, R10, R11
 - **Depends on:** T304, T501
 - **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
 - **Outcome:** Provide reproducible clean setup, installation, multi-marketplace v1-to-v2, permission, and reload instructions.
-- **Progress:** README now includes the full two-catalog procedure and expected versions, digests, and invocation responses. Its generated local catalogs pass available marketplace validation and their documented v1-to-v2 tag transition is asserted. Live verification is pending the supported Claude/`skillctl` rehearsal environment.
+- **Progress:** README has generic command names but still needs its final standard-only/OCI boundary explanation and replay check. Claude Code 2.1.299 and `skillctl` 0.4.0 are available; current Quay 401 and Claude login blockers are recorded under T501 and constrain the live replay.
 - **Completion checks:**
   - [x] README prerequisites and setup steps are verified on an isolated Claude config on macOS.
   - [x] README records the tested marketplace registration and manager installation path.
