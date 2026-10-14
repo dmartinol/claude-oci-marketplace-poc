@@ -189,11 +189,35 @@ $ sh plugins/oci-marketplace/tests/install-script.test.sh
 PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
 ```
 
+## T401 — Update detection
+
+**Result:** In progress
+
+The v0.2.0 sample source is in `examples/claude-oci-demo/v2`; it returns a visibly different response from v0.1.1. `skillctl build`, `skillctl push`, and remote `skillctl inspect` succeeded for the existing supplied repository with tag `0.2.0-draft`. The remote resolved digest is `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a`, and the root OCI catalog now points to that tag. No new registry host or namespace was introduced.
+
+The first push attempt used the remote reference before tagging the local build, and failed with `Resolve ... not found` before registry access. `skillctl tag dmartino/claude-oci-demo:0.2.0-draft quay.io/dmartino/claude-oci-demo:0.2.0-draft` added the correct local remote reference; the subsequent push succeeded.
+
+The implementation now compares resolved digests for installed marketplace-qualified entries, reports unchanged skills without an alert, isolates same-name entries by marketplace, and surfaces per-skill inspection failures without hiding valid updates. Disposable tests cover those manual-check paths:
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+20 pass
+0 fail
+
+$ skillctl validate examples/claude-oci-demo/v1
+✓ examples/claude-oci-demo/v1/skill.yaml is valid
+
+$ skillctl validate examples/claude-oci-demo/v2
+✓ examples/claude-oci-demo/v2/skill.yaml is valid
+```
+
+Still to verify: refresh the registered marketplace and manager plugin, then observe the installed v1's metadata-only update notice during a fresh Claude session. The completion checklist remains open until that live startup check is recorded.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- P4–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
+- T401 is in progress; T402–T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

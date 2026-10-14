@@ -266,7 +266,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T401 — Implement update detection
 
-- **Status:** Backlog
+- **Status:** In progress
 - **Requirements:** R7, R9
 - **Depends on:** T202, T203
 - **Outcome:** Check resolved digests on `SessionStart` and manual refresh without pulling artifact content.

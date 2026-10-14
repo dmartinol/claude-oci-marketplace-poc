@@ -99,23 +99,25 @@ function formatListing(checked, errors, installed) {
 }
 
 async function checkInstalledUpdates($) {
-  const { catalogs, errors } = await registeredCatalogs($)
+  const { catalogs, errors: catalogErrors } = await registeredCatalogs($)
   const entries = flattenCatalogs(catalogs)
   const installed = await readInstalled($)
   const matching = entries.filter((skill) => installed[skill.identity])
   const checked = await inspectedEntries($, matching)
+  const inspectErrors = checked.flatMap(({ skill, error }) => error ? [`${skill.identity}: ${error}`] : [])
   const updates = checked.flatMap(({ skill, metadata, error }) => {
     const prior = installed[skill.identity]
     if (!metadata || metadata.digest === prior.digest) return []
     return [{ ...skill, metadata, installed: prior, inspectError: error }]
   })
-  return { updates, errors, installed, catalogs }
+  return { updates, errors: [...catalogErrors, ...inspectErrors], installed, catalogs }
 }
 
 async function announceUpdates($) {
   try {
     if (await alertsDismissed($)) return
-    const { updates } = await checkInstalledUpdates($)
+    const { updates, errors } = await checkInstalledUpdates($)
+    for (const error of errors) $.ui.log(`OCI Marketplace startup check: ${error}`, { to: 'debug' })
     if (updates.length) {
       $.ui.toast(`${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} available. Run /oci-marketplace updates to review.`, { timeoutMs: 10000 })
     }
@@ -273,16 +275,16 @@ async function selectUpdates($, updates) {
 async function reviewUpdates($) {
   if (await alertsDismissed($)) return 'OCI update alerts were dismissed for this session.'
   const { updates, errors } = await checkInstalledUpdates($)
+  const warning = errors.length ? ` Check warnings: ${errors.join('; ')}` : ''
   if (updates.length === 0) {
-    const problem = errors.length ? ` Catalog errors: ${errors.join('; ')}` : ''
-    return `No installed OCI skill updates are available.${problem}`
+    return `No installed OCI skill updates are available.${warning}`
   }
 
   $.ui.toast(`${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} available.`, { timeoutMs: 10000 })
   const choice = await selectUpdates($, updates)
   if (choice.dismissed) {
     await dismissAlerts($)
-    return `Dismissed ${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} for this session.`
+    return `Dismissed ${updates.length} OCI skill update${updates.length === 1 ? '' : 's'} for this session.${warning}`
   }
 
   const answer = await $.ui.ask(
@@ -302,7 +304,7 @@ async function reviewUpdates($) {
       results.push(`Update failed for ${update.identity}: ${errorText(error)}. The prior installation remains active.`)
     }
   }
-  return results.join('\n')
+  return `${results.join('\n')}${warning}`
 }
 
 async function addMarketplace($, source) {

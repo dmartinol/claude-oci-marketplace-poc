@@ -3,7 +3,7 @@
     {
       "name": "claude-oci-demo",
       "description": "Demonstrates OCI skill distribution and reload behavior",
-      "repository": "quay.io/dmartino/claude-oci-demo:0.1.1-draft"
+      "repository": "quay.io/dmartino/claude-oci-demo:0.2.0-draft"
     }
   ]
 }
