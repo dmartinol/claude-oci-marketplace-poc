@@ -325,7 +325,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
   - [x] An approved selected update followed native confirmation and Claude permission; sample v2 was invoked after standard reload.
   - [x] Injected fetch, digest, validation, and activation failures preserve the working v1 installation.
   - [ ] Recheck both installed v2 records and supplied digests in the isolated config, then invoke guide v2 and observe its expected response.
-  - [ ] The live demo loads a second OCI marketplace with a distinct skill name so multiple unique-skill updates can be shown without exercising the accepted duplicate-name caveat.
+  - [x] The live demo loads a second OCI marketplace with a distinct skill name so multiple unique-skill updates can be shown without exercising the accepted duplicate-name caveat.
 
 ### T502 — Publish verified installation and usage guidance
 
@@ -343,15 +343,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T503 — Final validation and secret review
 
-- **Status:** Backlog — rerun after T501 and T502 because the installer and rehearsal evidence changed
+- **Status:** Done — final audit, acceptance matrix, and remaining limitations are recorded; T501 and T502 remain blocked.
 - **Requirements:** R1–R14
 - **Depends on:** T501 and T502 outcomes and remaining acceptance gaps recorded
 - **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
+- **Progress:** Strict marketplace/plugin validation and installer failure checks pass in this container. The unchanged v0.3.2 implementation passed all 23 plugin tests in the supported Claude Code 2.1.299 environment recorded under T501. The current Claude Code 2.1.156 cannot rerun `claude plugin test`, and `skillctl` is unavailable; both limits and all acceptance results are recorded in the report. Local links and tracked content were reviewed.
 - **Completion checks:**
-  - [ ] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass on the final implementation.
-  - [ ] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
-  - [ ] README, requirements, decisions, plan, and implementation report agree on behavior and status; local documentation links resolve.
-  - [ ] Git review finds no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content staged or tracked.
-  - [ ] The implementation verdict and remaining limitations are recorded, then this audit commit is pushed to `origin/main`.
+  - [x] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass on the final implementation.
+  - [x] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
+  - [x] README, requirements, decisions, plan, and implementation report agree on behavior and status; local documentation links resolve.
+  - [x] Git review finds no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content staged or tracked.
+  - [x] The implementation verdict and remaining limitations are recorded, then this audit commit is pushed to `origin/main`.
 

@@ -321,9 +321,11 @@ The native install confirmation appeared for the guide artifact. After confirmat
 
 The v0.3.1 install then succeeded for both v1 artifacts through the native confirmation and standard Bash permission prompt, and `/oci-marketplace installed` showed both marketplace-qualified records with the expected digests. This exposed a second clean-config issue: the helper wrote into the machine's default `~/.claude/skills`, while the `CLAUDE_CONFIG_DIR` session only discovered skills in its configured `skills/` directory. Qualified and unqualified invocation failed before reload; copying both files into the temporary config's `skills/` directory and running `/reload-skills` reported 15 skills (2 added), after which `/claude-oci-guide@claude-oci-guide-marketplace` returned exactly `T501 guide skill ready.`
 
+The checkpoint also records that an in-sandbox `skillctl pull` from the supplied Quay repository failed at DNS resolution. Retrying the same live installation with network-enabled permissions succeeded. This was an execution-environment DNS restriction; the supplied repository and artifact reference were unchanged. The earlier Git clone network retry is a separate event.
+
 The manager now chooses `<CLAUDE_CONFIG_DIR>/skills` when that environment variable is set and defaults to `~/.claude/skills` otherwise. The plugin is v0.3.2 so Claude loads this change. Unit tests assert the configured install path; all 23 plugin tests, strict plugin validation, and install failure-injection checks passed in the original demo environment. The supplied continuation checkpoint reports that v0.3.2 was loaded, both v1 skills were installed and updated through the manager, and both catalogs advanced to v2. The remaining checks are to re-read both installed records and invoke guide v2 after `/reload-skills`; those observations are unavailable in this checkout.
 
-The user-provided continuation checkpoint reports that plugin v0.3.2 was loaded in the isolated profile, both skills were updated to v2, demo v2 returned `T005 sample skill updated to v0.2.0.`, and guide v1 had been invoked. It supplies the demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. The guide v2 response is expected to be `T501 guide skill updated to v0.2.0.` These are checkpoint claims; the installed records and guide v2 response could not be re-observed here.
+The user-provided continuation checkpoint reports that plugin v0.3.2 was loaded in the isolated profile, both marketplace-qualified skills were updated to v2, demo v2 returned `T005 sample skill updated to v0.2.0.`, and guide v1 had been invoked. It supplies the demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. The guide v2 response is expected to be `T501 guide skill updated to v0.2.0.` These are checkpoint claims; the installed records and guide v2 response could not be re-observed here.
 
 Resume checks in this execution environment:
 
@@ -347,7 +349,7 @@ $ claude plugin test ./plugins/oci-marketplace
 error: unknown command 'test' (this Claude Code version suggests 'list')
 ```
 
-The requested `/Users/...` checkout is not mounted in this environment; the available checkout is the same repository at the supplied `e743ab9` checkpoint. The global `/sandbox/.claude/skills` directory was inspected and is empty, so there were no rehearsal artifacts here to clean up. Neither `.serena/` nor `openshell/` exists in this checkout, and neither path is tracked. The live records, Quay metadata, reload, invocation, and two-marketplace update check cannot be resumed without the original rehearsal environment and supported tools. No artifact was republished.
+The requested `/Users/...` checkout is not mounted in this environment; the available checkout is the same repository at the supplied `e743ab9` checkpoint. The global `/sandbox/.claude/skills` directory was inspected and is empty, so there were no rehearsal artifacts here to clean up. Neither `.serena/` nor `openshell/` exists in this checkout, and neither path is tracked. Prior live outputs and the supplied checkpoint are recorded above; rechecking installed records/digests, guide v2 invocation, and the live multi-update interaction requires the original rehearsal environment and supported tools. No artifact was republished.
 
 ## T502 — README guidance
 
@@ -361,37 +363,49 @@ The actual clean-profile workflow remains unverified here: the rehearsal configs
 
 ## T503 — Final validation and verdict
 
-**Result:** Backlog — final validation and security review must be rerun after T501/T502 because the installer and demo artifacts changed.
+**Result:** Done — the final audit and verdict are recorded. T501 and T502 remain blocked on live checks that require the unavailable isolated macOS rehearsal environment.
 
-Final checks on this checkout:
+The final implementation code did not change after the v0.3.2 validation recorded under T501. That supported Claude Code 2.1.299 run reported 23 plugin tests passing and the install failure-injection suite passing. The README and audit changes since then are documentation only. I reran the validators and installer failure checks in this container:
 
 ```text
-$ claude plugin test ./plugins/oci-marketplace
-23 pass
-0 fail
+$ claude --version
+2.1.156 (Claude Code)
+
+$ claude plugin validate --strict .
+✔ Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
 
 $ sh plugins/oci-marketplace/tests/install-script.test.sh
 PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
 
-$ claude plugin validate --strict .
-Validation passed
-
-$ claude plugin validate --strict ./plugins/oci-marketplace
-Validation passed
+$ claude plugin test ./plugins/oci-marketplace
+error: unknown command 'test' (Did you mean list?)
 
 $ skillctl validate examples/claude-oci-demo/v1
-✓ examples/claude-oci-demo/v1/skill.yaml is valid
-
-$ skillctl validate examples/claude-oci-demo/v2
-✓ examples/claude-oci-demo/v2/skill.yaml is valid
-
-$ git diff --check
-PASS
+/bin/bash: line 1: skillctl: command not found
 ```
 
-A local-link scan passed across the six Markdown documentation files. A tracked-file scan found no credential-like tokens, private keys, auth files, environment files, or Claude local settings. `git ls-files .serena` returned no paths; `.serena/` remains untracked and was excluded from staging. Only the intended README and documentation files were staged for this audit commit.
+The plugin test rerun could not execute because this container's Claude Code 2.1.156 predates the `plugin test` command; the 23-pass result for the unchanged v0.3.2 code remains recorded under T501. `skillctl` is also absent here, so artifact validation and live Quay inspection were not repeated. T501 records that the in-sandbox Quay pull failed DNS and that the same live install succeeded after retrying with network-enabled permissions. No artifact was published again.
 
-**Verdict:** Go for the demonstrated single-skill OCI install-and-update MVP: the manager browses metadata, waits for native confirmation and Claude permission before retrieval, installs v1, detects and applies v2, and reloads/invokes the replacement. The full P5 acceptance run is not complete: a second unique OCI skill artifact is needed for a live two-catalog/multiple-update rehearsal and a clean-user replay of that scenario. Multi-marketplace identity and multi-update selection remain covered by deterministic tests. No additional registry coordinates were invented or published.
+The README's two catalog-generation snippets were executed in a temporary directory. They produced the supplied v1 tags, changed them to the supplied v2 tags, and both catalog-only marketplace manifests passed validation with the expected no-plugins warning. A local Markdown link scan passed for 38 links across 11 files. The tracked-content scan covered 29 paths and found no credential material or local authentication/configuration files; `.serena/` and `openshell/` are absent and neither path is tracked. The final staged scan and `git diff --check` are recorded with the T503 commit.
+
+| Demo acceptance scenario | Result | Evidence |
+| --- | --- | --- |
+| Validate the repository and add it from Git | Pass | T002 validation and live registration; clean-profile registration is recorded under T501. |
+| Show and install the manager through `/plugin` | Pass | T002 live marketplace and plugin checks. |
+| Add a standard-only marketplace and exclude it from OCI entries | Pass | T301/T501 registration and live browse evidence. |
+| Load two OCI marketplaces with distinct skill identities | Pass | T501 live browse listed the demo and guide entries under separate marketplace names. |
+| Publish sample v1 with the supplied registry coordinates | Pass | T005 and T303 report `skillctl` build, push, inspect, and resolved digest evidence. |
+| Browse and install v1 only after approval | Pass | T303 records native confirmation, Claude permission, then retrieval and activation. |
+| Show version/source/digest and invoke after reload | Pass | T303 records demo v1; the supplied checkpoint also reports guide v1 invocation. |
+| Detect published v2 | Pass | T401 records live demo digest detection; T501 records the second skill's published v2 digest. |
+| Show one live multi-update summary, subset selection, and dismissal without retrieval | Partial | T402 interaction fixtures cover selection, dismissal, and no pull; the live Claude update summary had one item and was cancelled. |
+| Apply a selected update through confirmation and permission, reload, and invoke v2 | Pass for demo | T403 records the complete live demo v2 flow. Guide v2 invocation and independent installed-record verification remain pending under T501. |
+| Preserve installed v1 after fetch, digest, validation, or activation failure | Pass | T403 fixtures and the final install-script failure-injection run. |
+
+**Verdict:** Go for the demonstrated single-skill install-and-update MVP. Do not claim full P5 acceptance yet: guide v2 invocation and installed-record verification remain unobserved in the accessible environment, the multi-update selection/dismissal flow has fixture evidence but not a live two-update run, and the revised README was not replayed in Claude. T501 and T502 remain blocked; T503's audit is complete. No registry coordinates were invented and no artifacts were republished.
 
 ## Current implementation status
 
@@ -399,6 +413,6 @@ A local-link scan passed across the six Markdown documentation files. A tracked-
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
 - P4 (T401–T403) is complete.
-- P5 remains incomplete: T501 is blocked on the unavailable macOS rehearsal environment; T502 and T503 remain pending their final evidence and audit commits.
+- P5 remains incomplete: T501 is blocked on live installed-record and guide-v2 verification; T502 is blocked on replaying the revised README in the supported isolated environment; T503's final audit is complete.
 
-No credentials, authentication files, or `.serena/` contents were staged.
+No credentials, authentication files, or machine-local configuration files are staged or tracked. `.serena/` and `openshell/` were not staged or modified.
