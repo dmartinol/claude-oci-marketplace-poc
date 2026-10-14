@@ -313,7 +313,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Depends on:** T301–T303, T401–T403, supplied registry coordinates
 - **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using two uniquely named v1/v2 skills in the supplied Quay namespace.
-- **Progress:** Published the unique `claude-oci-guide` v1/v2 tags and added a second catalog fixture. The first live install exposed a `skillctl pull` repository-basename mismatch; the installer now normalizes the pulled directory and passes failure-preservation checks. Bumped the plugin to v0.3.1 so Claude installs the corrected hook code. The live two-update rehearsal is being rerun.
+- **Progress:** Published the unique `claude-oci-guide` v1/v2 tags and added a second catalog fixture. The first live install exposed a `skillctl pull` repository-basename mismatch; the installer now normalizes the pulled directory and passes failure-preservation checks. The isolated rehearsal also showed that installs must follow `CLAUDE_CONFIG_DIR` for Claude to discover them; the hook now targets that directory when set. Plugin v0.3.2 carries both fixes. The live two-update rehearsal is being rerun.
 - **Completion checks:**
   - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
   - [x] A standard-only marketplace registers and the manager's live browse excludes it from OCI entries; the disposable registration is removed after the check.

@@ -56,6 +56,10 @@ The manager enumerates registered marketplaces through Claude Code's `claude plu
 
 The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI skill artifacts. A Claude-compatible artifact contains both `SKILL.md` and `skill.yaml`; `inspect` resolves the published digest without downloading layers, and `pull` retrieves and unpacks the artifact. A catalog's tagged repository reference selects the published artifact; SkillCard version and resolved digest come from `inspect` and are not stored in the catalog. The source registry is the host in the repository reference. Protected Quay credentials are reused from the local container credential stores.
 
+### D13 — Respect the active Claude config directory for skills
+
+When `CLAUDE_CONFIG_DIR` is set, the manager installs skills under `<CLAUDE_CONFIG_DIR>/skills` so Claude discovers them in that profile. With no override, it uses `~/.claude/skills`. This follows the active Claude configuration and preserves the marketplace-qualified directory name.
+
 ## Open feasibility questions
 
 None. The P0 feasibility questions are resolved, and the user has approved implementation beyond G1.

@@ -38,7 +38,7 @@ claude plugin install oci-marketplace@claude-oci-marketplace --scope user
 claude plugin list
 ```
 
-The registration and install commands were repeated successfully with an isolated `CLAUDE_CONFIG_DIR` ([Claude Code environment variable reference](https://code.claude.com/docs/en/env-vars)); the resulting manager plugin was enabled at user scope. In Claude Code, `/plugin` also lists the marketplace and its manager plugin. The marketplace can be added from that UI as well.
+The registration and install commands were repeated successfully with an isolated `CLAUDE_CONFIG_DIR` ([Claude Code environment variable reference](https://code.claude.com/docs/en/env-vars)); the resulting manager plugin was enabled at user scope. Skill installs follow the active config too: they go to `$CLAUDE_CONFIG_DIR/skills` when set, or `~/.claude/skills` otherwise. In Claude Code, `/plugin` also lists the marketplace and its manager plugin. The marketplace can be added from that UI as well.
 
 If the marketplace is already registered, refresh it after publishing marketplace changes:
 

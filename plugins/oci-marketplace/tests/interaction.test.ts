@@ -103,6 +103,7 @@ test('refreshes browse status after a successful install', async ($, on) => {
   const digest = newDigest
   const state: Record<string, unknown> = {}
   let questionCount = 0
+  let envReadCount = 0
   on('process.run', (_, event) => event.argv[0] === 'claude'
     ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
@@ -113,7 +114,7 @@ test('refreshes browse status after a successful install', async ($, on) => {
   })
   on('fs.exists', () => ({ value: true }))
   on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
-  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
   on('clock.now', () => ({ value: 1791936000000 }))
   on('ui.status', () => ({ value: undefined }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
@@ -376,7 +377,8 @@ test('applies only selected updates and persists only their new metadata', async
     const name = marketplace === 'marketplace-one' ? 'guide' : 'reference'
     return { value: JSON.stringify({ skills: [{ name, description: 'A demo skill', repository: `quay.io/example/${name}:1.2.0` }] }) }
   })
-  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  let envReadCount = 0
+  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
   on('clock.now', () => ({ value: 1791936000000 }))
   on('ui.status', () => ({ value: undefined }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
@@ -426,7 +428,8 @@ test('failed selected update preserves v1 installed state', async ($, on) => {
     : ({ value: { exitCode: 0, stdout: `Version: 0.2.0\nDigest: ${newDigest}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('fs.exists', () => ({ value: true }))
   on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
-  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  let envReadCount = 0
+  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
   on('clock.now', () => ({ value: 1791936000000 }))
   on('ui.status', () => ({ value: undefined }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
@@ -456,6 +459,7 @@ test('persists a successful install and shows it in a later installed view', asy
   const store: Record<string, unknown> = {}
   const actionOrder: string[] = []
   let bashCommand = ''
+  let envReadCount = 0
   on('process.run', (_, event) => event.argv[0] === 'claude'
     ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
@@ -466,7 +470,7 @@ test('persists a successful install and shows it in a later installed view', asy
     store[event.key] = event.value
     return { value: undefined }
   })
-  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : '/tmp/demo-config' }))
   on('clock.now', () => ({ value: 1791936000000 }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
     actionOrder.push('native confirmation')
@@ -484,6 +488,8 @@ test('persists a successful install and shows it in a later installed view', asy
   expect(actionOrder).toEqual(['native confirmation', 'permission-checked installer'])
   expect(bashCommand).toContain("'quay.io/example/guide:1.2.0'")
   expect(bashCommand).toContain(`'${digest}'`)
+  expect(bashCommand).toContain("'/tmp/demo-config/skills/.oci-marketplace-stage-")
+  expect(bashCommand).toContain("'/tmp/demo-config/skills/guide@marketplace-one'")
   expect(record).toEqual({
     name: 'guide',
     marketplace: 'marketplace-one',
@@ -514,6 +520,7 @@ test('cancelled and failed installs do not change installed state', async ($, on
   let writes = 0
   let bashCalls = 0
   const skillctlCalls: string[][] = []
+  let envReadCount = 0
   on('process.run', (_, event) => {
     if (event.argv[0] === 'claude') {
       return { value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
@@ -529,7 +536,7 @@ test('cancelled and failed installs do not change installed state', async ($, on
     store[event.key] = event.value
     return { value: undefined }
   })
-  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
   on('clock.now', () => ({ value: 1791936000000 }))
   on('ui.status', () => ({ value: undefined }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {

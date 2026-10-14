@@ -11,7 +11,6 @@ import {
 const STORE_KEY = 'installedSkills'
 const DISMISS_KEY = 'dismissedSessionId'
 const CATALOG_FILE = 'oci-catalog.json'
-const SKILLS_ROOT_SUFFIX = '/.claude/skills'
 const COMMAND_NAME = 'oci-marketplace'
 
 function errorText(error) {
@@ -184,7 +183,14 @@ async function showInstalled($) {
 async function performInstall($, skill, metadata, intent) {
   const home = await $.env.get('HOME')
   if (!home || !home.startsWith('/')) throw new Error('Could not resolve the user home directory')
-  const skillsRoot = `${home}${SKILLS_ROOT_SUFFIX}`
+  const configuredRoot = await $.env.get('CLAUDE_CONFIG_DIR')
+  if (configuredRoot && (typeof configuredRoot !== 'string' || !configuredRoot.startsWith('/'))) {
+    throw new Error('CLAUDE_CONFIG_DIR must be an absolute path when set')
+  }
+  const configRoot = configuredRoot
+    ? configuredRoot.replace(/\/+$/, '') || '/'
+    : `${home}/.claude`
+  const skillsRoot = configRoot === '/' ? '/skills' : `${configRoot}/skills`
   const timestamp = String(await $.clock.now()).replace(/[^0-9]/g, '')
   const installDirectory = installDirectoryName(skill.name, skill.marketplace)
   const stageRoot = `${skillsRoot}/.oci-marketplace-stage-${timestamp}-${installDirectory}`

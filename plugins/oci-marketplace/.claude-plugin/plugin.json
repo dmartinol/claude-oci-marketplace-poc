@@ -1,7 +1,7 @@
 {
   "name": "oci-marketplace",
   "displayName": "OCI Marketplace",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Browse, install, and update skills distributed as OCI artifacts",
   "author": {
     "name": "dmartinol"
