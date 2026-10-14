@@ -345,22 +345,22 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** Ready — T304 is complete and T501's current-environment results and blockers are recorded.
+- **Status:** Blocked — the revised guide's setup and local-catalog steps pass in an isolated Linux profile, but Quay returns 401 and Claude is not logged in, preventing the registry-backed acceptance replay; a macOS host is unavailable here.
 - **Requirements:** R1, R2, R6, R10, R11
 - **Depends on:** T304, T501
 - **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
 - **Outcome:** Provide reproducible clean setup, installation, multi-marketplace v1-to-v2, permission, and reload instructions.
-- **Progress:** README has generic command names but still needs its final standard-only/OCI boundary explanation and replay check. Claude Code 2.1.299 and `skillctl` 0.4.0 are available; current Quay 401 and Claude login blockers are recorded under T501 and constrain the live replay.
+- **Progress:** README now uses the generic manager commands, explains all-marketplace classification and the `/plugin` boundary, and was replayed in a clean profile through marketplace registration, plugin install, local catalog creation, manager add/list, and v1-to-v2 catalog edits. Browse then returned the T501 Quay 401 blocker; no clean-user artifact install/update/invocation was possible.
 - **Completion checks:**
-  - [x] README prerequisites and setup steps are verified on an isolated Claude config on macOS.
+  - [x] README prerequisites and setup steps are verified on an isolated profile using Claude Code 2.1.299; the available host is Linux, not the macOS demo environment.
   - [x] README records the tested marketplace registration and manager installation path.
   - [x] README documents each manager command, approval/permission step, supplied registry reference, and reload step.
-  - [ ] README explains the all-marketplace list, standard-only classification, generic command name, and the OCI extension boundary.
+  - [x] README explains the all-marketplace list, standard-only classification, generic command name, and the OCI extension boundary.
   - [ ] A clean user reproduces the acceptance flow using only the README and locally supplied registry credentials/configuration.
 
 ### T503 — Final validation and secret review
 
-- **Status:** Backlog — the prior audit covered the narrower OCI-only scope; rerun after T304 and T502.
+- **Status:** Ready — T304 is complete and T501/T502 outcomes and remaining blockers are recorded.
 - **Requirements:** R1–R14
 - **Depends on:** T304, T501, and T502 outcomes and remaining acceptance gaps recorded
 - **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
