@@ -32,6 +32,13 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
     { name: 'marketplace-two', installLocation: '/tmp/marketplace-two' },
   ]
   const document = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  const installed = {
+    'guide@marketplace-one': {
+      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+      installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
+    },
+  }
   const invocations: string[][] = []
   on('process.run', (_, event) => {
     invocations.push(event.argv)
@@ -40,7 +47,7 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
     }
     return { value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('store.get', () => ({ value: undefined }))
+  on('store.get', () => ({ value: installed }))
   on('fs.exists', (_, event) => ({ value: event.path !== '/tmp/standard-only/oci-catalog.json' }))
   on('fs.read', () => ({ value: document }))
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => ({
@@ -52,12 +59,44 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
   expect(answer.text).toContain('guide@marketplace-one')
   expect(answer.text).toContain('guide@marketplace-two')
   expect(answer.text).not.toContain('guide@standard-only')
+  expect(answer.text).toContain('v1.2.0 | quay.io |')
   expect(answer.text).toContain(newDigest)
+  expect(answer.text).toContain(`installed v1.1.0 (${oldDigest})`)
   expect(invocations).toEqual([
     ['claude', 'plugin', 'marketplace', 'list', '--json'],
     ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
     ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
   ])
+})
+
+test('selects a browser entry and can cancel before retrieval', async ($, on) => {
+  const calls: string[][] = []
+  let bashCalls = 0
+  on('process.run', (_, event) => {
+    calls.push(event.argv)
+    return event.argv[0] === 'claude'
+      ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+      : ({ value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+  })
+  on('store.get', () => ({ value: undefined }))
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    const question = event.questions[0].question
+    const answer = question.startsWith('Choose an OCI skill') ? 'guide@marketplace-one' : 'Cancel'
+    return { result: { questions: event.questions, answers: { [question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, () => {
+    bashCalls += 1
+    return { result: { text: 'unexpected install' } }
+  })
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'browse' })
+
+  expect(answer.text).toContain('guide@marketplace-one')
+  expect(answer.text).toContain('install cancelled')
+  expect(bashCalls).toBe(0)
+  expect(calls.some((argv) => argv[0] === 'skillctl' && argv[1] === 'pull')).toBe(false)
 })
 
 test('dismisses update alerts for the rest of the session', async ($, on) => {

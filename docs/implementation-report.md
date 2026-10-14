@@ -146,11 +146,27 @@ Validation passed
 
 The interaction test mocks Claude's command result and marketplace list to avoid changing live user registrations. T004 independently recorded a real user-scope registration and removal of a standard-only marketplace; T003 verified the permission-checked mod tool flow.
 
+## T302 — Marketplace browser
+
+**Result:** Pass
+
+Browse loads and inspects entries from all registered OCI catalogs, then presents marketplace-qualified identities in Claude's native mod selection UI. The listing includes description, available version, source registry, resolved digest, and installed version/digest when present. Selecting an entry proceeds to the native install/update confirmation; cancelling there returns without calling the installer. Completing the browser with `Done` also returns inside Claude without pulling artifact layers.
+
+The real manager's headless browse resolved `claude-oci-demo@claude-oci-marketplace`, version `0.1.1`, registry `quay.io`, and its sha256 digest without pulling layers (see T201 output above). In the interactive Claude session, the native chooser displayed that qualified identity and proceeded to the native install confirmation. A two-catalog fixture covers same-name identities and installed-state display; interaction fixtures cover selection/cancel, finishing browse, and zero pre-approval pulls.
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+17 pass
+0 fail
+```
+
+The real interactive browse reached its install confirmation but did not complete installation; T303 owns the end-to-end install and invocation check.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
-- T301 is complete. T302 and T303 remain pending their plan dependencies and end-to-end acceptance evidence.
+- T301 and T302 are complete. T303 remains pending its end-to-end install and reload evidence.
 - P4–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

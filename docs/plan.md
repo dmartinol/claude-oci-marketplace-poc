@@ -237,15 +237,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T302 — Implement the marketplace browser
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R2, R5, R12
 - **Depends on:** T201, T202
+- **Evidence:** [Implementation report — T302](implementation-report.md#t302--marketplace-browser)
 - **Outcome:** Show available OCI skills, source marketplace, install state, version, and digest through the native mod UI.
 - **Completion checks:**
-  - [ ] The native mod UI lists entries from multiple registered OCI catalogs with qualified identity and marketplace source.
-  - [ ] Each entry shows available version, source registry, resolved digest, and installed status/version when present.
-  - [ ] The user can select an install/update entry and cancel or finish browsing without leaving Claude.
-  - [ ] Browsing and selection resolve metadata only; no artifact content is downloaded before approval.
+  - [x] The native mod UI lists entries from multiple registered OCI catalogs with qualified identity and marketplace source.
+  - [x] Each entry shows available version, source registry, resolved digest, and installed status/version when present.
+  - [x] The user can select an install/update entry and cancel or finish browsing without leaving Claude.
+  - [x] Browsing and selection resolve metadata only; no artifact content is downloaded before approval.
 
 ### T303 — Connect the install and reload flow
 
