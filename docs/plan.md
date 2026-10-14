@@ -16,7 +16,7 @@ For P1–P5, the checklist under each task is its acceptance gate. Check an item
 
 ## Current priority
 
-The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. Execute P1–P5 in dependency order; retain evidence and task status in this tracker.
+The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. On 2026-10-14, the user clarified that the product is a general marketplace manager and OCI support is an extension. Execute P1–P5 plus the new T304 scope task in dependency order; retain evidence and task status in this tracker.
 
 ## P0 — Feasibility spike
 
@@ -262,6 +262,21 @@ The feasibility spike is complete and the user explicitly approved full implemen
   - [x] After the supported reload step, Claude discovers and successfully invokes sample v1.
   - [x] Cancelling confirmation or permission performs no artifact retrieval and changes no installed state.
 
+### T304 — Make the manager general-purpose and list all marketplaces
+
+- **Status:** Ready
+- **Requirements:** R2, R10, R11, R12
+- **Depends on:** T201, T301–T303
+- **Evidence:** [Implementation report — T304](implementation-report.md#t304--general-marketplace-manager)
+- **Outcome:** Replace the OCI-specific command entry point with the generic marketplace manager, show all registered marketplaces, and retain OCI skill workflows as an extension.
+- **Completion checks:**
+  - [ ] The delivered command is `/marketplace-manager`, accepted by the supported Claude version without colliding with built-in commands or aliases; user-facing command docs, tests, and help use the generic entry point, with historical evidence clearly labeled.
+  - [ ] A `list` action displays every marketplace from Claude's authoritative registration output, with its name/source and standard-only or OCI-enabled classification.
+  - [ ] Standard-only marketplace rows remain visible in the manager list while contributing no OCI skill entries to the OCI skill browser.
+  - [ ] `add <source>` registers both standard-only and OCI-enabled marketplaces and refreshes the complete list.
+  - [ ] OCI browse/install/update behavior remains available for OCI-enabled entries, while standard plugin operations remain available through Claude's `/plugin` UI.
+  - [ ] Interaction tests cover complete marketplace listing, classification, adding both marketplace types, and the generic command name.
+
 ## P4 — Update workflow
 
 ### T401 — Implement update detection
@@ -310,13 +325,14 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 - **Status:** Blocked — the checkpoint rehearsal config and macOS toolchain are unavailable in this execution environment.
 - **Requirements:** R1–R14
-- **Depends on:** T301–T303, T401–T403, supplied registry coordinates
+- **Depends on:** T301–T304, T401–T403, supplied registry coordinates
 - **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using two uniquely named v1/v2 skills in the supplied Quay namespace.
 - **Progress:** The supplied checkpoint reports both skills installed and updated through plugin v0.3.2, demo v2 invoked, and guide v1 invoked; guide v2 invocation and rechecking installed records remain. In this execution environment the requested macOS checkout, both supplied rehearsal paths, and `skillctl` are absent; Claude Code is 2.1.156 rather than the tested 2.1.299. The unavailable live checks are recorded in the implementation report and remain open.
 - **Completion checks:**
   - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
-  - [x] A standard-only marketplace registers and the manager's live browse excludes it from OCI entries; the disposable registration is removed after the check.
+  - [x] A standard-only marketplace registers and the OCI skill browser excludes it from OCI skill entries; the disposable registration is removed after the check.
+  - [ ] The generic manager's live marketplace list shows all registered standard-only and OCI-enabled marketplaces with correct classifications.
   - [x] Catalog fixtures prove cross-marketplace marketplace-qualified identity for same-name skills and reject duplicate names within one catalog. Keep live demo skill names unique per D10.
   - [x] Sample v1 was published in the supplied Quay repository and metadata browsing used `skillctl inspect` without pulling artifact layers.
   - [x] The approved install displayed version, source, and digest; sample v1 was invoked after standard reload.
@@ -329,9 +345,9 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** Blocked — the README procedure is written and its catalog snippets validate, but the isolated Claude replay cannot run in the current environment.
-- **Requirements:** R1, R2, R6, R10
-- **Depends on:** T501
+- **Status:** Backlog — revise and verify the guide after T304's generic command and unified marketplace list are implemented.
+- **Requirements:** R1, R2, R6, R10, R11
+- **Depends on:** T304, T501
 - **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
 - **Outcome:** Provide reproducible clean setup, installation, multi-marketplace v1-to-v2, permission, and reload instructions.
 - **Progress:** README now includes the full two-catalog procedure and expected versions, digests, and invocation responses. Its generated local catalogs pass available marketplace validation and their documented v1-to-v2 tag transition is asserted. Live verification is pending the supported Claude/`skillctl` rehearsal environment.
@@ -339,13 +355,14 @@ The feasibility spike is complete and the user explicitly approved full implemen
   - [x] README prerequisites and setup steps are verified on an isolated Claude config on macOS.
   - [x] README records the tested marketplace registration and manager installation path.
   - [x] README documents each manager command, approval/permission step, supplied registry reference, and reload step.
+  - [ ] README explains the all-marketplace list, standard-only classification, generic command name, and the OCI extension boundary.
   - [ ] A clean user reproduces the acceptance flow using only the README and locally supplied registry credentials/configuration.
 
 ### T503 — Final validation and secret review
 
-- **Status:** Done — final audit, acceptance matrix, and remaining limitations are recorded; T501 and T502 remain blocked.
+- **Status:** Backlog — the prior audit covered the narrower OCI-only scope; rerun after T304 and T502.
 - **Requirements:** R1–R14
-- **Depends on:** T501 and T502 outcomes and remaining acceptance gaps recorded
+- **Depends on:** T304, T501, and T502 outcomes and remaining acceptance gaps recorded
 - **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
 - **Progress:** Strict marketplace/plugin validation and installer failure checks pass in this container. The unchanged v0.3.2 implementation passed all 23 plugin tests in the supported Claude Code 2.1.299 environment recorded under T501. The current Claude Code 2.1.156 cannot rerun `claude plugin test`, and `skillctl` is unavailable; both limits and all acceptance results are recorded in the report. Local links and tracked content were reviewed.

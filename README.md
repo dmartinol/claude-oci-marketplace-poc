@@ -1,6 +1,6 @@
-# Claude OCI Marketplace POC
+# Claude Marketplace Manager POC
 
-Developer proof of concept for browsing, installing, using, and updating OCI-distributed skills entirely inside stock Claude Code.
+Developer proof of concept for managing Claude marketplaces in stock Claude Code, with OCI-distributed skill discovery, installation, and updates as an extension.
 
 The feasibility spike is complete (T001–T008), and full implementation was approved at G1 on 2026-10-14. The repository is being advanced through the MVP tasks in [docs/plan.md](docs/plan.md).
 
@@ -51,7 +51,11 @@ The OCI catalog is `oci-catalog.json` at the marketplace root. The main marketpl
 
 ## Usage
 
-Use the manager inside Claude Code:
+### Scope update
+
+The accepted product scope is broader than the current implementation: the generic `/marketplace-manager` command must list all registered marketplaces, including standard-only marketplaces, while OCI skill operations remain an add-on. T304 in the plan tracks the command rename and unified marketplace list. Until T304 is implemented, the command table and rehearsal below describe the current OCI-specific `/oci-marketplace` implementation and do not satisfy the expanded scope.
+
+Current implementation commands:
 
 | Command | Action |
 | --- | --- |

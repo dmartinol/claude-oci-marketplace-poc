@@ -2,6 +2,10 @@
 
 This report records evidence for P1–P5 tasks in [plan.md](plan.md). The P0 feasibility findings remain in [feasibility-report.md](feasibility-report.md). Full implementation was approved at G1 on 2026-10-14.
 
+## Scope revision — general marketplace management
+
+On 2026-10-14, the user clarified that this product is a general marketplace manager, with OCI skill handling as an optional extension. The current `/oci-marketplace` implementation lists OCI skills but hides standard-only marketplace rows. It does not meet the clarified request. Requirements R2, R10–R12, decisions D1, D2, D6, D11, and D14, and plan task T304 now track the generic `/marketplace-manager` entry point and complete marketplace listing. The previous T503 audit and go verdict apply only to the narrower OCI-focused scope and are superseded for the expanded MVP until T304 is implemented and T503 reruns.
+
 ## T101 — Validated plugin scaffold
 
 **Result:** Pass
@@ -395,6 +399,7 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | --- | --- | --- |
 | Validate the repository and add it from Git | Pass | T002 validation and live registration; clean-profile registration is recorded under T501. |
 | Show and install the manager through `/plugin` | Pass | T002 live marketplace and plugin checks. |
+| List every registered marketplace in the manager and classify standard-only versus OCI-enabled | Pending | The current OCI-specific implementation does not show standard-only marketplace rows; T304 tracks implementation and live verification. |
 | Add a standard-only marketplace and exclude it from OCI entries | Pass | T301/T501 registration and live browse evidence. |
 | Load two OCI marketplaces with distinct skill identities | Pass | T501 live browse listed the demo and guide entries under separate marketplace names. |
 | Publish sample v1 with the supplied registry coordinates | Pass | T005 and T303 report `skillctl` build, push, inspect, and resolved digest evidence. |
@@ -405,7 +410,13 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | Apply a selected update through confirmation and permission, reload, and invoke v2 | Pass for demo | T403 records the complete live demo v2 flow. Guide v2 invocation and independent installed-record verification remain pending under T501. |
 | Preserve installed v1 after fetch, digest, validation, or activation failure | Pass | T403 fixtures and the final install-script failure-injection run. |
 
-**Verdict:** Go for the demonstrated single-skill install-and-update MVP. Do not claim full P5 acceptance yet: guide v2 invocation and installed-record verification remain unobserved in the accessible environment, the multi-update selection/dismissal flow has fixture evidence but not a live two-update run, and the revised README was not replayed in Claude. T501 and T502 remain blocked; T503's audit is complete. No registry coordinates were invented and no artifacts were republished.
+**Verdict:** The prior go recommendation applies only to the OCI-focused install-and-update implementation. The expanded MVP is not yet ready for a go recommendation: the generic command, all-marketplace list, standard-only classification, and their live checks remain unimplemented under T304. T501 and T502 also retain the limitations recorded above. T503 must be rerun after the clarified scope is implemented. No registry coordinates were invented and no artifacts were republished.
+
+## T304 — General marketplace manager
+
+**Result:** Ready — implementation has not started.
+
+The user clarified that marketplace management is the core product and OCI skill management is an extension. The existing code and live evidence cover only the OCI-focused command and browser. T304 therefore tracks renaming the command to `/marketplace-manager` (with live collision validation), listing every marketplace from Claude's registered marketplace output, classifying standard-only and OCI-enabled entries, and adding either marketplace type while retaining the OCI workflow. No implementation or live validation evidence is claimed for these checks yet.
 
 ## Current implementation status
 
@@ -413,6 +424,6 @@ The README's two catalog-generation snippets were executed in a temporary direct
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
 - P4 (T401–T403) is complete.
-- P5 remains incomplete: T501 is blocked on live installed-record and guide-v2 verification; T502 is blocked on replaying the revised README in the supported isolated environment; T503's final audit is complete.
+- The clarified general-marketplace scope is incomplete: T304 is ready; T501 and T502 have remaining live verification and guidance work; T503's prior audit is superseded and must be rerun after T304.
 
 No credentials, authentication files, or machine-local configuration files are staged or tracked. `.serena/` and `openshell/` were not staged or modified.
