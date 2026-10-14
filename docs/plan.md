@@ -340,14 +340,15 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T503 — Final validation and secret review
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R1–R14
-- **Depends on:** T501, T502
+- **Depends on:** T501 and T502 outcomes and remaining acceptance gaps recorded
+- **Evidence:** [Implementation report — T503](implementation-report.md#t503--final-validation-and-verdict)
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
 - **Completion checks:**
-  - [ ] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass.
-  - [ ] The full demo acceptance flow and documented failure cases have recorded results.
-  - [ ] README, requirements, decisions, plan, and implementation report agree on behavior and status; documentation links resolve.
-  - [ ] Git review confirms no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content is staged/tracked.
-  - [ ] Final implementation verdict and remaining limitations are recorded, then the final task commit is pushed to `origin/main`.
+  - [x] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass.
+  - [x] Each demo acceptance scenario and documented failure case has a recorded pass, partial, or pending result.
+  - [x] README, requirements, decisions, plan, and implementation report agree on behavior and status; local documentation links resolve.
+  - [x] Git review finds no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content staged or tracked.
+  - [x] The implementation verdict and remaining limitations are recorded, then this audit commit is pushed to `origin/main`.
 

@@ -298,11 +298,45 @@ The supplied registry currently has one unique sample skill name/repository, wit
 
 The README now documents the tested Claude Code and `skillctl` versions, strict validation, Git marketplace registration, manager installation, all five manager commands, standard-only behavior, the supplied v2 catalog reference, the confirmation and Bash permission sequence, and `/reload-skills` with new-session fallback. Clean-config marketplace registration and manager installation succeeded in T501. A fresh user has not yet reproduced the complete multi-update acceptance flow, so T502 is not marked Done.
 
+## T503 — Final validation and verdict
+
+**Result:** Pass for repository validation and security review; the product verdict is conditional because T501's second unique OCI skill is still unavailable.
+
+Final checks on this checkout:
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+23 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+
+$ claude plugin validate --strict .
+Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+
+$ skillctl validate examples/claude-oci-demo/v1
+✓ examples/claude-oci-demo/v1/skill.yaml is valid
+
+$ skillctl validate examples/claude-oci-demo/v2
+✓ examples/claude-oci-demo/v2/skill.yaml is valid
+
+$ git diff --check
+PASS
+```
+
+A local-link scan passed across the six Markdown documentation files. A tracked-file scan found no credential-like tokens, private keys, auth files, environment files, or Claude local settings. `git ls-files .serena` returned no paths; `.serena/` remains untracked and was excluded from staging. Only the intended README and documentation files were staged for this audit commit.
+
+**Verdict:** Go for the demonstrated single-skill OCI install-and-update MVP: the manager browses metadata, waits for native confirmation and Claude permission before retrieval, installs v1, detects and applies v2, and reloads/invokes the replacement. The full P5 acceptance run is not complete: a second unique OCI skill artifact is needed for a live two-catalog/multiple-update rehearsal and a clean-user replay of that scenario. Multi-marketplace identity and multi-update selection remain covered by deterministic tests. No additional registry coordinates were invented or published.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- P4 (T401–T403) is complete. T501 and T502 have partial evidence; T501 awaits a second unique OCI skill for a live two-catalog update rehearsal. T503 remains pending.
+- P4 (T401–T403) and the final validation/security audit (T503) are complete. T501 and T502 remain in progress pending a second unique OCI skill for the live two-catalog update rehearsal and clean-user replay.
 
 No credentials, authentication files, or `.serena/` contents were staged.
