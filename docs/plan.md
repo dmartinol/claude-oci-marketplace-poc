@@ -292,16 +292,17 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T403 — Apply selected updates safely
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R6, R8, R13
 - **Depends on:** T204, T402
+- **Evidence:** [Implementation report — T403](implementation-report.md#t403--selected-update-application)
 - **Outcome:** Apply only selected updates after native confirmation and Claude permission, then follow the standard reload lifecycle.
 - **Completion checks:**
-  - [ ] Native confirmation precedes Claude's standard permission flow for selected updates.
-  - [ ] Only selected skills are retrieved and updated; unselected skills remain unchanged.
-  - [ ] Successful v2 replacement updates persisted version/digest and follows the supported reload lifecycle.
-  - [ ] Claude discovers and successfully invokes sample v2 after reload.
-  - [ ] Injected retrieval, validation, or activation failure preserves the working v1 files and installed-state record.
+  - [x] Native confirmation precedes Claude's standard permission flow for selected updates.
+  - [x] Only selected skills are retrieved and updated; unselected skills remain unchanged.
+  - [x] Successful v2 replacement updates persisted version/digest and follows the supported reload lifecycle.
+  - [x] Claude discovers and successfully invokes sample v2 after reload.
+  - [x] Injected retrieval, validation, or activation failure preserves the working v1 files and installed-state record.
 
 ## P5 — Demo hardening and developer guidance
 

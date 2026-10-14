@@ -241,11 +241,41 @@ $ claude plugin test ./plugins/oci-marketplace
 
 Multi-skill selection and next-session return use deterministic interaction fixtures. The live Claude UI showed the native summary with the published v0.1.1 → v0.2.0 update; no update was applied during T402.
 
+## T403 — Selected update application
+
+**Result:** Pass
+
+The live Claude Code 2.1.299 session showed the native update selection summary. I selected the sole available update, `claude-oci-demo@claude-oci-marketplace` (v0.1.1 → v0.2.0), then confirmed applying one selected update. Claude's standard Bash permission prompt followed the native confirmation and showed the selected repository, expected digest, qualified install directory, and rollback path. After approval, the manager reported successful activation of v0.2.0 with digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a`.
+
+`/oci-marketplace installed` then reported the persisted v0.2.0 version, `quay.io` registry, and matching digest. The installed `SKILL.md` contains the v2 response. `/reload-skills` completed and Claude's next `/claude-oci-demo@claude-oci-marketplace` invocation returned exactly `T005 sample skill updated to v0.2.0.`
+
+The two-marketplace interaction fixture selected only Update 1 and asserted that only its repository reached the installer; the other marketplace's v1 record remained byte-for-byte equivalent. A separate failed-update interaction fixture asserted that an activation error leaves the v1 installed-state record unchanged. The deterministic install fixture also injected retrieval, digest mismatch, invalid/missing metadata, wrong-name, and activation failures and verified that v1 files remain usable.
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+23 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+
+$ claude plugin validate --strict .
+Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+
+$ skillctl validate examples/claude-oci-demo/v2
+✓ examples/claude-oci-demo/v2/skill.yaml is valid
+```
+
+The live flow used the already supplied Quay repository and a native Claude permission prompt. No credentials or machine-local configuration were staged.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- T401 and T402 are complete. T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
+- P4 (T401–T403) is complete. P5 (T501–T503) remains pending its acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

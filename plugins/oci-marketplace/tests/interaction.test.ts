@@ -337,6 +337,118 @@ test('summarizes multiple updates, retains a subset, and postpones without pulli
   expect(store.dismissedSessionId).toBe('test-session')
 })
 
+test('applies only selected updates and persists only their new metadata', async ($, on) => {
+  const installed = {
+    'guide@marketplace-one': {
+      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+      installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
+    },
+    'reference@marketplace-two': {
+      name: 'reference', marketplace: 'marketplace-two', repository: 'quay.io/example/reference:1.2.0',
+      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+      installDirectory: 'reference@marketplace-two', installedAt: '2026-10-14T00:00:00.000Z',
+    },
+  }
+  const state: Record<string, unknown> = { installedSkills: installed }
+  const registrations = [
+    { name: 'marketplace-one', installLocation: '/tmp/marketplace-one' },
+    { name: 'marketplace-two', installLocation: '/tmp/marketplace-two' },
+  ]
+  const askPrompts: string[] = []
+  const bashCommands: string[] = []
+  let askCount = 0
+  on('store.get', (_, event) => ({ value: state[event.key] }))
+  on('store.set', (_, event) => {
+    state[event.key] = event.value
+    return { value: undefined }
+  })
+  on('session.id', () => ({ value: 'test-session' }))
+  on('process.run', (_, event) => {
+    if (event.argv[0] === 'claude') {
+      return { value: { exitCode: 0, stdout: JSON.stringify(registrations), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    return { value: { exitCode: 0, stdout: `Version: 0.2.0\nDigest: ${newDigest}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', (_, event) => {
+    const marketplace = event.path.includes('marketplace-one') ? 'marketplace-one' : 'marketplace-two'
+    const name = marketplace === 'marketplace-one' ? 'guide' : 'reference'
+    return { value: JSON.stringify({ skills: [{ name, description: 'A demo skill', repository: `quay.io/example/${name}:1.2.0` }] }) }
+  })
+  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('clock.now', () => ({ value: 1791936000000 }))
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    askCount += 1
+    const question = event.questions[0].question
+    askPrompts.push(question)
+    const answer = askCount === 1 ? 'Update 1' : 'Apply selected'
+    return { result: { questions: event.questions, answers: { [question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, (_, event) => {
+    bashCommands.push(event.command)
+    return { result: { text: 'Activated selected skill' } }
+  })
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  const updatedState = state.installedSkills as Record<string, Record<string, unknown>>
+
+  expect(answer.text).toContain('Installed guide@marketplace-one v0.2.0')
+  expect(bashCommands).toHaveLength(1)
+  expect(bashCommands[0]).toContain("'quay.io/example/guide:1.2.0'")
+  expect(bashCommands[0]).not.toContain('reference')
+  expect(askPrompts[0]).toContain('reference@marketplace-two')
+  expect(askPrompts[1]).toContain('Apply 1 selected OCI skill update')
+  expect(updatedState['guide@marketplace-one'].version).toBe('0.2.0')
+  expect(updatedState['guide@marketplace-one'].digest).toBe(newDigest)
+  expect(updatedState['reference@marketplace-two']).toEqual(installed['reference@marketplace-two'])
+})
+
+test('failed selected update preserves v1 installed state', async ($, on) => {
+  const record = {
+    name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+    registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+    installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
+  }
+  const state: Record<string, unknown> = { installedSkills: { 'guide@marketplace-one': record } }
+  let askCount = 0
+  let writes = 0
+  on('store.get', (_, event) => ({ value: state[event.key] }))
+  on('store.set', (_, event) => {
+    writes += 1
+    state[event.key] = event.value
+    return { value: undefined }
+  })
+  on('session.id', () => ({ value: 'test-session' }))
+  on('process.run', (_, event) => event.argv[0] === 'claude'
+    ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    : ({ value: { exitCode: 0, stdout: `Version: 0.2.0\nDigest: ${newDigest}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('clock.now', () => ({ value: 1791936000000 }))
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    askCount += 1
+    const question = event.questions[0].question
+    const answer = askCount === 1 ? 'Update 1' : 'Apply selected'
+    return { result: { questions: event.questions, answers: { [question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, () => ({
+    result: { text: 'simulated activation failure', isError: true },
+    isError: true,
+    text: 'simulated activation failure',
+  }))
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+
+  expect(answer.text).toContain('Update failed for guide@marketplace-one')
+  expect(answer.text).toContain('simulated activation failure')
+  expect(writes).toBe(0)
+  expect(state.installedSkills).toEqual({ 'guide@marketplace-one': record })
+})
+
 test('persists a successful install and shows it in a later installed view', async ($, on) => {
   const digest = newDigest
   const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
