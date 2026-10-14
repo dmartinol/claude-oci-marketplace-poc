@@ -5,6 +5,7 @@ import {
   installDirectoryName,
   parseInspection,
   parseOciReference,
+  runProcess,
   shellQuote,
   validateCatalog,
   validateInstalledState,
@@ -104,6 +105,35 @@ test('validates installed records and keeps only the supported state fields', as
   const invalid = validateInstalledState({ 'wrong-identity': record })
   expect(invalid.entries).toEqual({})
   expect(invalid.errors[0]).toMatch(/identity/)
+})
+
+test('bounds process calls and surfaces nonzero exits and timeouts', async () => {
+  const calls: Array<{ argv: string[]; timeoutMs: number }> = []
+  const output = await runProcess(async (argv: string[], options: { timeoutMs: number }) => {
+    calls.push({ argv, timeoutMs: options.timeoutMs })
+    return { exitCode: 0, stdout: 'metadata', stderr: '' }
+  }, ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'], 60000)
+  expect(output).toBe('metadata')
+  expect(calls).toEqual([{ argv: ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'], timeoutMs: 60000 }])
+
+  let exitError = ''
+  try {
+    await runProcess(async () => ({ exitCode: 9, stdout: '', stderr: 'registry denied' }), ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'])
+  } catch (error) {
+    exitError = error instanceof Error ? error.message : String(error)
+  }
+  expect(exitError).toBe('registry denied')
+
+  let timeoutError = ''
+  try {
+    await runProcess(async (_argv: string[], options: { timeoutMs: number }) => {
+      if (options.timeoutMs !== 60000) throw new Error('timeout was not configured')
+      throw new Error('process timed out after 60000ms')
+    }, ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'], 60000)
+  } catch (error) {
+    timeoutError = error instanceof Error ? error.message : String(error)
+  }
+  expect(timeoutError).toBe('process timed out after 60000ms')
 })
 
 test('encodes marketplace-qualified install directories and quotes shell arguments', async () => {

@@ -85,11 +85,33 @@ $ claude plugin test ./plugins/oci-marketplace
 
 The test uses a mock successful installer call; actual artifact retrieval and atomic replacement are covered by T005 feasibility evidence and remain acceptance checks for T203/T204 respectively.
 
+## T203 — Deterministic `skillctl` operations
+
+**Result:** Pass
+
+All `$.process.run` calls use argument arrays through the shared `runProcess` helper. Marketplace listing has the default 30-second bound; `skillctl inspect` has a 60-second bound. Nonzero exits surface stderr/stdout, malformed inspect output is rejected unless it includes a version and sha256 digest, and process timeouts propagate to the command's error result. Browse fixtures assert that the only `skillctl` operation is `inspect`; no pull is performed during metadata checks.
+
+The existing T005 evidence verifies the production `skillctl 0.4.0` contract: metadata inspection resolves the sample digest without pulling layers; authenticated `skillctl pull` retrieves and unpacks the same supplied Quay artifact using the local credential stores. The manager delegates to that command and never reads, prints, or persists credentials. The T202 interaction fixture verifies native confirmation precedes the permission-checked installer call.
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+14 pass
+0 fail
+
+$ claude plugin validate --strict .
+Validation passed (with non-gating README setup advice; see T502)
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+```
+
+These tests exercise process errors and timeout propagation with disposable mocks; an actual install through Claude's permission UI and the staged replacement are validated in T204/T303.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - T201 is complete.
-- T202 installed-state persistence is complete. T203 deterministic `skillctl` operations and T204 staged replacement remain under implementation.
+- T202 installed-state persistence and T203 deterministic `skillctl` operations are complete. T204 staged replacement remains under implementation.
 - P3–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

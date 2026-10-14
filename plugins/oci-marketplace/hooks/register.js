@@ -3,6 +3,7 @@ import {
   identityFor,
   installDirectoryName,
   parseInspection,
+  runProcess,
   shellQuote,
   validateInstalledState,
 } from './lib.js'
@@ -30,15 +31,6 @@ function usage() {
   ].join('\n')
 }
 
-async function runProcess($, argv, timeoutMs = 30000) {
-  const result = await $.process.run(argv, { timeoutMs })
-  if (result.exitCode !== 0) {
-    const detail = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`
-    throw new Error(detail)
-  }
-  return result.stdout
-}
-
 async function readInstalled($) {
   const value = await $.store.get(STORE_KEY)
   const { entries, errors } = validateInstalledState(value ?? {})
@@ -56,7 +48,7 @@ async function dismissAlerts($) {
 }
 
 async function registeredCatalogs($) {
-  const output = await runProcess($, ['claude', 'plugin', 'marketplace', 'list', '--json'])
+  const output = await runProcess((argv, options) => $.process.run(argv, options), ['claude', 'plugin', 'marketplace', 'list', '--json'])
   const registrations = JSON.parse(output)
   return catalogsFromRegistrations(registrations, async (registration) => {
     const catalogPath = `${registration.installLocation}/${CATALOG_FILE}`
@@ -66,7 +58,7 @@ async function registeredCatalogs($) {
 }
 
 async function inspectSkill($, skill) {
-  const output = await runProcess($, ['skillctl', 'inspect', skill.repository], 60000)
+  const output = await runProcess((argv, options) => $.process.run(argv, options), ['skillctl', 'inspect', skill.repository], 60000)
   return parseInspection(output)
 }
 

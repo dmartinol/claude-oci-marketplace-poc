@@ -164,6 +164,15 @@ export function parseInspection(output) {
   return { version, digest }
 }
 
+export async function runProcess(processRun, argv, timeoutMs = 30000) {
+  const result = await processRun(argv, { timeoutMs })
+  if (result.exitCode !== 0) {
+    const detail = result.stderr.trim() || result.stdout.trim() || `exit code ${result.exitCode}`
+    throw new Error(detail)
+  }
+  return result.stdout
+}
+
 export function shellQuote(value) {
   return `'${String(value).replaceAll("'", "'\"'\"'")}'`
 }

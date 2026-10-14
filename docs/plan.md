@@ -195,15 +195,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T203 — Implement the deterministic `skillctl` wrapper
 
-- **Status:** Ready
+- **Status:** Done
 - **Requirements:** R4, R7
 - **Depends on:** T101 and the T005 findings
+- **Evidence:** [Implementation report — T203](implementation-report.md#t203--deterministic-skillctl-operations)
 - **Outcome:** Provide bounded operations for metadata resolution, retrieval, and unpacking with structured results and errors.
 - **Completion checks:**
   - [x] Metadata inspection returns version and resolved digest without pulling artifact layers.
-  - [ ] Pull/unpack uses the locally supplied registry configuration and supported credentials without exposing or persisting them.
-  - [ ] Process arguments are passed deterministically, with bounded execution and clear handling for nonzero exits, malformed output, and timeouts.
-  - [ ] Retrieval occurs only after user confirmation and Claude's standard permission flow.
+  - [x] Pull/unpack uses the locally supplied registry configuration and supported credentials without exposing or persisting them.
+  - [x] Process arguments are passed deterministically, with bounded execution and clear handling for nonzero exits, malformed output, and timeouts.
+  - [x] Retrieval occurs only after user confirmation and Claude's standard permission flow.
 
 ### T204 — Implement staged installation and replacement
 

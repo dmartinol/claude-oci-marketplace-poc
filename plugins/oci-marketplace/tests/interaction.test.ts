@@ -32,7 +32,9 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
     { name: 'marketplace-two', installLocation: '/tmp/marketplace-two' },
   ]
   const document = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  const invocations: string[][] = []
   on('process.run', (_, event) => {
+    invocations.push(event.argv)
     if (event.argv[0] === 'claude') {
       return { value: { exitCode: 0, stdout: JSON.stringify(catalogs), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
     }
@@ -51,6 +53,11 @@ test('browses multiple OCI catalogs and ignores standard-only marketplaces', asy
   expect(answer.text).toContain('guide@marketplace-two')
   expect(answer.text).not.toContain('guide@standard-only')
   expect(answer.text).toContain(newDigest)
+  expect(invocations).toEqual([
+    ['claude', 'plugin', 'marketplace', 'list', '--json'],
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+  ])
 })
 
 test('dismisses update alerts for the rest of the session', async ($, on) => {
@@ -97,6 +104,7 @@ test('persists a successful install and shows it in a later installed view', asy
   const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
   const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
   const store: Record<string, unknown> = {}
+  const actionOrder: string[] = []
   let bashCommand = ''
   on('process.run', (_, event) => event.argv[0] === 'claude'
     ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
@@ -110,10 +118,12 @@ test('persists a successful install and shows it in a later installed view', asy
   })
   on('env.get', () => ({ value: '/tmp/demo-home' }))
   on('clock.now', () => ({ value: 1791936000000 }))
-  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => ({
-    result: { questions: event.questions, answers: { [event.questions[0].question]: 'Continue' } },
-  }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    actionOrder.push('native confirmation')
+    return { result: { questions: event.questions, answers: { [event.questions[0].question]: 'Continue' } } }
+  })
   on('tool.call', { tool: 'Bash' }, (_, event) => {
+    actionOrder.push('permission-checked installer')
     bashCommand = event.command
     return { result: { text: 'Activated skill at /tmp/demo-home/.claude/skills/guide@marketplace-one' } }
   })
@@ -121,6 +131,7 @@ test('persists a successful install and shows it in a later installed view', asy
   const installed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
   const record = (store.installedSkills as Record<string, Record<string, unknown>>)?.['guide@marketplace-one']
   expect(installed.text).toContain('Installed guide@marketplace-one v1.2.0')
+  expect(actionOrder).toEqual(['native confirmation', 'permission-checked installer'])
   expect(bashCommand).toContain("'quay.io/example/guide:1.2.0'")
   expect(bashCommand).toContain(`'${digest}'`)
   expect(record).toEqual({
@@ -182,4 +193,32 @@ test('cancelled and failed installs do not change installed state', async ($, on
   expect(failed.text).toContain('permission denied')
   expect(writes).toBe(0)
   expect(store.installedSkills).toEqual({ 'guide@marketplace-one': record })
+})
+
+test('reports skillctl process and metadata failures clearly', async ($, on) => {
+  let failureMode = 'process'
+  const invocations: string[][] = []
+  on('process.run', (_, event) => {
+    invocations.push(event.argv)
+    if (event.argv[0] === 'claude') {
+      return { value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    if (failureMode === 'process') {
+      return { value: { exitCode: 17, stdout: '', stderr: 'registry refused request', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    return { value: { exitCode: 0, stdout: 'Version: 1.2.0\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+
+  const processFailure = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  failureMode = 'metadata'
+  const metadataFailure = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+
+  expect(processFailure.text).toContain('registry refused request')
+  expect(metadataFailure.text).toContain('did not include a version and sha256 digest')
+  expect(invocations.filter((argv) => argv[0] === 'skillctl')).toEqual([
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+  ])
 })
