@@ -16,7 +16,7 @@ Update a task's status in the same commit as its implementation or evidence. If 
 
 ## Current priority
 
-P0 is the only authorized implementation milestone. Complete the feasibility spike, publish its evidence, and stop at Gate G1 for explicit approval. P1–P5 remain backlog until that approval is recorded.
+The feasibility spike is complete and the user explicitly approved full implementation on 2026-10-14. Execute P1–P5 in dependency order; retain evidence and task status in this tracker.
 
 ## P0 — Feasibility spike
 
@@ -126,16 +126,17 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ## Gate G1 — Explicit approval
 
-- **Status:** Blocked pending explicit user approval
+- **Status:** Done — explicit user approval recorded 2026-10-14
 - **Entry condition:** T001–T008 are Done.
 - **Exit condition:** The feasibility evidence and any proposed requirement changes are reviewed and full implementation is explicitly approved.
-- **Rule:** Do not start P1–P5 before this gate is cleared.
+- **Evidence:** User approved the plan in chat after asking what remained for a viable MVP and receiving the G1 explanation.
+- **Result:** P1–P5 are authorized to proceed.
 
 ## P1 — Production-shaped plugin scaffold
 
 ### T101 — Establish the validated marketplace and plugin scaffold
 
-- **Status:** Backlog
+- **Status:** In progress
 - **Requirements:** R2, R3, R9
 - **Depends on:** G1
 - **Outcome:** Convert validated spike assets into the minimal maintained marketplace, manager plugin, mod entry point, `SessionStart` hook, helper, and sample catalog structure.

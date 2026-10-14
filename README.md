@@ -2,7 +2,7 @@
 
 Developer proof of concept for browsing, installing, using, and updating OCI-distributed skills entirely inside stock Claude Code.
 
-The feasibility spike is complete (T001–T008). The report recommends proceeding to G1 review; full workflow implementation remains gated by explicit approval.
+The feasibility spike is complete (T001–T008), and full implementation was approved at G1 on 2026-10-14. The repository is being advanced through the MVP tasks in [docs/plan.md](docs/plan.md).
 
 ## Project documentation
 
@@ -23,15 +23,15 @@ cd claude-oci-marketplace-poc
 
 Development requires macOS for the initial demo, stock Claude Code, `skillctl`, Git, and access to the locally configured demo registry. Registry coordinates and credentials are supplied locally and must never be committed.
 
-Before making implementation changes, read [AGENTS.md](AGENTS.md). Begin with the feasibility spike in [docs/requirements.md](docs/requirements.md), record concrete evidence, and stop for review before implementing the full workflow.
+Before making implementation changes, read [AGENTS.md](AGENTS.md), [docs/requirements.md](docs/requirements.md), and [docs/decisions.md](docs/decisions.md). The feasibility evidence and approval are recorded in [docs/feasibility-report.md](docs/feasibility-report.md) and [docs/plan.md](docs/plan.md).
 
 ## Installation
 
-Installation instructions for the maintained manager will be added after G1 approves the full implementation. The feasibility report records the validated marketplace and plugin packaging flow.
+Verified installation instructions will be completed as part of T502. The feasibility report records the initial validated marketplace and plugin packaging flow.
 
 ## Usage
 
-Full manager usage instructions will be added after G1 approval. The feasibility report records the verified namespaced command, mod UI, permission flow, and skill reload behavior.
+Manager usage instructions will be completed as part of T502. The feasibility report records the verified namespaced command, mod UI, permission flow, and skill reload behavior.
 
 ## References
 

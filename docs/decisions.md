@@ -46,6 +46,8 @@ Install and update use Claude's standard lifecycle. On Claude Code 2.1.299, a `S
 
 Agents complete the feasibility spike, report evidence and blockers, and stop for explicit approval before implementing the full workflow. Unsupported mod behavior is a blocker to report, not permission to silently replace the intended UX.
 
+The spike was approved for full implementation on 2026-10-14; Gate G1 is cleared. The same-name skill collision caveat is accepted as a demo limitation that can be avoided by using unique skill names in the demo catalogs.
+
 ### D11 — Registered marketplace discovery
 
 The manager enumerates registered marketplaces through Claude Code's `claude plugin marketplace list --json` output, uses each entry's `installLocation` as the authoritative content location, and treats only marketplaces containing the finalized extension-owned catalog file as OCI-enabled. It does not create or maintain a second marketplace registry.
@@ -56,5 +58,5 @@ The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI 
 
 ## Open feasibility questions
 
-None. The P0 feasibility questions are resolved; full implementation remains gated by G1.
+None. The P0 feasibility questions are resolved, and the user has approved implementation beyond G1.
 
