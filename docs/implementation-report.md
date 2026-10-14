@@ -273,7 +273,7 @@ The live flow used the already supplied Quay repository and a native Claude perm
 
 ## T501 — End-to-end demo rehearsal
 
-**Result:** In progress — the second unique skill is published and both catalogs are live in an isolated Claude config; the first install uncovered a real unpack-path mismatch, now fixed and covered by tests. The two-update interaction is pending rerun with the updated plugin.
+**Result:** Blocked — the remaining live checks could not be resumed from the current execution environment. The prior checkpoint evidence remains useful, but the guide v2 invocation and installed-record recheck are not claimed complete.
 
 The clean-config setup used Claude Code 2.1.299 and `skillctl` 0.4.0. I created an isolated `CLAUDE_CONFIG_DIR`, added the supplied Git marketplace URL, installed `oci-marketplace@claude-oci-marketplace` at user scope, and confirmed the plugin was enabled at v0.3.0. The isolated config was removed after the check. The first clone attempt was blocked by the restricted network; the same supplied URL succeeded when retried with network access.
 
@@ -321,7 +321,33 @@ The native install confirmation appeared for the guide artifact. After confirmat
 
 The v0.3.1 install then succeeded for both v1 artifacts through the native confirmation and standard Bash permission prompt, and `/oci-marketplace installed` showed both marketplace-qualified records with the expected digests. This exposed a second clean-config issue: the helper wrote into the machine's default `~/.claude/skills`, while the `CLAUDE_CONFIG_DIR` session only discovered skills in its configured `skills/` directory. Qualified and unqualified invocation failed before reload; copying both files into the temporary config's `skills/` directory and running `/reload-skills` reported 15 skills (2 added), after which `/claude-oci-guide@claude-oci-guide-marketplace` returned exactly `T501 guide skill ready.`
 
-The manager now chooses `<CLAUDE_CONFIG_DIR>/skills` when that environment variable is set and defaults to `~/.claude/skills` otherwise. The plugin is v0.3.2 so Claude loads this change. Unit tests assert the configured install path; all 23 plugin tests, strict plugin validation, and install failure-injection checks pass. The corrected v0.3.2 code must still be loaded into the rehearsal config, both v1 skills reinstalled through the manager, both catalogs advanced to v2, and both updated skills invoked after `/reload-skills`. No credentials or machine-local files were staged.
+The manager now chooses `<CLAUDE_CONFIG_DIR>/skills` when that environment variable is set and defaults to `~/.claude/skills` otherwise. The plugin is v0.3.2 so Claude loads this change. Unit tests assert the configured install path; all 23 plugin tests, strict plugin validation, and install failure-injection checks passed in the original demo environment. The supplied continuation checkpoint reports that v0.3.2 was loaded, both v1 skills were installed and updated through the manager, and both catalogs advanced to v2. The remaining checks are to re-read both installed records and invoke guide v2 after `/reload-skills`; those observations are unavailable in this checkout.
+
+The user-provided continuation checkpoint reports that plugin v0.3.2 was loaded in the isolated profile, both skills were updated to v2, demo v2 returned `T005 sample skill updated to v0.2.0.`, and guide v1 had been invoked. It supplies the demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. The guide v2 response is expected to be `T501 guide skill updated to v0.2.0.` These are checkpoint claims; the installed records and guide v2 response could not be re-observed here.
+
+Resume checks in this execution environment:
+
+```text
+$ git rev-parse HEAD
+e743ab92a70daaf1b12134d8b3dd4a3777e7cd45
+
+$ git status --short --branch
+## main...origin/main
+
+$ claude --version
+2.1.156 (Claude Code)
+
+$ skillctl --version
+bash: line 1: skillctl: command not found
+
+$ ls -ld /tmp/claude-p5-final-20261014 /tmp/claude-p5-final-guide-marketplace-20261014
+No such file or directory
+
+$ claude plugin test ./plugins/oci-marketplace
+error: unknown command 'test' (this Claude Code version suggests 'list')
+```
+
+The requested `/Users/...` checkout is not mounted in this environment; the available checkout is the same repository at the supplied `e743ab9` checkpoint. The global `/sandbox/.claude/skills` directory was inspected and is empty, so there were no rehearsal artifacts here to clean up. Neither `.serena/` nor `openshell/` exists in this checkout, and neither path is tracked. The live records, Quay metadata, reload, invocation, and two-marketplace update check cannot be resumed without the original rehearsal environment and supported tools. No artifact was republished.
 
 ## T502 — README guidance
 
@@ -368,6 +394,7 @@ A local-link scan passed across the six Markdown documentation files. A tracked-
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- P4 (T401–T403) and the final validation/security audit (T503) are complete. T501 and T502 remain in progress pending a second unique OCI skill for the live two-catalog update rehearsal and clean-user replay.
+- P4 (T401–T403) is complete.
+- P5 remains incomplete: T501 is blocked on the unavailable macOS rehearsal environment; T502 and T503 remain pending their final evidence and audit commits.
 
 No credentials, authentication files, or `.serena/` contents were staged.

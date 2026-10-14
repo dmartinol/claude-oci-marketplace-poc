@@ -308,12 +308,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T501 — Exercise the complete demo acceptance flow
 
-- **Status:** In progress
+- **Status:** Blocked — the checkpoint rehearsal config and macOS toolchain are unavailable in this execution environment.
 - **Requirements:** R1–R14
 - **Depends on:** T301–T303, T401–T403, supplied registry coordinates
 - **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using two uniquely named v1/v2 skills in the supplied Quay namespace.
-- **Progress:** Published the unique `claude-oci-guide` v1/v2 tags and added a second catalog fixture. The first live install exposed a `skillctl pull` repository-basename mismatch; the installer now normalizes the pulled directory and passes failure-preservation checks. The isolated rehearsal also showed that installs must follow `CLAUDE_CONFIG_DIR` for Claude to discover them; the hook now targets that directory when set. Plugin v0.3.2 carries both fixes. The live two-update rehearsal is being rerun.
+- **Progress:** The supplied checkpoint reports both skills installed and updated through plugin v0.3.2, demo v2 invoked, and guide v1 invoked; guide v2 invocation and rechecking installed records remain. In this execution environment the requested macOS checkout, both supplied rehearsal paths, and `skillctl` are absent; Claude Code is 2.1.156 rather than the tested 2.1.299. The unavailable live checks are recorded in the implementation report and remain open.
 - **Completion checks:**
   - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
   - [x] A standard-only marketplace registers and the manager's live browse excludes it from OCI entries; the disposable registration is removed after the check.
@@ -324,6 +324,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
   - [x] Dismissal suppresses the alert for the current session and the fixture offers the update again under a new session ID.
   - [x] An approved selected update followed native confirmation and Claude permission; sample v2 was invoked after standard reload.
   - [x] Injected fetch, digest, validation, and activation failures preserve the working v1 installation.
+  - [ ] Recheck both installed v2 records and supplied digests in the isolated config, then invoke guide v2 and observe its expected response.
   - [ ] The live demo loads a second OCI marketplace with a distinct skill name so multiple unique-skill updates can be shown without exercising the accepted duplicate-name caveat.
 
 ### T502 — Publish verified installation and usage guidance
