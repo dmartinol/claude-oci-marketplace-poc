@@ -1,6 +1,6 @@
 # Implementation Plan
 
-This document is the execution tracker for the requirements in [requirements.md](requirements.md). Product intent belongs in the requirements, rationale belongs in [decisions.md](decisions.md), and technical evidence from the first milestone will belong in `docs/feasibility-report.md`.
+This document is the execution tracker for the requirements in [requirements.md](requirements.md). Product intent belongs in the requirements, rationale belongs in [decisions.md](decisions.md), feasibility evidence belongs in [feasibility-report.md](feasibility-report.md), and P1–P5 implementation evidence belongs in [implementation-report.md](implementation-report.md).
 
 ## Tracking rules
 
@@ -8,11 +8,11 @@ Statuses:
 
 - **Backlog** — accepted but not yet actionable.
 - **Ready** — dependencies are satisfied and work may start.
-- **In progress** — actively being worked; keep only one feasibility task in this state.
+- **In progress** — actively being worked; keep only one task in this state.
 - **Blocked** — cannot continue; record the blocker and supporting evidence.
-- **Done** — completion criteria are satisfied and evidence is recorded.
+- **Done** — every required checklist item is checked and its evidence is recorded.
 
-Update a task's status in the same commit as its implementation or evidence. If work changes intended behavior, update the requirements and decisions before changing this plan.
+For P1–P5, the checklist under each task is its acceptance gate. Check an item only after observing the result and recording its evidence under that task in `docs/implementation-report.md`; a task cannot be marked Done while any required item is unchecked. Keep implementation, report, and plan status updates together in a task-specific commit, then push that commit to `origin/main`. Record failed commands, blockers, and push failures in the report and plan, then continue with independent work. If work changes intended behavior, update the requirements and decisions before changing this plan.
 
 ## Current priority
 
@@ -141,7 +141,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Depends on:** G1
 - **Evidence:** [Implementation report — T101](implementation-report.md#t101--validated-plugin-scaffold)
 - **Outcome:** Convert validated spike assets into the minimal maintained marketplace, manager plugin, mod entry point, `SessionStart` hook, helper, and sample catalog structure.
-- **Done when:** the repository validates, installs through `/plugin`, and exposes the confirmed namespaced command.
+- **Completion checks:**
+  - [x] `claude plugin validate --strict .` accepts the root marketplace.
+  - [x] `claude plugin validate --strict ./plugins/oci-marketplace` accepts the manager plugin.
+  - [x] OCI metadata is in the extension-owned root catalog while Claude's standard marketplace manifest remains valid.
+  - [x] The packaged `SessionStart` hook returns Claude's supported `reloadSkills` response.
+  - [x] After marketplace installation/update and a fresh stock Claude session, `/oci-marketplace` exposes the namespaced command.
 
 ### T102 — Automate structural validation
 
@@ -150,7 +155,13 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Depends on:** T101
 - **Evidence:** [Implementation report — T102](implementation-report.md#t102--structural-validation)
 - **Outcome:** Add repeatable checks for marketplace metadata, plugin metadata, the OCI catalog schema, and fixture integrity.
-- **Done when:** valid fixtures pass, invalid fixtures fail clearly, and the checks run locally without registry credentials.
+- **Completion checks:**
+  - [x] Catalog fixtures accept required fields and a tagged OCI repository reference, and reject missing or invalid fields.
+  - [x] Duplicate skill names within one catalog are rejected; the same name in separate marketplaces produces distinct qualified identities.
+  - [x] Standard-only marketplaces contribute no OCI entries.
+  - [x] Metadata parsing and shell argument quoting have repeatable unit coverage.
+  - [x] Disposable installation fixtures cover fetch, digest mismatch, invalid artifact, and activation failures, preserving the prior installation.
+  - [x] Strict Claude marketplace/plugin validation and local tests pass without registry credentials.
 
 ## P2 — Deterministic marketplace and skill core
 
@@ -161,7 +172,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Depends on:** T101, T102
 - **Evidence:** [Implementation report — T201](implementation-report.md#t201--marketplace-discovery-and-catalog-loading)
 - **Outcome:** Load validated OCI catalogs from Claude's registered marketplaces while preserving standard-only marketplaces.
-- **Done when:** multiple catalogs load, missing OCI catalogs are ignored, and skills have stable marketplace-qualified identities.
+- **Completion checks:**
+  - [x] Registered marketplaces are read from Claude's `claude plugin marketplace list --json` output and their `installLocation` values.
+  - [x] Multiple OCI catalogs load, while a registered marketplace without `oci-catalog.json` contributes no OCI entries.
+  - [x] Same-name skills in different marketplaces retain distinct `<skill-name>@<marketplace-name>` identities.
+  - [x] The live browse command resolves the sample version and digest with `skillctl inspect` and does not pull artifact layers.
+  - [x] A headless browse returns the listing without selecting or installing a skill.
 
 ### T202 — Implement installed-skill state
 
@@ -169,7 +185,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R5, R12
 - **Depends on:** T201
 - **Outcome:** Persist and display installed version, source reference, marketplace identity, and resolved digest without storing credentials.
-- **Done when:** installed state can be created, read, validated, and associated with its catalog entry.
+- **Completion checks:**
+  - [ ] A successful install writes a validated record keyed by marketplace-qualified identity only after the install helper succeeds.
+  - [ ] The record contains skill name, marketplace, repository/source registry, installed version, resolved digest, and install directory; it contains no credentials.
+  - [ ] A fresh command/session reads the record and associates it with the matching catalog entry.
+  - [ ] The installed view displays version, source registry, and digest from the persisted record.
+  - [ ] Cancelled or failed installs leave the previous record unchanged.
 
 ### T203 — Implement the deterministic `skillctl` wrapper
 
@@ -177,7 +198,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R4, R7
 - **Depends on:** T101 and the T005 findings
 - **Outcome:** Provide bounded operations for metadata resolution, retrieval, and unpacking with structured results and errors.
-- **Done when:** metadata checks do not pull layers and install operations reuse supported registry authentication.
+- **Completion checks:**
+  - [x] Metadata inspection returns version and resolved digest without pulling artifact layers.
+  - [ ] Pull/unpack uses the locally supplied registry configuration and supported credentials without exposing or persisting them.
+  - [ ] Process arguments are passed deterministically, with bounded execution and clear handling for nonzero exits, malformed output, and timeouts.
+  - [ ] Retrieval occurs only after user confirmation and Claude's standard permission flow.
 
 ### T204 — Implement staged installation and replacement
 
@@ -185,7 +210,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R4, R8
 - **Depends on:** T202, T203
 - **Outcome:** Install and update through validation and atomic replacement while preserving the working installation on failure.
-- **Done when:** successful staging activates a valid skill and simulated failures leave the prior skill usable.
+- **Completion checks:**
+  - [ ] Retrieval stages into a temporary location and validates digest, skill files, and declared skill name before activation.
+  - [ ] Activation targets a deterministic marketplace-qualified skill directory and replaces it atomically.
+  - [ ] A successful install/update makes the validated staged skill active and only then updates installed state.
+  - [ ] Injected fetch, digest, unpack/validation, and activation failures preserve the prior skill and its state.
 
 ## P3 — Browse and install workflow
 
@@ -195,7 +224,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R10, R11, R12
 - **Depends on:** T201
 - **Outcome:** Make the namespaced `add <git-url>` command follow Claude's user-scope marketplace-add behavior and refresh discovery.
-- **Done when:** both OCI-enabled and standard-only marketplaces add successfully with the required browser behavior.
+- **Completion checks:**
+  - [ ] `add <git-url>` validates and passes the supplied URL as an argument to Claude's user-scope marketplace-add operation.
+  - [ ] The native Claude permission flow authorizes the deterministic add operation.
+  - [ ] An OCI-enabled marketplace adds and appears in refreshed discovery.
+  - [ ] A valid standard-only marketplace adds successfully and contributes no OCI entries.
+  - [ ] Invalid URLs and Claude command failures produce a clear result without corrupting discovery state.
 
 ### T302 — Implement the marketplace browser
 
@@ -203,7 +237,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R2, R5, R12
 - **Depends on:** T201, T202
 - **Outcome:** Show available OCI skills, source marketplace, install state, version, and digest through the native mod UI.
-- **Done when:** skills from multiple catalogs can be browsed and selected without leaving Claude.
+- **Completion checks:**
+  - [ ] The native mod UI lists entries from multiple registered OCI catalogs with qualified identity and marketplace source.
+  - [ ] Each entry shows available version, source registry, resolved digest, and installed status/version when present.
+  - [ ] The user can select an install/update entry and cancel or finish browsing without leaving Claude.
+  - [ ] Browsing and selection resolve metadata only; no artifact content is downloaded before approval.
 
 ### T303 — Connect the install and reload flow
 
@@ -211,7 +249,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R4, R6, R8, R13
 - **Depends on:** T204, T302
 - **Outcome:** Connect user selection, native confirmation, Claude permission, deterministic installation, and the validated standard reload lifecycle.
-- **Done when:** sample v1 installs and becomes invocable using the documented standard reload step.
+- **Completion checks:**
+  - [ ] Selecting sample v1 presents native confirmation before retrieval.
+  - [ ] The installation helper runs only after Claude's standard permission flow and installs into the qualified skills directory.
+  - [ ] Successful installation writes installed state and follows the supported standard reload lifecycle.
+  - [ ] In a fresh session or after the supported reload step, Claude discovers and successfully invokes sample v1.
+  - [ ] Cancelling confirmation or permission performs no artifact retrieval and changes no installed state.
 
 ## P4 — Update workflow
 
@@ -221,7 +264,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R7, R9
 - **Depends on:** T202, T203
 - **Outcome:** Check resolved digests on `SessionStart` and manual refresh without pulling artifact content.
-- **Done when:** unchanged and newer digests are distinguished reliably across registered catalogs.
+- **Completion checks:**
+  - [ ] Startup and manual refresh inspect installed skills across all registered OCI catalogs without pulling artifact layers.
+  - [ ] Unchanged resolved digests are reported as current and do not create update alerts.
+  - [ ] A newer resolved digest is associated with the correct marketplace-qualified installed skill.
+  - [ ] Missing catalogs and metadata failures are reported without hiding valid results from other marketplaces.
 
 ### T402 — Implement update indication and selection
 
@@ -229,7 +276,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R13, R14
 - **Depends on:** T003 findings, T401
 - **Outcome:** Show a non-blocking indicator and consolidated update summary with per-skill selection.
-- **Done when:** dismissal lasts for the session and the same applicable update returns on the next startup or refresh.
+- **Completion checks:**
+  - [ ] Update detection produces one non-blocking indicator and one consolidated native summary.
+  - [ ] The summary allows selecting a subset of skills from multiple available updates.
+  - [ ] Dismissing the alert suppresses it for the current session while leaving artifacts untouched.
+  - [ ] The same still-applicable update is offered again on the next session startup or manual refresh.
 
 ### T403 — Apply selected updates safely
 
@@ -237,7 +288,12 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R6, R8, R13
 - **Depends on:** T204, T402
 - **Outcome:** Apply only selected updates after native confirmation and Claude permission, then follow the standard reload lifecycle.
-- **Done when:** sample v2 becomes invocable and a failed update preserves v1.
+- **Completion checks:**
+  - [ ] Native confirmation precedes Claude's standard permission flow for selected updates.
+  - [ ] Only selected skills are retrieved and updated; unselected skills remain unchanged.
+  - [ ] Successful v2 replacement updates persisted version/digest and follows the supported reload lifecycle.
+  - [ ] Claude discovers and successfully invokes sample v2 after reload.
+  - [ ] Injected retrieval, validation, or activation failure preserves the working v1 files and installed-state record.
 
 ## P5 — Demo hardening and developer guidance
 
@@ -247,7 +303,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R1–R14
 - **Depends on:** T301–T303, T401–T403, supplied registry coordinates
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using sample v1 and v2 in the supplied Quay namespace.
-- **Done when:** all acceptance steps in `docs/requirements.md` have reproducible evidence.
+- **Completion checks:**
+  - [ ] A clean macOS setup validates the repo and adds it as a Claude marketplace; `/plugin` shows the manager.
+  - [ ] A standard-only marketplace registers successfully and contributes no OCI skills.
+  - [ ] Two OCI marketplaces load and same-name skills have distinct marketplace-qualified identities.
+  - [ ] Sample v1 is built/published to the locally supplied Quay repository and browsed without pre-approval artifact download.
+  - [ ] The approved install displays version, source, and digest, then sample v1 is invoked after standard reload.
+  - [ ] Sample v2 is detected by manual refresh or next startup; multiple updates are summarized once and a subset can be selected while another is dismissed.
+  - [ ] Dismissal suppresses the alert for the current session and it returns on a later startup/refresh while still applicable.
+  - [ ] An approved selected update follows native confirmation and Claude permission, then sample v2 is invoked after standard reload.
+  - [ ] An injected fetch/staging failure leaves the working skill usable.
 
 ### T502 — Publish verified installation and usage guidance
 
@@ -255,7 +320,11 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R1, R2, R6, R10
 - **Depends on:** T501
 - **Outcome:** Replace the README's pending sections with tested setup, installation, command, permission, and reload instructions.
-- **Done when:** a clean user can reproduce the demo by following the README without undocumented steps.
+- **Completion checks:**
+  - [ ] README prerequisites and setup steps are verified on a clean supported environment.
+  - [ ] README records the tested marketplace registration and manager installation path.
+  - [ ] README documents each command, approval/permission step, expected registry configuration, and reload step needed for the demo.
+  - [ ] A clean user reproduces the acceptance flow using only the README and locally supplied registry credentials/configuration.
 
 ### T503 — Final validation and secret review
 
@@ -263,5 +332,10 @@ The feasibility spike is complete and the user explicitly approved full implemen
 - **Requirements:** R1–R14
 - **Depends on:** T501, T502
 - **Outcome:** Confirm repository integrity, documentation consistency, failure behavior, and absence of credentials or machine-local configuration.
-- **Done when:** all automated checks pass, documentation links resolve, and the tracked tree contains no secrets.
+- **Completion checks:**
+  - [ ] Strict marketplace/plugin validation, unit tests, and installation failure-injection checks pass.
+  - [ ] The full demo acceptance flow and documented failure cases have recorded results.
+  - [ ] README, requirements, decisions, plan, and implementation report agree on behavior and status; documentation links resolve.
+  - [ ] Git review confirms no credentials, tokens, generated authentication files, machine-local configuration, or `.serena/` content is staged/tracked.
+  - [ ] Final implementation verdict and remaining limitations are recorded, then the final task commit is pushed to `origin/main`.
 
