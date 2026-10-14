@@ -308,31 +308,34 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T501 — Exercise the complete demo acceptance flow
 
-- **Status:** Backlog
+- **Status:** In progress
 - **Requirements:** R1–R14
 - **Depends on:** T301–T303, T401–T403, supplied registry coordinates
+- **Evidence:** [Implementation report — T501](implementation-report.md#t501--end-to-end-demo-rehearsal)
 - **Outcome:** Run all acceptance scenarios from a clean macOS environment using sample v1 and v2 in the supplied Quay namespace.
 - **Completion checks:**
-  - [ ] A clean macOS setup validates the repo and adds it as a Claude marketplace; `/plugin` shows the manager.
-  - [ ] A standard-only marketplace registers successfully and contributes no OCI skills.
-  - [ ] Two OCI marketplaces load and same-name skills have distinct marketplace-qualified identities.
-  - [ ] Sample v1 is built/published to the locally supplied Quay repository and browsed without pre-approval artifact download.
-  - [ ] The approved install displays version, source, and digest, then sample v1 is invoked after standard reload.
-  - [ ] Sample v2 is detected by manual refresh or next startup; multiple updates are summarized once and a subset can be selected while another is dismissed.
-  - [ ] Dismissal suppresses the alert for the current session and it returns on a later startup/refresh while still applicable.
-  - [ ] An approved selected update follows native confirmation and Claude permission, then sample v2 is invoked after standard reload.
-  - [ ] An injected fetch/staging failure leaves the working skill usable.
+  - [x] Strict repository validation passes; a clean macOS config adds the supplied Git URL and enables the manager, and the live `/plugin` listing was verified in T002.
+  - [x] A standard-only marketplace registers and the manager's live browse excludes it from OCI entries; the disposable registration is removed after the check.
+  - [x] Catalog fixtures prove cross-marketplace marketplace-qualified identity for same-name skills and reject duplicate names within one catalog. Keep live demo skill names unique per D10.
+  - [x] Sample v1 was published in the supplied Quay repository and metadata browsing used `skillctl inspect` without pulling artifact layers.
+  - [x] The approved install displayed version, source, and digest; sample v1 was invoked after standard reload.
+  - [x] Sample v2 was detected in the live environment; multi-update summary, subset selection, and dismissal are covered by two-marketplace fixtures.
+  - [x] Dismissal suppresses the alert for the current session and the fixture offers the update again under a new session ID.
+  - [x] An approved selected update followed native confirmation and Claude permission; sample v2 was invoked after standard reload.
+  - [x] Injected fetch, digest, validation, and activation failures preserve the working v1 installation.
+  - [ ] The live demo loads a second OCI marketplace with a distinct skill name so multiple unique-skill updates can be shown without exercising the accepted duplicate-name caveat.
 
 ### T502 — Publish verified installation and usage guidance
 
-- **Status:** Backlog
+- **Status:** In progress
 - **Requirements:** R1, R2, R6, R10
 - **Depends on:** T501
+- **Evidence:** [Implementation report — T502](implementation-report.md#t502--readme-guidance)
 - **Outcome:** Replace the README's pending sections with tested setup, installation, command, permission, and reload instructions.
 - **Completion checks:**
-  - [ ] README prerequisites and setup steps are verified on a clean supported environment.
-  - [ ] README records the tested marketplace registration and manager installation path.
-  - [ ] README documents each command, approval/permission step, expected registry configuration, and reload step needed for the demo.
+  - [x] README prerequisites and setup steps are verified on an isolated Claude config on macOS.
+  - [x] README records the tested marketplace registration and manager installation path.
+  - [x] README documents each manager command, approval/permission step, supplied registry reference, and reload step.
   - [ ] A clean user reproduces the acceptance flow using only the README and locally supplied registry credentials/configuration.
 
 ### T503 — Final validation and secret review

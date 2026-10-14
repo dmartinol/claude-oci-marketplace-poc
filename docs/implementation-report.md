@@ -271,11 +271,38 @@ $ skillctl validate examples/claude-oci-demo/v2
 
 The live flow used the already supplied Quay repository and a native Claude permission prompt. No credentials or machine-local configuration were staged.
 
+## T501 — End-to-end demo rehearsal
+
+**Result:** Partial — the one-skill install/update path passes; the multi-marketplace live rehearsal needs a second unique skill artifact.
+
+The clean-config setup used Claude Code 2.1.299 and `skillctl` 0.4.0. I created an isolated `CLAUDE_CONFIG_DIR`, added the supplied Git marketplace URL, installed `oci-marketplace@claude-oci-marketplace` at user scope, and confirmed the plugin was enabled at v0.3.0. The isolated config was removed after the check. The first clone attempt was blocked by the restricted network; the same supplied URL succeeded when retried with network access.
+
+```text
+$ skillctl --version
+skillctl version 0.4.0
+
+$ CLAUDE_CONFIG_DIR=/tmp/claude-p5-clean-20261014 claude plugin marketplace add --scope user --json git@github.com:dmartinol/claude-oci-marketplace-poc.git
+{"command":"marketplace-add","outcome":"ok","marketplace":"claude-oci-marketplace", ... }
+
+$ CLAUDE_CONFIG_DIR=/tmp/claude-p5-clean-20261014 claude plugin install oci-marketplace@claude-oci-marketplace --scope user
+✔ Successfully installed plugin: oci-marketplace@claude-oci-marketplace (scope: user)
+```
+
+Strict repository and plugin validation passed. A strict-valid disposable standard-only marketplace was added to the live Claude user registration; the manager's browse output continued to list only `claude-oci-demo@claude-oci-marketplace`. The temporary marketplace registration and its fixture directory were removed afterward. T201/T402 fixtures already prove same-name entries retain marketplace-qualified identities, standard-only exclusion, and multi-update subset/dismissal behavior. T303 and T401–T403 record the live v1 install, v2 detection, selected update, permission, reload, and invocation.
+
+The supplied registry currently has one unique sample skill name/repository, with v1 and v2 tags. No second unique-skill artifact coordinate was supplied. To honor D10 and the user's choice to avoid triggering the duplicate-name caveat in the demo, the plan now separates fixture coverage for same-name identity from the missing live two-catalog demonstration. No new registry reference was invented or published. T501 remains in progress until a second unique skill is available in the supplied registry namespace.
+
+## T502 — README guidance
+
+**Result:** In progress — verified setup, commands, permission, registry, and reload instructions are now documented; the full clean-user acceptance replay is pending T501.
+
+The README now documents the tested Claude Code and `skillctl` versions, strict validation, Git marketplace registration, manager installation, all five manager commands, standard-only behavior, the supplied v2 catalog reference, the confirmation and Bash permission sequence, and `/reload-skills` with new-session fallback. Clean-config marketplace registration and manager installation succeeded in T501. A fresh user has not yet reproduced the complete multi-update acceptance flow, so T502 is not marked Done.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- P4 (T401–T403) is complete. P5 (T501–T503) remains pending its acceptance evidence.
+- P4 (T401–T403) is complete. T501 and T502 have partial evidence; T501 awaits a second unique OCI skill for a live two-catalog update rehearsal. T503 remains pending.
 
 No credentials, authentication files, or `.serena/` contents were staged.
