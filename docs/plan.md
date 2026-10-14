@@ -279,15 +279,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T402 — Implement update indication and selection
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R13, R14
 - **Depends on:** T003 findings, T401
+- **Evidence:** [Implementation report — T402](implementation-report.md#t402--update-indication-and-selection)
 - **Outcome:** Show a non-blocking indicator and consolidated update summary with per-skill selection.
 - **Completion checks:**
-  - [ ] Update detection produces one non-blocking indicator and one consolidated native summary.
-  - [ ] The summary allows selecting a subset of skills from multiple available updates.
-  - [ ] Dismissing the alert suppresses it for the current session while leaving artifacts untouched.
-  - [ ] The same still-applicable update is offered again on the next session startup or manual refresh.
+  - [x] Update detection produces one non-blocking indicator and one consolidated native summary.
+  - [x] The summary allows selecting a subset of skills from multiple available updates.
+  - [x] Dismissing the alert suppresses it for the current session while leaving artifacts untouched.
+  - [x] The same still-applicable update is offered again on the next session startup or manual refresh.
 
 ### T403 — Apply selected updates safely
 

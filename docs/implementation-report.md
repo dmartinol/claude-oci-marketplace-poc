@@ -227,11 +227,25 @@ $ claude plugin test ./plugins/oci-marketplace
 
 This records the digest-only startup and manual detection paths. Per-skill subset selection, session dismissal, and applying v2 remain T402/T403.
 
+## T402 — Update indication and selection
+
+**Result:** Pass
+
+The live fresh-session check in T401 produced one non-blocking toast, and the manual review displayed one consolidated native update summary. A two-marketplace interaction fixture then produced one toast followed by one multi-select summary for two different installed skills. Selecting only `Update 1` changed the confirmation to “Apply 1 selected OCI skill update”; choosing `Not now` dismissed the alert for that session without calling the installer, pulling artifacts, or changing installed state. The dismissal fixture suppresses repeat review in the same session and offers the same update again under a new session ID.
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+21 pass
+0 fail
+```
+
+Multi-skill selection and next-session return use deterministic interaction fixtures. The live Claude UI showed the native summary with the published v0.1.1 → v0.2.0 update; no update was applied during T402.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- T401 is complete. T402–T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
+- T401 and T402 are complete. T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

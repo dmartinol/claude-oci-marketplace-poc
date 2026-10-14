@@ -144,7 +144,8 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
     if (event.key === 'dismissedSessionId') dismissedSessionId = String(event.value)
     return { value: undefined }
   })
-  on('session.id', () => ({ value: 'test-session' }))
+  let currentSessionId = 'test-session'
+  on('session.id', () => ({ value: currentSessionId }))
   on('process.run', (_, event) => {
     if (event.argv[0] === 'claude') {
       const output = JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }])
@@ -162,10 +163,13 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
 
   const first = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
   const second = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+  currentSessionId = 'next-session'
+  const nextSession = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
 
   expect(first.text).toContain('Dismissed 1 OCI skill update')
   expect(second.text).toContain('dismissed for this session')
-  expect(dialogs).toBe(1)
+  expect(nextSession.text).toContain('Dismissed 1 OCI skill update')
+  expect(dialogs).toBe(2)
 })
 
 test('manual update check reports unchanged skills without an alert', async ($, on) => {
@@ -260,6 +264,77 @@ test('isolates update digests by marketplace and reports one catalog metadata er
   expect(eventOrder).toEqual(['toast', 'selection'])
   expect(warningsSaved).toBe('test-session')
   expect(invocations.filter((argv) => argv[0] === 'skillctl').every((argv) => argv[1] === 'inspect')).toBe(true)
+})
+
+test('summarizes multiple updates, retains a subset, and postpones without pulling', async ($, on) => {
+  const installed = {
+    'guide@marketplace-one': {
+      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+      installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
+    },
+    'reference@marketplace-two': {
+      name: 'reference', marketplace: 'marketplace-two', repository: 'quay.io/example/reference:1.2.0',
+      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+      installDirectory: 'reference@marketplace-two', installedAt: '2026-10-14T00:00:00.000Z',
+    },
+  }
+  const registrations = [
+    { name: 'marketplace-one', installLocation: '/tmp/marketplace-one' },
+    { name: 'marketplace-two', installLocation: '/tmp/marketplace-two' },
+  ]
+  const store: Record<string, unknown> = { installedSkills: installed }
+  const prompts: string[] = []
+  const eventOrder: string[] = []
+  const calls: string[][] = []
+  let bashCalls = 0
+  on('store.get', (_, event) => ({ value: store[event.key] }))
+  on('store.set', (_, event) => {
+    store[event.key] = event.value
+    return { value: undefined }
+  })
+  on('session.id', () => ({ value: 'test-session' }))
+  on('process.run', (_, event) => {
+    calls.push(event.argv)
+    if (event.argv[0] === 'claude') {
+      return { value: { exitCode: 0, stdout: JSON.stringify(registrations), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    return { value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', (_, event) => {
+    const marketplace = event.path.includes('marketplace-one') ? 'marketplace-one' : 'marketplace-two'
+    const name = marketplace === 'marketplace-one' ? 'guide' : 'reference'
+    return { value: JSON.stringify({ skills: [{ name, description: 'A demo skill', repository: `quay.io/example/${name}:1.2.0` }] }) }
+  })
+  on('ui.toast', () => {
+    eventOrder.push('toast')
+    return { value: undefined }
+  })
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    const question = event.questions[0].question
+    prompts.push(question)
+    eventOrder.push(prompts.length === 1 ? 'summary selection' : 'apply confirmation')
+    const answer = prompts.length === 1 ? 'Update 1' : 'Not now'
+    return { result: { questions: event.questions, answers: { [question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, () => {
+    bashCalls += 1
+    return { result: { text: 'unexpected install' } }
+  })
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'updates' })
+
+  expect(answer.text).toContain('OCI skill updates postponed for this session.')
+  expect(prompts).toHaveLength(2)
+  expect(prompts[0]).toContain('guide@marketplace-one')
+  expect(prompts[0]).toContain('reference@marketplace-two')
+  expect(prompts[1]).toContain('Apply 1 selected OCI skill update')
+  expect(eventOrder).toEqual(['toast', 'summary selection', 'apply confirmation'])
+  expect(bashCalls).toBe(0)
+  expect(calls.filter((argv) => argv[0] === 'skillctl').every((argv) => argv[1] === 'inspect')).toBe(true)
+  expect(store.installedSkills).toEqual(installed)
+  expect(store.dismissedSessionId).toBe('test-session')
 })
 
 test('persists a successful install and shows it in a later installed view', async ($, on) => {
