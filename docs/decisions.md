@@ -46,10 +46,13 @@ Install and update use only Claude's standard lifecycle: `reloadSkills`, `/reloa
 
 Agents complete the feasibility spike, report evidence and blockers, and stop for explicit approval before implementing the full workflow. Unsupported mod behavior is a blocker to report, not permission to silently replace the intended UX.
 
+### D11 — Registered marketplace discovery
+
+The manager enumerates registered marketplaces through Claude Code's `claude plugin marketplace list --json` output, uses each entry's `installLocation` as the authoritative content location, and treats only marketplaces containing the finalized extension-owned catalog file as OCI-enabled. It does not create or maintain a second marketplace registry.
+
 ## Open feasibility questions
 
 - Which `skillctl` version and commands support metadata resolution, authenticated retrieval, unpacking, and the required OCI artifact layout?
-- How can the manager enumerate Claude's registered marketplace sources and resolve their local caches without maintaining separate registration state?
 - Which standard mechanism makes newly installed or updated skills available: `reloadSkills`, `/reload-plugins`, or a new session?
 - What exact filename and minimum schema should the extension-owned OCI catalog use?
 

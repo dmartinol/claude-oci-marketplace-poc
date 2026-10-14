@@ -60,16 +60,16 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T004 — Verify registered-marketplace discovery
 
-- **Status:** Ready
+- **Status:** Done
 - **Requirements:** R10, R11, R12
 - **Depends on:** T002
 - **Outcome:** Discover compatible catalogs from Claude's authoritative registration state without creating a second registry.
 - **Evidence:** `docs/feasibility-report.md#marketplace-discovery`
 - **Done when:**
-  - [ ] User-level marketplace registrations can be enumerated.
-  - [ ] Registered source URLs can be mapped to usable marketplace content or caches.
-  - [ ] OCI-enabled and standard-only marketplaces can be distinguished.
-  - [ ] Adding a standard-only marketplace retains standard Claude behavior.
+  - [x] User-level marketplace registrations can be enumerated.
+  - [x] Registered source URLs can be mapped to usable marketplace content or caches.
+  - [x] OCI-enabled and standard-only marketplaces can be distinguished.
+  - [x] Adding a standard-only marketplace retains standard Claude behavior.
 
 ### T005 — Verify `skillctl` capabilities
 

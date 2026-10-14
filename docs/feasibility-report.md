@@ -285,3 +285,168 @@ The mod test suite covers command registration, dismissal after the non-blocking
 
 T003 passes with no blocker. The installed Claude version supports the required deterministic command, non-blocking update indication, native confirmation, and standard permission transition. The exact command and available mod APIs are no longer open feasibility questions. Full update behavior remains out of scope until Gate G1 is cleared.
 
+## Marketplace discovery
+
+**Task:** T004 — Verify registered-marketplace discovery
+
+**Result:** Pass
+
+**Observed:** 2026-10-14 (Europe/Rome)
+
+### Authoritative enumeration
+
+Claude Code 2.1.296 exposes user-level marketplace registrations through:
+
+```text
+claude plugin marketplace list --json
+```
+
+The command returns one object per configured marketplace with:
+
+```text
+name
+source
+url | repo | path
+installLocation
+```
+
+Representative output from the demo environment:
+
+```json
+[
+  {
+    "name": "anthropic-agent-skills",
+    "source": "github",
+    "repo": "anthropics/skills",
+    "installLocation": "/Users/dmartino/.claude/plugins/marketplaces/anthropic-agent-skills"
+  },
+  {
+    "name": "claude-oci-marketplace",
+    "source": "git",
+    "url": "git@github.com:dmartinol/claude-oci-marketplace-poc.git",
+    "installLocation": "/Users/dmartino/.claude/plugins/marketplaces/claude-oci-marketplace"
+  }
+]
+```
+
+The output is authoritative registration state and does not require the manager to maintain a second registry.
+
+### Source-to-cache mapping
+
+Every registration returned by `claude plugin marketplace list --json` includes an `installLocation`. For Git and GitHub sources, this value points to Claude's local marketplace cache under:
+
+```text
+~/.claude/plugins/marketplaces/<marketplace-name>
+```
+
+For a local directory source, Claude reports the source directory itself as `installLocation`. The manager therefore must use the returned `installLocation` rather than assume a fixed cache path.
+
+The cached or source directory contains the standard marketplace manifest:
+
+```text
+<installLocation>/.claude-plugin/marketplace.json
+```
+
+### OCI and standard-only classification
+
+A temporary OCI-enabled probe marketplace was registered alongside a standard-only probe. The OCI-enabled probe contained a provisional extension-owned catalog file at its marketplace root:
+
+```text
+<installLocation>/oci-catalog.json
+```
+
+The standard-only probe did not contain that file. Classification therefore reduces to:
+
+```text
+test -f "<installLocation>/<extension-owned-catalog>"
+```
+
+Observed classification:
+
+```text
+anthropic-agent-skills       standard-only
+claude-code-plugins          standard-only
+claude-oci-marketplace       standard-only
+claude-t004-oci-enabled      OCI-enabled
+claude-t004-standard-only    standard-only
+mcp-apps                     standard-only
+sdlc-plugins                 standard-only
+```
+
+The filename `oci-catalog.json` and its schema are provisional for this probe only. The final catalog filename and schema remain assigned to T007.
+
+### Standard-only marketplace behavior
+
+A temporary standard-only marketplace and plugin were validated, registered, listed, and installed through Claude's standard plugin path.
+
+Strict marketplace validation succeeded:
+
+```text
+claude plugin validate /tmp/claude-t004-standard-only --strict --json
+```
+
+```json
+{
+  "success": true,
+  "strict": true,
+  "manifest": {
+    "type": "marketplace",
+    "errors": [],
+    "warnings": []
+  }
+}
+```
+
+User-scope registration succeeded:
+
+```text
+claude plugin marketplace add ./claude-t004-standard-only --scope user --json
+```
+
+```json
+{
+  "command": "marketplace-add",
+  "outcome": "ok",
+  "marketplace": "claude-t004-standard-only",
+  "message": "Successfully added marketplace: claude-t004-standard-only (declared in user settings)"
+}
+```
+
+Claude listed the marketplace's plugin as available:
+
+```text
+standard-only-plugin@claude-t004-standard-only
+```
+
+The plugin installed successfully at user scope:
+
+```json
+{
+  "command": "install",
+  "outcome": "ok",
+  "plugin": "standard-only-plugin@claude-t004-standard-only",
+  "scope": "user"
+}
+```
+
+`claude plugin details standard-only-plugin@claude-t004-standard-only` reported the expected plugin identity, version, source, and empty component inventory. The probe contributed no OCI entries.
+
+After verification, the temporary plugin and both temporary marketplaces were removed successfully. No T004 probe remained in Claude's user-level registration or installed-plugin state.
+
+### Observed limitations
+
+- Claude rejected a `file://` Git URL with `invalid_source`. This does not invalidate the intended Git/HTTPS URL contract, which is already represented by the registered `claude-oci-marketplace` Git source.
+- Local directory registrations use the source path as `installLocation` rather than copying it into Claude's marketplace cache. The manager must support both cached and direct-source locations.
+- The OCI catalog filename and schema are not yet finalized; T007 owns that contract.
+
+### T004 acceptance
+
+- [x] User-level marketplace registrations can be enumerated.
+- [x] Registered source URLs can be mapped to usable marketplace content or caches.
+- [x] OCI-enabled and standard-only marketplaces can be distinguished.
+- [x] Adding a standard-only marketplace retains standard Claude behavior.
+
+### Conclusion
+
+T004 passes with no blocker. Claude's `plugin marketplace list --json` output provides the authoritative marketplace enumeration and content location needed by the manager. A standard-only marketplace remains fully usable through Claude's normal plugin path and contributes no OCI entries. The exact OCI catalog filename and schema remain open for T007.
+
