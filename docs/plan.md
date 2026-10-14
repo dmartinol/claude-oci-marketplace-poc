@@ -181,16 +181,17 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T202 — Implement installed-skill state
 
-- **Status:** In progress
+- **Status:** Done
 - **Requirements:** R5, R12
 - **Depends on:** T201
+- **Evidence:** [Implementation report — T202](implementation-report.md#t202--installed-skill-state)
 - **Outcome:** Persist and display installed version, source reference, marketplace identity, and resolved digest without storing credentials.
 - **Completion checks:**
-  - [ ] A successful install writes a validated record keyed by marketplace-qualified identity only after the install helper succeeds.
-  - [ ] The record contains skill name, marketplace, repository/source registry, installed version, resolved digest, and install directory; it contains no credentials.
-  - [ ] A fresh command/session reads the record and associates it with the matching catalog entry.
-  - [ ] The installed view displays version, source registry, and digest from the persisted record.
-  - [ ] Cancelled or failed installs leave the previous record unchanged.
+  - [x] A successful install writes a validated record keyed by marketplace-qualified identity only after the install helper succeeds.
+  - [x] The record contains skill name, marketplace, repository/source registry, installed version, resolved digest, and install directory; it contains no credentials.
+  - [x] A later command reads the persisted record and associates it with the matching catalog entry.
+  - [x] The installed view displays version, source registry, and digest from the persisted record.
+  - [x] Cancelled or failed installs leave the previous record unchanged.
 
 ### T203 — Implement the deterministic `skillctl` wrapper
 

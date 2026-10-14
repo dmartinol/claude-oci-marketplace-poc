@@ -7,6 +7,7 @@ import {
   parseOciReference,
   shellQuote,
   validateCatalog,
+  validateInstalledState,
 } from '../hooks/lib.js'
 
 const goodSkill = {
@@ -72,6 +73,37 @@ test('keeps catalog tag, SkillCard version, and resolved digest separate', async
   expect(metadata.version).toBe('0.1.1')
   expect(metadata.digest).toBe(`sha256:${'3e'.repeat(32)}`)
   expect(() => parseInspection('Version: 1.0.0')).toThrow(/sha256 digest/)
+})
+
+test('validates installed records and keeps only the supported state fields', async () => {
+  const digest = `sha256:${'c'.repeat(64)}`
+  const record = {
+    name: 'guide',
+    marketplace: 'marketplace-one',
+    repository: 'quay.io/example/guide:1.2.0',
+    registry: 'quay.io',
+    version: '1.1.0',
+    digest,
+    installDirectory: 'guide@marketplace-one',
+    installedAt: '2026-10-14T00:00:00.000Z',
+    token: 'must not be retained',
+  }
+  const validated = validateInstalledState({ 'guide@marketplace-one': record })
+  expect(validated.errors).toEqual([])
+  expect(validated.entries['guide@marketplace-one']).toEqual({
+    name: record.name,
+    marketplace: record.marketplace,
+    repository: record.repository,
+    registry: record.registry,
+    version: record.version,
+    digest,
+    installDirectory: record.installDirectory,
+    installedAt: record.installedAt,
+  })
+
+  const invalid = validateInstalledState({ 'wrong-identity': record })
+  expect(invalid.entries).toEqual({})
+  expect(invalid.errors[0]).toMatch(/identity/)
 })
 
 test('encodes marketplace-qualified install directories and quotes shell arguments', async () => {

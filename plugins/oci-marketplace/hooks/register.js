@@ -4,6 +4,7 @@ import {
   installDirectoryName,
   parseInspection,
   shellQuote,
+  validateInstalledState,
 } from './lib.js'
 
 const STORE_KEY = 'installedSkills'
@@ -40,8 +41,9 @@ async function runProcess($, argv, timeoutMs = 30000) {
 
 async function readInstalled($) {
   const value = await $.store.get(STORE_KEY)
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-  return value
+  const { entries, errors } = validateInstalledState(value ?? {})
+  for (const error of errors) $.ui.log(`Ignoring invalid installed-skill record: ${error}`, { to: 'debug' })
+  return entries
 }
 
 async function alertsDismissed($) {

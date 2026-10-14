@@ -75,6 +75,57 @@ export function validateCatalog(value, marketplaceName) {
   })
 }
 
+export function validateInstalledState(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return { entries: {}, errors: ['installed state must be an object'] }
+  }
+
+  const entries = {}
+  const errors = []
+  for (const [identity, item] of Object.entries(value)) {
+    try {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) {
+        throw new Error('record must be an object')
+      }
+      validateName(item.name, 'installed skill name')
+      validateName(item.marketplace, 'installed marketplace name')
+      if (identity !== identityFor(item.name, item.marketplace)) {
+        throw new Error('record key does not match its marketplace-qualified identity')
+      }
+      for (const key of ['version', 'digest', 'installDirectory']) {
+        if (typeof item[key] !== 'string' || item[key].trim() === '') {
+          throw new Error(`${key} must be a non-empty string`)
+        }
+      }
+      const reference = parseOciReference(item.repository)
+      if (item.registry !== reference.registry) {
+        throw new Error('registry does not match the repository reference')
+      }
+      if (!/^sha256:[a-f0-9]{64}$/.test(item.digest)) {
+        throw new Error('digest must be a sha256 digest')
+      }
+      if (item.installDirectory !== installDirectoryName(item.name, item.marketplace)) {
+        throw new Error('install directory does not match the marketplace-qualified identity')
+      }
+
+      // Whitelist persisted fields so unrelated data, including credentials, never reaches UI output.
+      entries[identity] = {
+        name: item.name,
+        marketplace: item.marketplace,
+        repository: item.repository,
+        registry: reference.registry,
+        version: item.version,
+        digest: item.digest,
+        installDirectory: item.installDirectory,
+        ...(typeof item.installedAt === 'string' ? { installedAt: item.installedAt } : {}),
+      }
+    } catch (error) {
+      errors.push(`${identity}: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+  return { entries, errors }
+}
+
 export async function catalogsFromRegistrations(registrations, readCatalog) {
   if (!Array.isArray(registrations)) {
     throw new Error('Claude marketplace list did not return an array')

@@ -69,11 +69,27 @@ No skill selected.
 
 The command ran headlessly, so the native selection dialog had no person to answer; the command returned the listing and no install was attempted. Catalog resolution used `skillctl inspect` only and did not pull artifact layers. Native ask/confirmation and tool-permission behavior was already demonstrated in T003 and is covered by the manager's mod tests.
 
+## T202 — Installed-skill state
+
+**Result:** Pass
+
+Installed state is keyed by `<skill-name>@<marketplace-name>` in Claude's plugin store. Before displaying or using stored entries, the manager validates identity, repository/registry consistency, version, digest, and the deterministic install-directory name. It copies only supported fields into the in-memory result, so unrelated data such as a token is not retained or displayed. The record is written only after the permission-checked installer call returns successfully.
+
+The interaction fixture installs a sample entry through the command flow, checks the complete persisted record, then reads it through a later `installed` command and confirms that version, registry, and digest are displayed. Separate cancel and permission/tool-error paths confirm that the existing record receives no writes.
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+12 pass
+0 fail
+```
+
+The test uses a mock successful installer call; actual artifact retrieval and atomic replacement are covered by T005 feasibility evidence and remain acceptance checks for T203/T204 respectively.
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - T201 is complete.
-- P2 installed-state persistence, authenticated installation, and atomic replacement remain under implementation.
+- T202 installed-state persistence is complete. T203 deterministic `skillctl` operations and T204 staged replacement remain under implementation.
 - P3–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

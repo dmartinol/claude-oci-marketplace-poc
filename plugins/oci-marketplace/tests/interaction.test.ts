@@ -91,3 +91,95 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
   expect(second.text).toContain('dismissed for this session')
   expect(dialogs).toBe(1)
 })
+
+test('persists a successful install and shows it in a later installed view', async ($, on) => {
+  const digest = newDigest
+  const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
+  const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  const store: Record<string, unknown> = {}
+  let bashCommand = ''
+  on('process.run', (_, event) => event.argv[0] === 'claude'
+    ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: catalog }))
+  on('store.get', (_, event) => ({ value: store[event.key] }))
+  on('store.set', (_, event) => {
+    store[event.key] = event.value
+    return { value: undefined }
+  })
+  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('clock.now', () => ({ value: 1791936000000 }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => ({
+    result: { questions: event.questions, answers: { [event.questions[0].question]: 'Continue' } },
+  }))
+  on('tool.call', { tool: 'Bash' }, (_, event) => {
+    bashCommand = event.command
+    return { result: { text: 'Activated skill at /tmp/demo-home/.claude/skills/guide@marketplace-one' } }
+  })
+
+  const installed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const record = (store.installedSkills as Record<string, Record<string, unknown>>)?.['guide@marketplace-one']
+  expect(installed.text).toContain('Installed guide@marketplace-one v1.2.0')
+  expect(bashCommand).toContain("'quay.io/example/guide:1.2.0'")
+  expect(bashCommand).toContain(`'${digest}'`)
+  expect(record).toEqual({
+    name: 'guide',
+    marketplace: 'marketplace-one',
+    repository: 'quay.io/example/guide:1.2.0',
+    registry: 'quay.io',
+    version: '1.2.0',
+    digest,
+    installDirectory: 'guide@marketplace-one',
+    installedAt: new Date(1791936000000).toISOString(),
+  })
+
+  const laterView = await $.command.run({ command: 'oci-marketplace', args: 'installed' })
+  expect(laterView.text).toContain('guide@marketplace-one: v1.2.0 | quay.io |')
+  expect(laterView.text).toContain(digest)
+})
+
+test('cancelled and failed installs do not change installed state', async ($, on) => {
+  const digest = newDigest
+  const record = {
+    name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+    registry: 'quay.io', version: '1.1.0', digest: oldDigest,
+    installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
+  }
+  const store: Record<string, unknown> = { installedSkills: { 'guide@marketplace-one': record } }
+  const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
+  const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  let questionCount = 0
+  let writes = 0
+  on('process.run', (_, event) => event.argv[0] === 'claude'
+    ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: catalog }))
+  on('store.get', (_, event) => ({ value: store[event.key] }))
+  on('store.set', (_, event) => {
+    writes += 1
+    store[event.key] = event.value
+    return { value: undefined }
+  })
+  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('clock.now', () => ({ value: 1791936000000 }))
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    questionCount += 1
+    const answer = questionCount === 1 ? 'Cancel' : 'Continue'
+    return { result: { questions: event.questions, answers: { [event.questions[0].question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, () => ({
+    result: { text: 'permission denied', isError: true },
+    isError: true,
+    text: 'permission denied',
+  }))
+
+  const cancelled = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  const failed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
+  expect(cancelled.text).toContain('update cancelled')
+  expect(failed.text).toContain('permission denied')
+  expect(writes).toBe(0)
+  expect(store.installedSkills).toEqual({ 'guide@marketplace-one': record })
+})
