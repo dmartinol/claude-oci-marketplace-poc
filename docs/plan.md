@@ -136,17 +136,19 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T101 — Establish the validated marketplace and plugin scaffold
 
-- **Status:** In progress
+- **Status:** Done
 - **Requirements:** R2, R3, R9
 - **Depends on:** G1
+- **Evidence:** [Implementation report — T101](implementation-report.md#t101--validated-plugin-scaffold)
 - **Outcome:** Convert validated spike assets into the minimal maintained marketplace, manager plugin, mod entry point, `SessionStart` hook, helper, and sample catalog structure.
 - **Done when:** the repository validates, installs through `/plugin`, and exposes the confirmed namespaced command.
 
 ### T102 — Automate structural validation
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R2, R3, R9
 - **Depends on:** T101
+- **Evidence:** [Implementation report — T102](implementation-report.md#t102--structural-validation)
 - **Outcome:** Add repeatable checks for marketplace metadata, plugin metadata, the OCI catalog schema, and fixture integrity.
 - **Done when:** valid fixtures pass, invalid fixtures fail clearly, and the checks run locally without registry credentials.
 
@@ -154,15 +156,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T201 — Implement marketplace discovery and catalog loading
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R3, R10, R11, R12
 - **Depends on:** T101, T102
+- **Evidence:** [Implementation report — T201](implementation-report.md#t201--marketplace-discovery-and-catalog-loading)
 - **Outcome:** Load validated OCI catalogs from Claude's registered marketplaces while preserving standard-only marketplaces.
 - **Done when:** multiple catalogs load, missing OCI catalogs are ignored, and skills have stable marketplace-qualified identities.
 
 ### T202 — Implement installed-skill state
 
-- **Status:** Backlog
+- **Status:** In progress
 - **Requirements:** R5, R12
 - **Depends on:** T201
 - **Outcome:** Persist and display installed version, source reference, marketplace identity, and resolved digest without storing credentials.
@@ -170,7 +173,7 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T203 — Implement the deterministic `skillctl` wrapper
 
-- **Status:** Backlog
+- **Status:** Ready
 - **Requirements:** R4, R7
 - **Depends on:** T101 and the T005 findings
 - **Outcome:** Provide bounded operations for metadata resolution, retrieval, and unpacking with structured results and errors.

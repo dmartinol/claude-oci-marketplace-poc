@@ -11,6 +11,7 @@ The feasibility spike is complete (T001–T008), and full implementation was app
 - [Product decisions and open questions](docs/decisions.md)
 - [Prioritized implementation plan](docs/plan.md)
 - [Feasibility evidence](docs/feasibility-report.md)
+- [MVP implementation evidence](docs/implementation-report.md)
 
 ## Development setup
 
