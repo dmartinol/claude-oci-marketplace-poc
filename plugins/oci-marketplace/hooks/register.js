@@ -88,6 +88,16 @@ function lineFor(skill, metadata, installed) {
   return `- ${skill.identity}: ${skill.description} | v${metadata.version} | ${skill.registry} | ${metadata.digest} | ${installedText}`
 }
 
+function formatListing(checked, errors, installed) {
+  const lines = ['OCI skills from registered marketplaces:']
+  for (const item of checked) {
+    lines.push(lineFor(item.skill, item.metadata, installed[item.skill.identity]))
+    if (item.error) lines.push(`  Metadata error: ${item.error}`)
+  }
+  for (const error of errors) lines.push(`- Catalog error: ${error}`)
+  return lines.join('\n')
+}
+
 async function checkInstalledUpdates($) {
   const { catalogs, errors } = await registeredCatalogs($)
   const entries = flattenCatalogs(catalogs)
@@ -123,14 +133,7 @@ async function browse($) {
 
   const installed = await readInstalled($)
   const checked = await inspectedEntries($, entries)
-  const lines = ['OCI skills from registered marketplaces:']
-  for (const item of checked) {
-    const skill = item.skill
-    lines.push(lineFor(skill, item.metadata, installed[skill.identity]))
-    if (item.error) lines.push(`  Metadata error: ${item.error}`)
-  }
-  for (const error of errors) lines.push(`- Catalog error: ${error}`)
-  const listing = lines.join('\n')
+  const listing = formatListing(checked, errors, installed)
   const selected = await chooseSkill($, checked)
   if (!selected) return `${listing}\n\nNo skill selected.`
   if (selected.error) return `${listing}\n\n${selected.skill.identity}: metadata check failed: ${selected.error}`
@@ -140,7 +143,8 @@ async function browse($) {
   }
   const intent = installedSkill ? 'update' : 'install'
   const result = await promptInstall($, selected.skill, selected.metadata, intent)
-  return `${listing}\n\n${result}`
+  const refreshedListing = formatListing(checked, errors, await readInstalled($))
+  return `${refreshedListing}\n\n${result}`
 }
 
 async function chooseSkill($, checked) {

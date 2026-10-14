@@ -99,6 +99,36 @@ test('selects a browser entry and can cancel before retrieval', async ($, on) =>
   expect(calls.some((argv) => argv[0] === 'skillctl' && argv[1] === 'pull')).toBe(false)
 })
 
+test('refreshes browse status after a successful install', async ($, on) => {
+  const digest = newDigest
+  const state: Record<string, unknown> = {}
+  let questionCount = 0
+  on('process.run', (_, event) => event.argv[0] === 'claude'
+    ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
+    : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  on('store.get', (_, event) => ({ value: state[event.key] }))
+  on('store.set', (_, event) => {
+    state[event.key] = event.value
+    return { value: undefined }
+  })
+  on('fs.exists', () => ({ value: true }))
+  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('env.get', () => ({ value: '/tmp/demo-home' }))
+  on('clock.now', () => ({ value: 1791936000000 }))
+  on('ui.status', () => ({ value: undefined }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    questionCount += 1
+    const answer = questionCount === 1 ? 'guide@marketplace-one' : 'Continue'
+    return { result: { questions: event.questions, answers: { [event.questions[0].question]: answer } } }
+  })
+  on('tool.call', { tool: 'Bash' }, () => ({ result: { text: 'Activated skill' } }))
+
+  const answer = await $.command.run({ command: 'oci-marketplace', args: 'browse' })
+
+  expect(answer.text).toContain(`installed v1.2.0 (${digest})`)
+  expect(answer.text).not.toContain('not installed')
+})
+
 test('dismisses update alerts for the rest of the session', async ($, on) => {
   const installed = {
     'guide@marketplace-one': {
@@ -201,9 +231,15 @@ test('cancelled and failed installs do not change installed state', async ($, on
   const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
   let questionCount = 0
   let writes = 0
-  on('process.run', (_, event) => event.argv[0] === 'claude'
-    ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-    : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
+  let bashCalls = 0
+  const skillctlCalls: string[][] = []
+  on('process.run', (_, event) => {
+    if (event.argv[0] === 'claude') {
+      return { value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
+    skillctlCalls.push(event.argv)
+    return { value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+  })
   on('fs.exists', () => ({ value: true }))
   on('fs.read', () => ({ value: catalog }))
   on('store.get', (_, event) => ({ value: store[event.key] }))
@@ -220,16 +256,24 @@ test('cancelled and failed installs do not change installed state', async ($, on
     const answer = questionCount === 1 ? 'Cancel' : 'Continue'
     return { result: { questions: event.questions, answers: { [event.questions[0].question]: answer } } }
   })
-  on('tool.call', { tool: 'Bash' }, () => ({
-    result: { text: 'permission denied', isError: true },
-    isError: true,
-    text: 'permission denied',
-  }))
+  on('tool.call', { tool: 'Bash' }, () => {
+    bashCalls += 1
+    return {
+      result: { text: 'permission denied', isError: true },
+      isError: true,
+      text: 'permission denied',
+    }
+  })
 
   const cancelled = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
   const failed = await $.command.run({ command: 'oci-marketplace', args: 'install guide@marketplace-one' })
   expect(cancelled.text).toContain('update cancelled')
   expect(failed.text).toContain('permission denied')
+  expect(bashCalls).toBe(1)
+  expect(skillctlCalls).toEqual([
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
+  ])
   expect(writes).toBe(0)
   expect(store.installedSkills).toEqual({ 'guide@marketplace-one': record })
 })

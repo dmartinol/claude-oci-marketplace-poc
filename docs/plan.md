@@ -250,16 +250,17 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T303 — Connect the install and reload flow
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R4, R6, R8, R13
 - **Depends on:** T204, T302
+- **Evidence:** [Implementation report — T303](implementation-report.md#t303--install-and-reload-flow)
 - **Outcome:** Connect user selection, native confirmation, Claude permission, deterministic installation, and the validated standard reload lifecycle.
 - **Completion checks:**
-  - [ ] Selecting sample v1 presents native confirmation before retrieval.
-  - [ ] The installation helper runs only after Claude's standard permission flow and installs into the qualified skills directory.
-  - [ ] Successful installation writes installed state and follows the supported standard reload lifecycle.
-  - [ ] In a fresh session or after the supported reload step, Claude discovers and successfully invokes sample v1.
-  - [ ] Cancelling confirmation or permission performs no artifact retrieval and changes no installed state.
+  - [x] Selecting sample v1 presents native confirmation before retrieval.
+  - [x] The installation helper runs only after Claude's standard permission flow and installs into the qualified skills directory.
+  - [x] Successful installation writes installed state and follows the supported standard reload lifecycle.
+  - [x] After the supported reload step, Claude discovers and successfully invokes sample v1.
+  - [x] Cancelling confirmation or permission performs no artifact retrieval and changes no installed state.
 
 ## P4 — Update workflow
 

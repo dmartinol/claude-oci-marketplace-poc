@@ -162,11 +162,38 @@ $ claude plugin test ./plugins/oci-marketplace
 
 The real interactive browse reached its install confirmation but did not complete installation; T303 owns the end-to-end install and invocation check.
 
+## T303 — Install and reload flow
+
+**Result:** Pass
+
+The live Claude Code 2.1.299 session browsed the registered catalog, selected `claude-oci-demo@claude-oci-marketplace`, confirmed v0.1.1 from `quay.io`, and then approved Claude's standard Bash permission prompt. That prompt displayed the deterministic installer and its repository, expected digest, staging path, marketplace-qualified target path, and rollback path. The installer retrieved and activated the artifact.
+
+`/oci-marketplace installed` then reported:
+
+```text
+claude-oci-demo@claude-oci-marketplace: v0.1.1 | quay.io | sha256:3e842b281cf1d3bf0e8492ca6bcbd7e13b3cfb9c72e9383c1906d58b2d1802a3
+```
+
+The installed directory contained both `SKILL.md` and `skill.yaml`, with the expected skill name and instructions. `/reload-skills` completed; Claude reported 65 skills available and no count change. The next `/claude-oci-demo@claude-oci-marketplace` invocation returned the artifact's exact response, `T005 sample skill ready.` The successful browse response now refreshes its installed-status line after installation instead of showing the pre-install snapshot.
+
+Before this live check, the earlier direct T005 copy at `~/.claude/skills/claude-oci-demo` was moved intact to `/tmp/claude-t303-legacy-skill` to avoid a duplicate skill name. The manager-installed skill remains active at `~/.claude/skills/claude-oci-demo@claude-oci-marketplace`.
+
+Cancellation and denied-permission fixtures verify that only metadata inspection occurs before approval, the installer is not called after cancellation, and neither path changes installed state. Current automated results:
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+18 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+```
+
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
-- T301 and T302 are complete. T303 remains pending its end-to-end install and reload evidence.
+- P3 (T301–T303) is complete.
 - P4–P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.
