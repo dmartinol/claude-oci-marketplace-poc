@@ -86,16 +86,16 @@ P0 is the only authorized implementation milestone. Complete the feasibility spi
 
 ### T006 — Verify skill discovery and reload
 
-- **Status:** Backlog
+- **Status:** Done
 - **Requirements:** R6, R9
 - **Depends on:** T005
 - **Outcome:** Determine the standard Claude lifecycle required to make new and updated skill directories invocable.
 - **Evidence:** `docs/feasibility-report.md#skill-reload`
 - **Done when:**
-  - [ ] A newly unpacked sample skill is discovered by Claude.
-  - [ ] Replacement of an existing skill is tested.
-  - [ ] `reloadSkills`, `/reload-plugins`, and next-session behavior are recorded as applicable.
-  - [ ] The selected standard reload behavior is documented without adding custom hot reload.
+- [x] A newly unpacked sample skill is discovered by Claude.
+- [x] Replacement of an existing skill is tested.
+- [x] `reloadSkills`, `/reload-plugins`, and next-session behavior are recorded as applicable.
+- [x] The selected standard reload behavior is documented without adding custom hot reload.
 
 ### T007 — Resolve the OCI catalog contract
 

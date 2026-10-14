@@ -559,3 +559,51 @@ Pushed quay.io/dmartino/claude-oci-demo:0.1.1-draft
 
 T005 passes with no blocker. `skillctl` 0.4.0 supports the required build, metadata inspection, authenticated push, retrieval, and unpacking workflow, and the sample artifact is compatible with Claude’s standard skill file layout.
 
+## Skill reload
+
+**Task:** T006 — Verify skill discovery and reload
+
+**Result:** Pass
+
+**Observed:** 2026-10-14 (Europe/Rome)
+
+### Installed-version behavior
+
+The installed Claude Code version at the time of this probe was 2.1.299. A disposable project used the sample files already unpacked in T005. A temporary `SessionStart` command hook copied the skill into the project's `.claude/skills/t006-startup-probe/` directory and returned:
+
+```json
+{"hookSpecificOutput":{"hookEventName":"SessionStart","reloadSkills":true}}
+```
+
+The first prompt in that same session invoked the newly unpacked skill successfully:
+
+```text
+$ claude -p "/t006-startup-probe" --max-budget-usd 0.15
+T006 startup hook skill ready.
+```
+
+This verifies that `SessionStart` plus `reloadSkills: true` makes a hook-installed skill available to the first prompt. The command reference also exposes `/reload-skills` and `/reload-plugins` in the installed CLI:
+
+```text
+$ claude -p "/reload-skills" --max-budget-usd 0.05
+Reloaded skills: 66 skills available (none added or removed). Claude will get the full list of skills with your next message.
+
+$ claude -p "/reload-plugins" --max-budget-usd 0.05
+Reloaded: 17 plugins · 47 skills · 20 agents · 9 hooks · 0 plugin LSP servers
+```
+
+An existing project skill directory was then replaced in place between two fresh sessions. The first invocation returned `T006 replacement v1 ready.`; after updating the same `SKILL.md`, the next session returned `T006 replacement v2 ready.`. This confirms the new-session fallback observes the replacement. The replacement fixture used a unique skill name to avoid conflating it with any pre-existing skill of the same name.
+
+The official [Claude Code command reference](https://code.claude.com/docs/en/commands) describes `/reload-skills` as a skill and command directory rescan and `/reload-plugins` as reloading active plugins. The [hooks reference](https://code.claude.com/docs/en/hooks#sessionstart-decision-control) documents `SessionStart`'s `reloadSkills` field.
+
+### T006 acceptance
+
+- [x] A newly unpacked sample skill is discovered by Claude.
+- [x] Replacement of an existing skill is tested.
+- [x] `reloadSkills`, `/reload-plugins`, and next-session behavior are recorded as applicable.
+- [x] The selected standard reload behavior is documented without adding custom hot reload.
+
+### Conclusion
+
+T006 passes with no blocker. Use Claude's standard `/reload-skills` refresh after an interactive install when same-session availability is desired; a fresh session also discovers replacement content. A `SessionStart` installer can return `reloadSkills: true` for skills it places before the first prompt. The manager requires no custom hot reload.
+

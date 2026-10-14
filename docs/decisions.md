@@ -40,7 +40,7 @@ Dismissing an available-update alert suppresses it for the current session only.
 
 ### D9 — Reload behavior
 
-Install and update use only Claude's standard lifecycle: `reloadSkills`, `/reload-plugins`, or a new session, depending on actual support. Same-session reload is optional.
+Install and update use Claude's standard lifecycle. On Claude Code 2.1.299, a `SessionStart` hook can return `reloadSkills: true` so a skill installed by that hook is available to the first prompt; `/reload-skills` re-scans skill and command directories, `/reload-plugins` reloads active plugins, and a new session discovers a replacement. The POC should use the standard refresh command after interactive installs and may require a new session when needed. No custom hot-reload mechanism is required.
 
 ### D10 — Feasibility gate
 
@@ -56,6 +56,5 @@ The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI 
 
 ## Open feasibility questions
 
-- Which standard mechanism makes newly installed or updated skills available: `reloadSkills`, `/reload-plugins`, or a new session?
 - What exact filename and minimum schema should the extension-owned OCI catalog use?
 
