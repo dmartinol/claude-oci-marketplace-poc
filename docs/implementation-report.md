@@ -191,7 +191,7 @@ PASS: install and replacement activate validated artifacts; fetch, digest, valid
 
 ## T401 — Update detection
 
-**Result:** In progress
+**Result:** Pass
 
 The v0.2.0 sample source is in `examples/claude-oci-demo/v2`; it returns a visibly different response from v0.1.1. `skillctl build`, `skillctl push`, and remote `skillctl inspect` succeeded for the existing supplied repository with tag `0.2.0-draft`. The remote resolved digest is `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a`, and the root OCI catalog now points to that tag. No new registry host or namespace was introduced.
 
@@ -211,13 +211,27 @@ $ skillctl validate examples/claude-oci-demo/v2
 ✓ examples/claude-oci-demo/v2/skill.yaml is valid
 ```
 
-Still to verify: refresh the registered marketplace and manager plugin, then observe the installed v1's metadata-only update notice during a fresh Claude session. The completion checklist remains open until that live startup check is recorded.
+After pushing the catalog and plugin version update, Claude refreshed the registered source and updated `oci-marketplace` from 0.2.0 to 0.3.0. A fresh Claude Code 2.1.299 session displayed the non-blocking `1 OCI skill update available` toast. The manual `/oci-marketplace updates` review then showed a native selection summary for `claude-oci-demo@claude-oci-marketplace`, v0.1.1 → v0.2.0. It was cancelled with Escape before the confirmation or retrieval step; the installed v1 remained active. Both live checks ran through `skillctl inspect` only.
+
+```text
+$ claude plugin marketplace update claude-oci-marketplace
+✔ Successfully updated marketplace: claude-oci-marketplace
+
+$ claude plugin update oci-marketplace@claude-oci-marketplace
+✔ Plugin "oci-marketplace" updated from 0.2.0 to 0.3.0 for scope user. Restart to apply changes.
+
+$ claude plugin test ./plugins/oci-marketplace
+20 pass
+0 fail
+```
+
+This records the digest-only startup and manual detection paths. Per-skill subset selection, session dismissal, and applying v2 remain T402/T403.
 
 ## Current implementation status
 
 - P1 (T101–T102) is complete.
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
-- T401 is in progress; T402–T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
+- T401 is complete. T402–T403 and P5 remain pending their plan dependencies and end-to-end acceptance evidence.
 
 No credentials, authentication files, or `.serena/` contents were staged.

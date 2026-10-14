@@ -266,15 +266,16 @@ The feasibility spike is complete and the user explicitly approved full implemen
 
 ### T401 — Implement update detection
 
-- **Status:** In progress
+- **Status:** Done
 - **Requirements:** R7, R9
 - **Depends on:** T202, T203
+- **Evidence:** [Implementation report — T401](implementation-report.md#t401--update-detection)
 - **Outcome:** Check resolved digests on `SessionStart` and manual refresh without pulling artifact content.
 - **Completion checks:**
-  - [ ] Startup and manual refresh inspect installed skills across all registered OCI catalogs without pulling artifact layers.
-  - [ ] Unchanged resolved digests are reported as current and do not create update alerts.
-  - [ ] A newer resolved digest is associated with the correct marketplace-qualified installed skill.
-  - [ ] Missing catalogs and metadata failures are reported without hiding valid results from other marketplaces.
+  - [x] Startup and manual refresh inspect installed skills across all registered OCI catalogs without pulling artifact layers.
+  - [x] Unchanged resolved digests are reported as current and do not create update alerts.
+  - [x] A newer resolved digest is associated with the correct marketplace-qualified installed skill.
+  - [x] Missing catalogs and metadata failures are reported without hiding valid results from other marketplaces.
 
 ### T402 — Implement update indication and selection
 
