@@ -85,6 +85,13 @@ network_policies:
       port: 443
     binaries:
     - path: /usr/local/bin/claude
+  claude_anthropic:
+    name: claude-anthropic-api
+    endpoints:
+    - host: api.anthropic.com
+      port: 443
+    binaries:
+    - path: /usr/local/bin/claude
   quay:
     name: skillctl-quay
     endpoints:

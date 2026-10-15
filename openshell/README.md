@@ -13,7 +13,7 @@ The Dockerfile deliberately derives from the **retired NVIDIA community base ima
 | File | Purpose |
 | --- | --- |
 | `Dockerfile` | Build Codex 0.162.1, Claude 2.1.299, and skillctl 0.4.0; no credentials are baked in |
-| `policy.yaml` | OpenAI, Google Vertex AI/ADC, Quay, and repository-scoped GitHub access |
+| `policy.yaml` | OpenAI, Google Vertex AI/ADC, optional direct Anthropic API, Quay, and repository-scoped GitHub access |
 | `rehearsal.py` | Generate fresh v1 catalogs and switch to already-published v2 tags |
 | `agent.sh` | Mac-side lifecycle, Vertex ADC transfer, Git setup, and Codex launch |
 | `vertex-config.py` | Validate user ADC and write Vertex launch settings inside the sandbox |
@@ -79,7 +79,7 @@ Choose a different validated release consistently for build and creation:
 export CODEX_VERSION=0.162.1
 ```
 
-The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, plus `quay.io` for skillctl. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
+The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, `api.anthropic.com` for direct Anthropic API sessions, and `quay.io` for skillctl. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
 
 ## 3. Configure and register the gateway
 
@@ -219,11 +219,15 @@ bash agent.sh claude
 
 For a newly created sandbox using the current `policy.yaml`, skip `bash agent.sh policy`. For an existing sandbox, the command replaces its active policy; save any local policy additions first.
 
+Run `bash openshell/agent.sh policy` from the repository root in the **outer Mac terminal** to load this policy into the selected OpenShell gateway. If you are already in the `openshell/` directory, run `bash agent.sh policy`. This updates the active sandbox policy; it does not need to be run from inside the sandbox.
+
 `vertex-auth` prompts for the Google Cloud project ID. It finds the host ADC file through `gcloud info`, validates that it is user ADC created by `gcloud auth application-default login`, and uploads it to `/sandbox/.config/vertex/application_default_credentials.json` with mode 600. Service-account keys and other ADC types are rejected and are not copied. The helper writes Vertex settings to `/sandbox/.config/vertex/env.sh`, also mode 600. The credential file is sensitive and remains in the sandbox; never print it, commit it, or include it in an image. Delete the sandbox when you are done if you no longer need those credentials.
 
 Claude launches through `claude` source that settings file. `run` puts a small `claude` wrapper first on Codex's `PATH`; the wrapper loads Vertex settings only when Claude is launched, so Codex itself does not inherit Google credential environment variables. The settings set `CLAUDE_CODE_USE_VERTEX=1`, `ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_REGION`, and `GOOGLE_APPLICATION_CREDENTIALS`, and clear Anthropic API-key/base-URL overrides. The default region is `global`. If you set `VERTEX_REGION` to another supported location, add the corresponding Google Vertex endpoint host to `policy.yaml` before applying the policy. The model endpoint is selected by Claude Code from the region. The pinned native executable is `/usr/local/bin/claude`.
 
 `vertex-check` makes one short Claude Code model request and succeeds only if the configured ADC, project, model access, region, and OpenShell network policy allow it. In the interactive session, `/status` should show `Google Vertex AI` as the API provider and the configured project and region. This sends a small billable request to Vertex AI. If it fails, check that model access is enabled in Model Garden and that the selected region has quota and supports the model.
+
+The separate `claude_anthropic` policy rule allows the Claude executable to reach Anthropic's API directly. It permits that network route but does not configure Anthropic authentication. The Vertex launcher clears Anthropic API credentials and base-URL overrides; confirm `/status` shows `Google Vertex AI` when using Vertex. Remove the `claude_anthropic` rule from `policy.yaml` before applying it if the sandbox must be restricted to Vertex-only model egress.
 
 `quay-auth` prompts for a Quay username (including a robot username if applicable) and password/token. It writes only that host's entry into the sandbox Docker/containers credential stores, preserving existing entries. It does not copy Mac credential helpers or unrelated host credentials. The files are mode 600; base64 encoding is not encryption. For existing-artifact rehearsal, grant registry read access; grant write only if publishing is part of the intended work.
 
