@@ -58,6 +58,7 @@ def install_settings(settings: dict[str, str], root: Path) -> None:
         "CLAUDE_CODE_USE_VERTEX": "1",
         "CLOUD_ML_REGION": region,
         "ANTHROPIC_VERTEX_PROJECT_ID": project_id,
+        "ANTHROPIC_MODEL": "claude-sonnet-4-5@20250929",
         "GOOGLE_APPLICATION_CREDENTIALS": str(credential),
     }
     env_file = root / "env.sh"
