@@ -795,5 +795,34 @@ No ORAS version or ORAS command against the supplied registry or a complete plug
 
 **Evidence to record:** OS, Claude Code, ORAS, and Git versions; exact ORAS push, manifest-fetch, and pull commands and output; artifact/layer media types; title/version annotations; resolved digest; proof manifest checks do not fetch layers; credential reuse behavior; Claude plugin validation; supported persistent activation and reload behavior; and all blockers.
 
+### Sandbox environment check (2026-10-15)
+
+This check records the current workspace only; it is not the required macOS demo-machine spike.
+
+```text
+$ uname -a
+Linux sandbox-codex-sandbox 6.12.7-200.fc41.aarch64 #1 SMP PREEMPT_DYNAMIC Fri Dec 27 14:17:27 UTC 2024 aarch64 aarch64 aarch64 GNU/Linux
+
+$ claude --version
+2.1.299 (Claude Code)
+
+$ git --version
+git version 2.43.0
+
+$ oras version
+/bin/bash: line 1: oras: command not found
+```
+
+The maintained manager plugin bundle at `plugins/oci-marketplace` passes `claude plugin validate --strict ./plugins/oci-marketplace` on this Claude version (exit 0). It contains `.claude-plugin/plugin.json` and hook files, but this validation does not test ORAS packaging, extraction, registry behavior, or persistent activation. The existing `examples/claude-oci-demo` and `examples/claude-oci-guide` directories are individual skills; they do not supply the v1/v2 complete plugin demo required by acceptance.
+
+A protected local container-auth file is present, but its contents were not read and its registry credentials have not been tested. An attempt to fetch the official ORAS v1.3.4 Linux arm64 release into `/tmp` failed before download:
+
+```text
+$ curl --fail --location --retry 2 --silent --show-error --output /tmp/oci-poc-oras-1.3.4/oras.tar.gz https://github.com/oras-project/oras/releases/download/v1.3.4/oras_1.3.4_linux_arm64.tar.gz
+curl: (7) Failed to connect to github.com port 443 after 66 ms: Couldn't connect to server
+```
+
+No registry request or artifact publication was attempted. The host is Linux rather than the supplied macOS demo machine, ORAS is unavailable, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or activation path. T607 remains blocked; the prior skillctl HTTP 401 evidence is not evidence about ORAS.
+
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 

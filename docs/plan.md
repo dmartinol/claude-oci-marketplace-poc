@@ -23,7 +23,7 @@ Keep each task's implementation, evidence report, and status together. Documenta
 ## Current status
 
 - **T600 — Update product documents:** Done. The requirements now specify complete ORAS plugin bundles; the plan places the feasibility spike before implementation; D17 records the scope decision.
-- **T607 — ORAS and stock Claude feasibility spike:** Blocked. ORAS has not been tested against the demo registry or a complete plugin bundle. The earlier report records registry authorization failures for skillctl artifacts and missing macOS/demo setup; that evidence does not establish ORAS behavior. See [T501](implementation-report.md#t501--end-to-end-demo-rehearsal) and [T605–T606](implementation-report.md#t605t606--live-rehearsal-and-demo-guide). Obtain the supplied demo host, valid registry authentication, and an actual plugin-bundle source/reference before claiming this spike is complete.
+- **T607 — ORAS and stock Claude feasibility spike:** Blocked. The 2026-10-15 sandbox check recorded Linux, Claude Code 2.1.299, Git 2.43.0, and no installed ORAS; the maintained manager plugin passes Claude's strict validator. ORAS packaging, registry access, and activation remain untested. See the [sandbox evidence](feasibility-report.md#sandbox-environment-check-2026-10-15). Obtain the supplied macOS demo host, usable registry authentication, and approved complete-plugin demo reference before claiming this spike is complete. Historical skillctl registry failures do not establish ORAS behavior.
 - **Gate G3:** Not cleared. Full implementation must wait for the spike evidence and explicit user approval.
 
 ## P1 — Product-document reset
@@ -44,7 +44,7 @@ Keep each task's implementation, evidence report, and status together. Documenta
 
 ### T607 — Verify ORAS artifact and Claude plugin feasibility
 
-- **Status:** Blocked — requires the supplied macOS demo host, valid demo registry authentication, and a real complete-plugin artifact source/reference. ORAS-specific registry behavior has not yet been tested.
+- **Status:** Blocked — the sandbox recheck confirms this is Linux, ORAS is unavailable, and ORAS-specific registry behavior has not been tested. Completion requires the supplied macOS demo host, usable demo registry authentication, and an approved complete-plugin artifact source/reference. See the [partial environment evidence](feasibility-report.md#sandbox-environment-check-2026-10-15).
 - **Requirements:** R1–R9, R12, Feasibility spike
 - **Depends on:** T600; demo host, artifact source, registry reference, and credentials supplied by the demo setup
 - **Outcome:** Prove generic ORAS artifact publication, metadata-only digest lookup, digest-pinned retrieval, validation of the complete plugin, and persistent activation in stock Claude Code.
