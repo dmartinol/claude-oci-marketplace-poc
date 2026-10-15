@@ -1,14 +1,14 @@
 {
-  "name": "claude-oci-marketplace",
-  "description": "A general Claude marketplace manager with optional OCI plugin support",
+  "name": "claude-oci-demo-marketplace",
+  "description": "Demo marketplace for complete OCI Claude plugins",
   "owner": {
     "name": "dmartinol"
   },
   "plugins": [
     {
-      "name": "marketplace-manager",
-      "source": "./plugins/oci-marketplace",
-      "description": "List and add Claude marketplaces, with complete OCI plugin discovery, installation, and updates as an extension"
+      "name": "oci-demo-plugin",
+      "description": "Demonstrates complete OCI plugin distribution and updates",
+      "source": "quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft"
     }
   ]
 }
