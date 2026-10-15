@@ -1,6 +1,6 @@
 # Demo: publish and update a Claude plugin with OCI
 
-This is the target POC walkthrough. Local direct-directory ORAS publication/extraction and Claude validation have passed. Remote directory retrieval and the generated marketplace's complete native install/update flow remain to be demonstrated in T607. Commands describing manager materialization below are expected behavior, not a claim that it is implemented.
+This is the target POC walkthrough. Local macOS checks and the Linux registry-backed ORAS/native CLI install/update probe have passed. T607 still needs the Mac interactive check; the manager's generated-marketplace implementation remains pending. Commands describing manager materialization below are expected behavior, not a claim that it is implemented.
 
 Use installed Claude Code, ORAS, and Git on macOS, your existing Quay credentials, and a GitHub repository where you can publish the marketplace JSON. You do not need to clone the POC repository or run its scripts. GitHub's web editor is sufficient for publishing the marketplace configuration.
 

@@ -2,7 +2,7 @@
 
 Proof of concept for managing Claude marketplaces in stock Claude Code. The revised product specification targets complete Claude plugin bundles published as OCI artifacts with ORAS.
 
-**Status:** The current manager implementation still uses the legacy individual-skill backend and does not satisfy the revised full-plugin contract. ORAS direct-directory publication, digest-pinned local pulls, and Claude validation pass on macOS. An earlier archived manager bundle was pushed to Quay and its descriptor resolved; registry retrieval of the direct-directory layer remains unverified. See [feasibility evidence](docs/feasibility-report.md) and the [implementation plan](docs/plan.md).
+**Status:** The manager still uses the legacy individual-skill backend. ORAS direct-directory registry publication, metadata inspection, digest-pinned retrieval, and native CLI installation/update now pass in the Linux feasibility probe. Local directory checks also pass on macOS; its interactive check and the full manager implementation remain pending. See [feasibility evidence](docs/feasibility-report.md) and the [implementation plan](docs/plan.md).
 
 ## Project documentation
 

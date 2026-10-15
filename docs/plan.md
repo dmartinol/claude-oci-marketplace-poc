@@ -6,7 +6,7 @@ Follow [requirements.md](requirements.md). Product choices are in [decisions.md]
 
 The clarified developer flow requires a generated native-compatible local marketplace, visible in both `/plugin` and `/marketplace-manager`, with no developer checkout of this repository. Earlier manager-only OCI discovery is superseded.
 
-Existing evidence: ORAS 1.3.4 directly publishes and extracts plugin directories in a local OCI layout on macOS; Claude validates those plugins. An archive-based artifact was previously published to Quay. A temporary native local marketplace installed an extracted plugin. These checks are useful partial evidence, but do not prove the complete new flow. The current manager still uses the legacy individual-skill backend.
+Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux spike also passes registry push/pull by digest, generated marketplace registration, native v1 install/v2 update, and failed-pull preservation. macOS interactive behavior and the complete manager workflow remain unverified. The current manager still uses the legacy individual-skill backend.
 
 Use Done, In progress, Backlog, or Blocked. Only mark work Done with evidence. Keep one task In progress. Do not repeat unchanged checks or add production infrastructure.
 
@@ -18,13 +18,13 @@ The requirements, D22, this plan, README, example guidance, and demo guide descr
 
 ## T607 — Verify ORAS artifact and Claude plugin feasibility
 
-**Status:** Blocked on the active sandbox policy denying Quay layer downloads from `cdn01.quay.io`, plus macOS interactive confirmation. Direct-directory registry publication/metadata and local native install/update now pass; see the [current spike](feasibility-report.md#current-oras-and-native-marketplace-spike-2026-10-15). **Requirements:** R1, R3–R8, R10, R12.
+**Status:** Registry and native CLI lifecycle pass on Linux after the operator applied the Quay CDN policy. Pending the required macOS interactive check; see the [registry retry](feasibility-report.md#registry-retry-after-policy-application-2026-10-15). **Requirements:** R1, R3–R8, R10, R12.
 
 Use the configured Mac, supplied registry and credentials, and the existing complete manager or demo plugin. Do not request a prebuilt artifact from the developer.
 
 - [x] Direct-directory ORAS push/pull and Claude validation pass locally. See the [direct-directory check](feasibility-report.md#direct-directory-oras-check-macos-2026-10-15).
 - [x] Publish the directory to the configured registry and inspect its manifest with ORAS.
-- [ ] Pull registry layers by digest: Quay redirects to `cdn01.quay.io`, currently denied by the active sandbox policy. The repository policy now includes the observed host; the Mac operator must apply it.
+- [x] Pull registry layers by digest: after the Mac operator applied the observed CDN host policy, both versions pulled and validated successfully.
 - [x] Generate and validate a native-compatible marketplace using local plugin paths, register it under the published name, and install through Claude. The disposable local probe retains original fixture/OCI provenance; real Git provenance belongs to T609.
 - [x] Verify fresh-process CLI discovery and native replacement with v2; an injected failed pull leaves v1 installed and its source unchanged.
 - [ ] Verify interactive restart/component behavior on macOS. Fresh CLI processes are not an interactive session test.

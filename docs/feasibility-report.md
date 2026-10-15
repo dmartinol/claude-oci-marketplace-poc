@@ -1125,3 +1125,26 @@ Detailed commands and outputs are retained in the disposable work directories' `
 **Remaining blocker:** The active sandbox policy permits ORAS to contact `quay.io`, but not its observed layer redirect `cdn01.quay.io`. The repository's OpenShell policy now includes that host. Apply it from the outer Mac terminal with `bash openshell/agent.sh policy`, then rerun the registry probe with a new work directory. This sandbox has no OpenShell control executable or configured Mac connection, so it cannot apply the host-side policy itself. Do not work around the denial or substitute a local layout for registry acceptance.
 
 Interactive `/plugin` visibility, actual skill invocation after restart, and macOS behavior remain unverified. These and successful remote layer retrieval are required before T607 can be marked Done. Full manager implementation remains behind G3; the active instruction to execute all tasks authorizes the work but does not turn failed feasibility checks into passing evidence.
+
+### Registry retry after policy application (2026-10-15)
+
+The user confirmed the updated policy was applied from the Mac. Retried with:
+
+```text
+python scripts/feasibility-spike.py --registry-repository quay.io/dmartino/claude-oci-demo --work-dir /tmp/oci-registry-spike-policy-applied
+```
+
+**Result: Pass for the complete CLI probe on Linux.** Both direct-folder versions published to the same project-owned spike tag, metadata was inspected, and ORAS pulled by the inspected digests. Both extracted plugins and the generated marketplace passed Claude strict validation. Native user-scope installation reported v1; native update reported v2 and restart required. A failed digest pull left the v1 plugin source and native installed version unchanged before the v2 replacement. Fresh CLI processes reported one marketplace and the correct installed plugin version/files.
+
+- Registry v1 digest: `sha256:4f2e003fa8050fc9d53e06ff46ba17a13bdb570e7737f94dc4874e1ea5d06dd6`
+- Registry v2 digest: `sha256:c84c37ac1282ecf84a36c1c25f8f07bd0e5265697ba9995a9caec2faa2a9996c`
+
+The Quay CDN blocker is resolved. T607 still needs the configured Mac's interactive restart and component check; Linux CLI success does not establish that result. To finish the Mac check from the existing contributor checkout:
+
+```text
+git pull --ff-only
+python3 scripts/feasibility-spike.py --registry-repository quay.io/dmartino/claude-oci-demo --work-dir /tmp/oci-mac-spike
+CLAUDE_CONFIG_DIR=/tmp/oci-mac-spike/profile claude
+```
+
+In that Claude session, verify `oci-demo-marketplace` in `/plugin` and invoke `/oci-demo-plugin:demo`; expect `OCI demo plugin version 0.2.0`. Exit and relaunch with the same profile and repeat. The script itself records Mac versions and the v1/v2 CLI install/update outputs. Use a new work-directory name if the example directory already exists. This is contributor feasibility work, not an end-user checkout requirement.
