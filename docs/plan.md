@@ -18,15 +18,17 @@ The requirements, D22, this plan, README, example guidance, and demo guide descr
 
 ## T607 — Verify ORAS artifact and Claude plugin feasibility
 
-**Status:** Blocked pending remaining registry and native-flow evidence. **Requirements:** R1, R3–R8, R10, R12.
+**Status:** Blocked on the active sandbox policy denying Quay layer downloads from `cdn01.quay.io`, plus macOS interactive confirmation. Direct-directory registry publication/metadata and local native install/update now pass; see the [current spike](feasibility-report.md#current-oras-and-native-marketplace-spike-2026-10-15). **Requirements:** R1, R3–R8, R10, R12.
 
 Use the configured Mac, supplied registry and credentials, and the existing complete manager or demo plugin. Do not request a prebuilt artifact from the developer.
 
 - [x] Direct-directory ORAS push/pull and Claude validation pass locally. See the [direct-directory check](feasibility-report.md#direct-directory-oras-check-macos-2026-10-15).
-- [ ] Publish the directory to the configured registry; inspect its manifest and pull it by digest with ORAS.
-- [ ] Generate a native-compatible marketplace using local plugin paths, register it under the published marketplace name, and install through Claude. Retain its original Git URL and OCI sources in small manager-owned state.
-- [ ] Verify restart persistence and replacement with v2, including keeping the previous plugin usable on an unsuccessful update.
-- [ ] Record commands, output, and blockers. Reuse prior mod/permission evidence where unchanged.
+- [x] Publish the directory to the configured registry and inspect its manifest with ORAS.
+- [ ] Pull registry layers by digest: Quay redirects to `cdn01.quay.io`, currently denied by the active sandbox policy. The repository policy now includes the observed host; the Mac operator must apply it.
+- [x] Generate and validate a native-compatible marketplace using local plugin paths, register it under the published name, and install through Claude. The disposable local probe retains original fixture/OCI provenance; real Git provenance belongs to T609.
+- [x] Verify fresh-process CLI discovery and native replacement with v2; an injected failed pull leaves v1 installed and its source unchanged.
+- [ ] Verify interactive restart/component behavior on macOS. Fresh CLI processes are not an interactive session test.
+- [x] Record commands, output, and blockers. Reuse prior mod/permission evidence where unchanged.
 
 The spike can use installed CLI tools and a small disposable fixture; it does not require building the full manager first.
 

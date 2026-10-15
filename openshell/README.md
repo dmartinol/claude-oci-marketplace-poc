@@ -83,7 +83,7 @@ Choose a different validated release consistently for build and creation:
 export CODEX_VERSION=0.162.1
 ```
 
-The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, `api.anthropic.com` for direct Anthropic API sessions, and `quay.io` for ORAS. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
+The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, `api.anthropic.com` for direct Anthropic API sessions, and `quay.io` for ORAS. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. `cdn01.quay.io` is also permitted for ORAS: the direct-directory spike observed Quay redirecting layer downloads there. Other redirected blob hosts must be added only after observing a denial. For an existing sandbox, apply the updated policy from the Mac with `bash openshell/agent.sh policy`; changing this file alone does not change the running sandbox policy.
 
 ## 3. Configure and register the gateway
 

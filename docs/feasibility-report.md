@@ -1083,3 +1083,45 @@ This records the initial Linux sandbox attempt only. The user later directed wor
 
 The earlier spike note referred to an “approved complete-plugin destination/reference” and a separately supplied bundle as blockers. D18 and the revised plan resolve that dependency: the repository's demo registry configuration supplies the repository and local credentials, while this project creates both plugin sources and tags. An archive-based manager bundle was pushed to the configured Quay repository and its manifest descriptor resolved; the direct-directory layer and digest-pinned remote pull remain open feasibility checks. The local direct-directory evidence uses the maintained manager plugin and the v1/v2 demo source.
 
+
+## Current ORAS and native marketplace spike (2026-10-15)
+
+**T607 result: partial pass; blocked for remote layer retrieval and macOS interactive verification.** This run used Linux ARM64, Claude Code 2.1.299, ORAS 1.3.4, and Git 2.43.0. It supplements the earlier Mac evidence rather than claiming a Mac run.
+
+The contributor-only `scripts/feasibility-spike.py` creates disposable OCI-layout artifacts and a fresh Claude profile. It uses installed ORAS/Claude commands, preserves the published marketplace name, and stores original source/digest provenance outside Claude's undocumented state. It is not a user installation prerequisite.
+
+Commands exercised:
+
+```text
+python scripts/feasibility-spike.py --work-dir /tmp/oci-native-spike-20261015-verified
+python scripts/feasibility-spike.py --registry-repository quay.io/dmartino/claude-oci-demo --work-dir /tmp/oci-registry-spike-20261015
+```
+
+The registry repository comes from the existing supplied demo marketplace fixture. The spike creates its own `oci-demo-plugin-oras-spike` tag; no prebuilt artifact is requested. No authentication files or credential values are included here.
+
+| Check | Observed result |
+| --- | --- |
+| Direct root publication with `oras push --oci-layout ... .` | Pass for versions 0.1.0 and 0.2.0 at the same tag |
+| Metadata lookup | Descriptor resolves the digest; full manifest is fetched by that digest before any pull |
+| Artifact/layer contract | `application/vnd.dmartino.claude.plugin.v1`, `application/vnd.oci.image.layer.v1.tar+gzip`, title/version match plugin.json, unpack annotation is true |
+| Digest-pinned local pull and strict plugin validation | Pass for both versions; `.claude-plugin/plugin.json` is at output root |
+| Generated local marketplace | Strict validation passes with `source: "./plugins/oci-demo-plugin"` |
+| Native registration and install | Both return `outcome: "ok"` for `oci-demo-plugin@oci-demo-marketplace` |
+| Native v2 update | Returns `updateOutcome: "updated"`, `oldVersion: "0.1.0"`, `newVersion: "0.2.0"`, with restart instruction |
+| Fresh-process discovery | Separate `claude plugin list --json` calls report the expected version and retained files; marketplace list reports exactly one local directory registration |
+| Failed retrieval | A nonexistent digest returns `Error: not found`; v1 source bytes and native installed version remain unchanged before v2 activation |
+| Registry publication | Direct-folder push to configured Quay repository succeeds using existing local authentication |
+| Registry manifest lookup | Descriptor and full manifest fetch succeed; correct artifact/layer types and v1 annotations |
+| Registry pull by digest | Manifest downloads, but the layer request to `cdn01.quay.io` fails with `connect: permission denied` |
+
+Verified local manifest digests:
+
+- v1: `sha256:362cf79d527c5cbcf75f9eb31b2ebcb95ed9b4370427fef4f8deb65d84912be7`
+- v2: `sha256:492b28a795d5ac26db6b1b877e547c9355472e949822ebb3654c80efaf7088d6`
+- Published registry v1: `sha256:e040ed7624edad66bb80edf209c65176ded6e8a2208ebcedae76bd4e1ec82161`
+
+Detailed commands and outputs are retained in the disposable work directories' `commands.json`. Signed redirect query strings are redacted by the probe and are not committed. The initial generic curl connectivity check failed, but ORAS publication succeeded; actual ORAS behavior is the controlling registry evidence.
+
+**Remaining blocker:** The active sandbox policy permits ORAS to contact `quay.io`, but not its observed layer redirect `cdn01.quay.io`. The repository's OpenShell policy now includes that host. Apply it from the outer Mac terminal with `bash openshell/agent.sh policy`, then rerun the registry probe with a new work directory. This sandbox has no OpenShell control executable or configured Mac connection, so it cannot apply the host-side policy itself. Do not work around the denial or substitute a local layout for registry acceptance.
+
+Interactive `/plugin` visibility, actual skill invocation after restart, and macOS behavior remain unverified. These and successful remote layer retrieval are required before T607 can be marked Done. Full manager implementation remains behind G3; the active instruction to execute all tasks authorizes the work but does not turn failed feasibility checks into passing evidence.

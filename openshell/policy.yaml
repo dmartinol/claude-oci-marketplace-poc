@@ -97,5 +97,8 @@ network_policies:
     endpoints:
     - host: quay.io
       port: 443
+    # Observed Quay blob redirect during the ORAS direct-directory spike.
+    - host: cdn01.quay.io
+      port: 443
     binaries:
     - path: /usr/local/bin/oras
