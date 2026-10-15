@@ -787,9 +787,9 @@ Strict validation rejects the raw source as expected, and the user directed impl
 
 ## ORAS plugin bundle feasibility spike
 
-**Status:** Not run. This section tracks the revised requirement for complete Claude plugin bundles; the earlier skillctl probes do not establish ORAS behavior.
+**Status:** Partially run; blocked before any ORAS operation. This section tracks the revised requirement for complete Claude plugin bundles; the earlier skillctl probes do not establish ORAS behavior.
 
-No ORAS version or ORAS command against the supplied registry or a complete plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for the supplied skillctl artifact references and the prior rehearsal lacked the macOS demo host and separate demo marketplace URL. Those observations are blockers to recheck, not evidence that ORAS itself fails.
+No ORAS version or ORAS command against the supplied registry or a complete demo plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for the supplied skillctl artifact references; that is not evidence that ORAS itself fails.
 
 **Required inputs:** supplied macOS demo host, valid registry authentication, a complete plugin directory/archive, and its approved registry reference. Never expose credentials in this report.
 
@@ -815,6 +815,26 @@ $ oras version
 
 The maintained manager plugin bundle at `plugins/oci-marketplace` passes `claude plugin validate --strict ./plugins/oci-marketplace` on this Claude version (exit 0). It contains `.claude-plugin/plugin.json` and hook files, but this validation does not test ORAS packaging, extraction, registry behavior, or persistent activation. The existing `examples/claude-oci-demo` and `examples/claude-oci-guide` directories are individual skills; they do not supply the v1/v2 complete plugin demo required by acceptance.
 
+### Supported Claude install-path probe
+
+To check the supported local plugin path without changing the default profile, I used a fresh temporary `CLAUDE_CONFIG_DIR` and the native CLI. Each command was a separate process:
+
+```text
+$ CLAUDE_CONFIG_DIR=<temporary-profile> claude plugin marketplace add "$PWD" --scope user --json
+{"command":"marketplace-add","outcome":"ok","marketplace":"claude-oci-marketplace","message":"Successfully added marketplace: claude-oci-marketplace (declared in user settings)"}
+
+$ CLAUDE_CONFIG_DIR=<temporary-profile> claude plugin marketplace list --json
+[{"name":"claude-oci-marketplace","source":"directory","path":"<repository>","installLocation":"<repository>"}]
+
+$ CLAUDE_CONFIG_DIR=<temporary-profile> claude plugin install marketplace-manager@claude-oci-marketplace --scope user --json
+{"command":"install","outcome":"ok","plugin":"marketplace-manager@claude-oci-marketplace","pluginId":"marketplace-manager@claude-oci-marketplace","scope":"user","message":"Successfully installed plugin: marketplace-manager@claude-oci-marketplace (scope: user)"}
+
+$ CLAUDE_CONFIG_DIR=<temporary-profile> claude plugin list --json
+[{"id":"marketplace-manager@claude-oci-marketplace","version":"0.5.0","scope":"user","enabled":true,"installPath":"<temporary-profile>/plugins/cache/claude-oci-marketplace/marketplace-manager/0.5.0", ...}]
+```
+
+The later `plugin list` process reported the plugin enabled at user scope under the temporary profile's plugin cache. This demonstrates that Claude Code 2.1.299 accepts and persists the native CLI installation on this Linux host. It does not demonstrate command execution in an interactive session, restart/reload behavior, or macOS activation; the sandbox cannot provide the required interactive demo session.
+
 A protected local container-auth file is present, but its contents were not read and its registry credentials have not been tested. An attempt to fetch the official ORAS v1.3.4 Linux arm64 release into `/tmp` failed before download:
 
 ```text
@@ -822,7 +842,7 @@ $ curl --fail --location --retry 2 --silent --show-error --output /tmp/oci-poc-o
 curl: (7) Failed to connect to github.com port 443 after 66 ms: Couldn't connect to server
 ```
 
-No registry request or artifact publication was attempted. The host is Linux rather than the supplied macOS demo machine, ORAS is unavailable, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or activation path. T607 remains blocked; the prior skillctl HTTP 401 evidence is not evidence about ORAS.
+No registry request or artifact publication was attempted. The host is Linux rather than the supplied macOS demo machine, ORAS is unavailable, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or persistent activation on the demo host. T607 remains blocked.
 
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 
