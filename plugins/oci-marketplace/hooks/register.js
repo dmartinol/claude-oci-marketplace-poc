@@ -1,5 +1,10 @@
 const DISMISS_KEY = 'dismissedSessionId'
 const COMMAND_NAME = 'marketplace-manager'
+const DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000
+const POLL_INTERVAL_CONFIG = `${COMMAND_NAME}.poll_interval_minutes`
+
+let announcementInProgress = false
+let lastNoticeFingerprint
 
 function errorText(error) {
   return error instanceof Error ? error.message : String(error)
@@ -106,13 +111,34 @@ async function dismissAlerts($) {
 }
 
 async function announceUpdates($) {
+  if (announcementInProgress) return
+  announcementInProgress = true
   try {
     if (await alertsDismissed($)) return
     const { updates = [], errors = [] } = await read($, 'updates')
-    for (const error of errors) $.ui.log(`Marketplace startup check: ${error}`, { to: 'debug' })
-    if (updates.length) $.ui.toast(`${updates.length} OCI plugin update${updates.length === 1 ? '' : 's'} available. Run /marketplace-manager updates to review.`, { timeoutMs: 10000 })
+    for (const error of errors) $.ui.log(`Marketplace update check: ${error}`, { to: 'debug' })
+    if (!updates.length) {
+      lastNoticeFingerprint = undefined
+      return
+    }
+    const fingerprint = updates.map((item) => `${item.identity}:${item.metadata?.digest || item.metadata?.version || ''}`).sort().join('|')
+    if (fingerprint === lastNoticeFingerprint) return
+    lastNoticeFingerprint = fingerprint
+    $.ui.toast(`${updates.length} OCI plugin update${updates.length === 1 ? '' : 's'} available. Run /marketplace-manager updates to review.`, { timeoutMs: 10000 })
   } catch (error) {
-    $.ui.log(`Marketplace startup check failed: ${errorText(error)}`, { to: 'debug' })
+    $.ui.log(`Marketplace update check failed: ${errorText(error)}`, { to: 'debug' })
+  } finally {
+    announcementInProgress = false
+  }
+}
+
+async function pollInterval($) {
+  try {
+    const row = (await $.config.list()).find((item) => item.key === POLL_INTERVAL_CONFIG)
+    return row?.value === '1' || row?.value === 1 ? 60 * 1000 : DEFAULT_POLL_INTERVAL_MS
+  } catch (error) {
+    $.ui.log(`Marketplace poll interval config unavailable; using 5 minutes: ${errorText(error)}`, { to: 'debug' })
+    return DEFAULT_POLL_INTERVAL_MS
   }
 }
 
@@ -175,11 +201,21 @@ async function dispatch($, args) {
 }
 
 export function register(on) {
+  let updateTimer
   on('session.start', async ($, event, next) => {
     await $.command.register({ name: COMMAND_NAME, description: 'List and add Claude marketplaces, install plugins, and review OCI plugin updates', argumentHint: '[list|add <git-url>|install <plugin@marketplace>|updates|installed]' })
     const result = await next(event)
+    updateTimer?.cancel()
+    lastNoticeFingerprint = undefined
+    updateTimer = $.clock.every(await pollInterval($), () => { void announceUpdates($) })
     void announceUpdates($)
     return result
+  })
+  on('session.end', ($, event, next) => {
+    updateTimer?.cancel()
+    updateTimer = undefined
+    lastNoticeFingerprint = undefined
+    return next(event)
   })
   on('command.run', { command: COMMAND_NAME }, ($, event) => dispatch($, event.args.trim())
     .then((text) => ({ text }))

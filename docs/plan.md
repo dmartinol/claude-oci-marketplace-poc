@@ -6,7 +6,7 @@ Follow [requirements.md](requirements.md). Product choices are in [decisions.md]
 
 The clarified developer flow requires a generated native-compatible local marketplace, visible in both `/plugin` and `/marketplace-manager`, with no developer checkout of this repository. The bootstrap stays on `main`; the demo marketplace is published on `oci-demo-marketplace` in the same GitHub repository and is selected with the supported `#ref` URL form. Earlier manager-only OCI discovery is superseded.
 
-Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux rehearsal installed manager 0.6.0 by URL into a fresh profile, fetched the same-repository demo branch through the helper, extracted and registered its OCI plugin, installed and invoked v1, detected and applied a same-tag v2 digest, and retained v2 after a failed update. The final macOS manager UI rehearsal remains T613.
+Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux rehearsal installed manager 0.6.0 by URL into a fresh profile, fetched the same-repository demo branch through the helper, extracted and registered its OCI plugin, installed and invoked v1, detected and applied a same-tag v2 digest, and retained v2 after a failed update. Configurable in-session polling is implemented and focused-tested; its interactive `/config` and same-session Mac rehearsal remain part of T613.
 
 Use Done, In progress, Backlog, or Blocked. Only mark work Done with evidence. Keep one task In progress. Do not repeat unchanged checks or add production infrastructure.
 
@@ -66,7 +66,7 @@ Evidence: [T609 helper materialization](implementation-report.md#t609--materiali
 Evidence: [T610 native lifecycle](implementation-report.md#t610--native-installation-and-pinned-updates-2026-10-15).
 
 - Use the spike-proven Claude install/update path for manager actions and recognize installations made through `/plugin`.
-- Check tag metadata at startup/manual refresh without pulling layers.
+- Check tag metadata at startup, manual refresh, and the configured in-session interval without pulling layers.
 - Pull approved digests into staging, validate, and replace the generated plugin content and any native installation as required by the demonstrated path.
 - Keep the working plugin and recorded digest on failure. Restart activation is sufficient.
 
@@ -76,7 +76,7 @@ Evidence: [T610 native lifecycle](implementation-report.md#t610--native-installa
 
 Evidence: [T611 UI wiring](implementation-report.md#t611--manager-ui-and-native-tool-integration-2026-10-15).
 
-Reuse the current mod command, confirmation, and SessionStart architecture. Align labels/state with complete plugins; expose list, add, install, installed state, and update review. Show a non-blocking notice, allow plugin selection, and honor session dismissal. Downloads during add and update require approval.
+Reuse the current mod command, confirmation, SessionStart, and Claude session-timer APIs. Align labels/state with complete plugins; expose list, add, install, installed state, and update review. Show a non-blocking notice, allow plugin selection, and honor session dismissal. Downloads during add and update require approval.
 
 ## T612 — Focused checks
 
@@ -84,19 +84,25 @@ Reuse the current mod command, confirmation, and SessionStart architecture. Alig
 
 Evidence: [T612 focused checks](implementation-report.md#t612--focused-checks-2026-10-15).
 
-The focused deterministic helper and UI tests cover source parsing, generated local paths and provenance, native registration/install calls, standard compatibility, native-installed plugin discovery, metadata-only checks, approval before pulls, selected digest-pinned updates, startup notice behavior, paged selection, and keeping the working plugin on failure. No broad production test framework was added.
+The focused deterministic helper and UI tests cover source parsing, generated local paths and provenance, native registration/install calls, standard compatibility, native-installed plugin discovery, metadata-only checks, approval before pulls, selected digest-pinned updates, startup notice behavior, paged selection, and keeping the working plugin on failure. Periodic polling and its interval were added in T615. No broad production test framework was added.
 
 ## T613 — Rehearse the developer flow
 
-**Status:** In progress. **Requirements:** R1–R15. **Depends on:** T608–T612.
+**Status:** In progress. **Requirements:** R1–R16. **Depends on:** T608–T612, T615.
 
-Linux rehearsal evidence: [T613 same-repository developer flow](implementation-report.md#t613--same-repository-developer-flow-2026-10-15). The bootstrap and demo marketplace use the same repository on separate branches. The fresh-profile Linux run validated both registered marketplace rows, native install, v1/v2 invocation, metadata-only update detection, and failed-update preservation. The remaining Mac check is to install the manager by URL in a fresh Claude profile, add the demo branch through `/marketplace-manager` and approve its confirmation/permission prompts, verify the generated marketplace in `/plugin` and the manager, invoke v1 after restart, publish v2 to the same tag, observe and approve the update notice, restart, and invoke v2. Also confirm the standard-only bootstrap remains listed and the manager recognizes native installed state. Follow the step-by-step [Mac acceptance run](demo/README.md#mac-acceptance-run-t613); no developer checkout is part of this flow.
+Linux rehearsal evidence: [T613 same-repository developer flow](implementation-report.md#t613--same-repository-developer-flow-2026-10-15). The bootstrap and demo marketplace use the same repository on separate branches. The fresh-profile Linux run validated both registered marketplace rows, native install, v1/v2 invocation, metadata-only update detection, and failed-update preservation. The remaining Mac check is to install the manager by URL in a fresh Claude profile, add the demo branch through `/marketplace-manager` and approve its confirmation/permission prompts, verify the generated marketplace in `/plugin` and the manager, invoke v1 after restart, select the one-minute poll setting in `/config`, publish v2 to the same tag while that Claude session remains open, observe and approve the periodic update notice, restart, and invoke v2. Also confirm the standard-only bootstrap remains listed and the manager recognizes native installed state. Follow the step-by-step [Mac acceptance run](demo/README.md#mac-acceptance-run-t613); no developer checkout is part of this flow.
 
 ## T614 — Finalize the short demo guide
 
-**Status:** Done. **Requirements:** R15, POC acceptance. **Depends on:** T608–T612; the T613 Linux rehearsal supplies command evidence.
+**Status:** Done. **Requirements:** R15–R16, POC acceptance. **Depends on:** T608–T612; the T613 Linux rehearsal supplies command evidence.
 
 Evidence: [T614 final demo guide](demo/README.md) and [T614 guide review](implementation-report.md#t614--final-demo-guide-2026-10-15). The short walkthrough uses the same-repository branch URL, direct ORAS commands, native UI expectations, the verified v1/v2 responses, and simple cleanup. README and example guidance are consistent. The guide states that the final Mac manager UI check is still T613; that live check does not change the published commands or cleanup path.
+
+## T615 — Add configurable session update polling
+
+**Status:** Done for implementation and focused checks; the live Mac `/config`/same-session demonstration remains in T613. **Requirements:** R7, R9, R13–R14, R16. **Depends on:** T611.
+
+Evidence: [T615 configurable polling](implementation-report.md#t615--configurable-session-update-polling-2026-10-15). The plugin exposes a five-minute default and one-minute demo choice, checks tag metadata on Claude's session timer, stops the timer at session end, and avoids repeating a notice for an unchanged digest. No daemon or layer download was added.
 
 ## Historical work
 

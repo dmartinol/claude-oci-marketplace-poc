@@ -1,4 +1,4 @@
-import { expect, test } from 'claude-code/testing'
+import { expect, mock, test } from 'claude-code/testing'
 
 const digest = `sha256:${'b'.repeat(64)}`
 const plugin = {
@@ -121,6 +121,7 @@ test('manual refresh resets session dismissal and can offer the same update agai
 })
 
 test('startup respects dismissal while registering the plugin command', async ($, on) => {
+  mock.clock(on)
   let reads = 0
   let registered = ''
   on('store.get', () => ({ value: 'session-one' }))
@@ -148,6 +149,7 @@ test('failed update reports helper error and does not write installed state', as
 })
 
 test('startup emits a non-blocking update notice when the session has not dismissed it', async ($, on) => {
+  mock.clock(on)
   let resolveNotice: (value: string) => void = () => {}
   const notice = new Promise<string>((resolve) => { resolveNotice = resolve })
   const calls: string[][] = []
@@ -164,6 +166,57 @@ test('startup emits a non-blocking update notice when the session has not dismis
   expect(calls).toHaveLength(1)
   expect(calls[0][2]).toBe('updates')
   expect(mutations).toBe(0)
+})
+
+test('polls every configured minute and only repeats the notice for a changed digest', async ($, on) => {
+  const clock = mock.clock(on)
+  const notices: string[] = []
+  let checked = 0
+  let current = updates
+  on('config.list', () => ({ value: [{ key: 'marketplace-manager.poll_interval_minutes', value: '1' }] }))
+  on('store.get', () => ({ value: undefined }))
+  on('session.id', () => ({ value: 'poll-session' }))
+  on('command.register', (_, event) => ({ value: { command: event.name } }))
+  on('session.start', (_, event) => ({ cwd: event.cwd }))
+  on('process.run', () => { checked += 1; return processResult(current) })
+  on('ui.toast', (_, event) => { notices.push(event.text); return { value: undefined } })
+
+  await $.session.start({ cwd: '/tmp/manager-test', surface: null, isInteractive: false })
+  await clock.settle()
+  expect(checked).toBe(1)
+  expect(notices).toHaveLength(1)
+
+  current = { updates: [{ ...updates.updates[0], metadata: { version: '0.3.0', digest: `sha256:${'c'.repeat(64)}` } }], errors: [] }
+  await clock.advance(60 * 1000)
+  await clock.settle()
+  expect(checked).toBe(2)
+  expect(notices).toHaveLength(2)
+
+  await clock.advance(60 * 1000)
+  await clock.settle()
+  expect(checked).toBe(3)
+  expect(notices).toHaveLength(2)
+})
+
+test('uses the five-minute default interval when configured for normal use', async ($, on) => {
+  const clock = mock.clock(on)
+  let checked = 0
+  on('config.list', () => ({ value: [{ key: 'marketplace-manager.poll_interval_minutes', value: '5' }] }))
+  on('store.get', () => ({ value: undefined }))
+  on('session.id', () => ({ value: 'five-minute-session' }))
+  on('command.register', (_, event) => ({ value: { command: event.name } }))
+  on('session.start', (_, event) => ({ cwd: event.cwd }))
+  on('process.run', () => { checked += 1; return processResult(updates) })
+
+  await $.session.start({ cwd: '/tmp/manager-test', surface: null, isInteractive: false })
+  await clock.settle()
+  expect(checked).toBe(1)
+  await clock.advance(60 * 1000)
+  await clock.settle()
+  expect(checked).toBe(1)
+  await clock.advance(4 * 60 * 1000)
+  await clock.settle()
+  expect(checked).toBe(2)
 })
 
 test('multi-page update selection preserves marketplace identities and skips unselected plugins', async ($, on) => {

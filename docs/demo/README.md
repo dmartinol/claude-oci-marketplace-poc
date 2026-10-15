@@ -81,6 +81,8 @@ Open `/plugin` and verify the marketplace and `oci-demo-plugin` appear. Install 
 
 Restart Claude and invoke `/oci-demo-plugin:demo`; v1 responds `OCI demo plugin version 0.1.0`. The manager also lists standard-only marketplaces, including the bootstrap marketplace.
 
+For a demo, open Claude's `/config` panel and set `marketplace-manager.poll_interval_minutes` to `1` before restarting. The default is `5`; interval changes apply to sessions started afterward.
+
 ## 4. Publish v2 to the same tag
 
 From the copied v2 plugin root, set `OCI_REF` to the same value and publish:
@@ -95,7 +97,7 @@ oras push "$OCI_REF" \
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-Start a new Claude session to see the update notice, or run `/marketplace-manager updates`. Select and approve the update, then approve Claude's permission prompt. Restart Claude and invoke `/oci-demo-plugin:demo`; v2 responds `OCI demo plugin version 0.2.0`. Listing and update checks inspect metadata only; layer downloads happen when adding the marketplace or applying an approved update.
+Keep the Claude session open while publishing v2 from the copied v2 plugin directory in another terminal. With the one-minute setting, the running session should show an update notice within about a minute; the default five-minute interval checks less often. You can also run `/marketplace-manager updates` for an immediate check. Select and approve the update, then approve Claude's permission prompt. Restart Claude and invoke `/oci-demo-plugin:demo`; v2 responds `OCI demo plugin version 0.2.0`. Periodic checks inspect metadata only; layer downloads happen when adding the marketplace or applying an approved update.
 
 The failed-update preservation path is covered by the recorded live CLI rehearsal and focused helper checks; the previously working plugin remains usable after a failed pull or validation.
 
@@ -144,7 +146,7 @@ In Claude, add the demo branch and check both marketplace views:
 /marketplace-manager list
 ```
 
-Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that native installation.
+Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. In `/config`, set `marketplace-manager.poll_interval_minutes` to `1` for this demo. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that native installation.
 
 To exercise the manager's install command too, exit Claude and run this in the same terminal:
 
@@ -155,6 +157,6 @@ claude
 
 In that Claude session run `/marketplace-manager install oci-demo-plugin@claude-oci-demo-marketplace`, approve the permission prompt, restart Claude, and confirm the v1 response again.
 
-Exit Claude and publish v2 to the same `OCI_REF` using step 4 above. Start Claude again, note whether the update notice appears, and run `/marketplace-manager updates` if needed. Review and approve the v2 update and its permission prompt. Restart Claude and confirm `/oci-demo-plugin:demo` returns `OCI demo plugin version 0.2.0`; `/marketplace-manager list` should show the new digest. Failed-update preservation is already covered by the Linux T610/T613 runs, so it need not be repeated here.
+Keep Claude running and publish v2 to the same `OCI_REF` from the copied v2 plugin directory in a second terminal, using step 4 above. Wait up to about a minute for the active session's update notice. Review and approve the v2 update and its permission prompt. Restart Claude and confirm `/oci-demo-plugin:demo` returns `OCI demo plugin version 0.2.0`; `/marketplace-manager list` should show the new digest. Failed-update preservation is already covered by the Linux T610/T613 runs, so it need not be repeated here.
 
 Report the tool versions, v1/v2 digests, marketplace visibility, both install paths, restart responses, and whether the update notice appeared. Do not include credentials. When finished, remove the demo plugin and marketplace using the [cleanup commands](#cleanup), then delete the temporary profile with `rm -r "$CLAUDE_CONFIG_DIR"` if it is no longer needed.

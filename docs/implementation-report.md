@@ -788,3 +788,26 @@ The Linux run used the deterministic helper directly for add/install/update, so 
 **Result: Done (R15, POC acceptance guidance).** Replaced the provisional walkthrough with the verified same-repository setup: manager bootstrap on `main`, demo marketplace on `oci-demo-marketplace`, the raw Quay reference in `plugins[].source`, direct ORAS publication, native manager installation, marketplace add/list/install, v1/v2 responses, update review, and simple cleanup. README and copied-example instructions now use the same marketplace name and branch URL.
 
 The guide's CLI commands match the live T613 rehearsal. Native plugin uninstall and marketplace removal were exercised against the disposable profile and returned `outcome: "ok"`; the remaining generated directory is identified as manager-owned optional cleanup. Relative links in all updated Markdown files resolve and `git diff --check` passes. The guide reports that the final installed-manager Mac interaction is still required under T613; this documentation task is complete while that independent acceptance run remains in progress.
+
+## T615 — Configurable session update polling (2026-10-15)
+
+**Result: Done for implementation and focused checks (R7, R9, R13–R14, R16), manager version 0.7.0.** Added the manager plugin setting `poll_interval_minutes`, with `5` as its default and `1` as the demo choice. The SessionStart hook reads the configured row through Claude's config API and starts a session-bound `$.clock.every` metadata check. The timer is canceled at session end. Checks continue to use the existing metadata-only helper; they do not fetch plugin layers. Unchanged update digests do not repeat the toast, while a changed digest can raise a fresh notice. The existing session dismissal still suppresses checks until manual refresh or a new session.
+
+The installed CLI is Claude Code 2.1.299. Strict plugin validation passed and reported the `$.config.list` and `$.clock.every` calls. The focused timer tests exercised the one-minute setting, notification on a new digest, suppression of repeated notices for the same digest, and no five-minute poll before its interval. Python helper tests remain green:
+
+```text
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+13 pass
+0 fail
+
+$ python3 -m unittest discover -s plugins/oci-marketplace/tests -p 'test_*.py'
+Ran 29 tests
+OK
+
+$ git diff --check
+```
+
+The one-minute setting in Claude's `/config` panel and a live update arriving in the same open Mac session have not been manually rehearsed; T613 now tracks those acceptance checks. No daemon, external poller, registry coordinates, or OCI layer download was introduced by this change.

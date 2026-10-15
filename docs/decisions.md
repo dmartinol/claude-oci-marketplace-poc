@@ -9,12 +9,16 @@ The latest developer-flow clarification supersedes earlier manager-only OCI visi
 - The publisher keeps raw tagged OCI references in `plugins[].source` in a GitHub marketplace. ORAS publishes and extracts complete plugin directories, as in D17/D20.
 - `/marketplace-manager add <git-url>` retrieves that content and, after approval, pulls/extracts the plugins, generates a local marketplace with native relative plugin paths, and registers it with supported Claude commands. Raw OCI sources need not pass native validation; the generated marketplace must.
 - Preserve the published marketplace name and plugin identities. The generated marketplace is visible and installable in both `/plugin` and the manager, without a duplicate source registration. The manager keeps minimal original Git/OCI provenance alongside its files; Claude registrations remain authoritative for the visible list.
-- Adding an OCI marketplace downloads its plugin bundles after confirmation and Claude permission. Listing and update checks do not download layers. Updates check the same OCI tags at session start or manual refresh and apply only after approval. Restart activation is sufficient.
+- Adding an OCI marketplace downloads its plugin bundles after confirmation and Claude permission. Listing and update checks do not download layers. Updates check the same OCI tags at session start, manual refresh, and a configurable session timer (five minutes by default, one minute for demos), and apply only after approval. Restart activation is sufficient.
 - Users install the manager by URL and use installed tools. No POC checkout, repository scripts, or custom packager is required; copying example plugins is allowed. The configured demo coordinates remain environment inputs. OpenShell is contributor tooling only.
 - The bootstrap and demo marketplaces may live in different branches of the same GitHub repository. The demo branch URL uses Claude's supported `repository.git#ref` form. A second repository is unnecessary for the POC.
 - Keep the spike and implementation small. Prove the native registration/install/update path before implementing it; retain the feasibility/report/approval workflow in AGENTS.md. Earlier packaging approval is retained, not treated as proof of the new flow.
 
 The current [requirements](requirements.md) and [plan](plan.md) govern implementation. Remote direct-directory retrieval and native CLI installation/update pass; the user also confirmed the Mac feasibility spike's marketplace visibility, component invocation, and restart behavior. T607 is complete. The current manager now passes a fresh Linux rehearsal using the same-repository demo branch; the final Mac manager UI check remains T613. Older open-question and status wording below is historical.
+
+### D24 — Configurable session update polling
+
+Check OCI tag metadata while a Claude session is active using Claude's in-process clock. The manager plugin exposes a `poll_interval_minutes` user setting with values `1` and `5`, defaults to five minutes, and starts the timer with the selected value at session start. A session timer is canceled at session end; no daemon or separate polling service is added. Polling remains metadata-only and honors the existing per-session dismissal behavior. A changed digest can produce a new notice; an unchanged digest does not repeat the notice. The user selected the one-minute interval for demos and five minutes for normal use.
 
 ## Historical decisions
 
