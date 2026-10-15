@@ -40,11 +40,13 @@ After T607, report the evidence and blockers and stop for explicit approval unde
 
 ## T608 — Prepare the copyable demo and publishing instructions
 
-**Status:** Backlog; existing v1/v2 sources and local publication evidence retained. **Requirements:** R2–R4, R15. **Depends on:** G3 for remaining work.
+**Status:** Done. **Requirements:** R2–R4, R15. **Depends on:** Existing example sources and installed tools; this documentation/fixture task is independent of G3 under the user’s instruction to execute all unblocked work. Product implementation still depends on G3.
 
-- Keep the existing complete v1/v2 example plugins with distinct responses.
-- Provide brief direct-folder ORAS commands and a GitHub marketplace JSON example using `source`.
-- Confirm the developer can copy examples and install the manager by URL, without a POC checkout or scripts.
+Evidence: [T608 copied-example and bootstrap check](implementation-report.md#t608--copyable-examples-and-url-bootstrap-2026-10-15).
+
+- [x] Keep complete v1/v2 example plugins with distinct responses.
+- [x] Provide brief direct-folder ORAS commands and a GitHub marketplace JSON example using `source`.
+- [x] Verify copied examples with installed tools and install the manager by URL without a manual checkout or repository scripts.
 
 ## T609 — Materialize and register OCI marketplaces
 

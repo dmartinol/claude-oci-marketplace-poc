@@ -701,3 +701,22 @@ The Python/GNU-tar packaging script and reproducible-archive workflow above were
 User-requested environment change implementing R4/R5 and D17/D20: `openshell/Dockerfile` installs pinned ORAS 1.3.4 instead of skillctl, selects Linux amd64/arm64, verifies the release archive against the upstream checksum file, and checks `oras version`. `agent.sh` passes `ORAS_VERSION` and uses an ORAS-specific image tag. The Quay policy permits `/usr/local/bin/oras`. Registry checks use `oras manifest fetch --descriptor` only when the operator supplies `DEMO_PLUGIN_REF`; historical skill tags are no longer inspected. Credential storage remains unchanged. OpenShell guidance reflects these changes and labels its old catalog rehearsal as historical.
 
 Validation in the Linux sandbox: `bash -n openshell/agent.sh`, `python3 openshell/vertex-config.test.py`, and `git diff --check` passed. Temporary mocked Podman/OpenShell executables verified default and overridden ORAS build arguments/image tags, tool-version checks, and metadata-only checks with and without a supplied reference. `rg -n 'skillctl|SKILLCTL' openshell` returned no matches. No Docker, Podman, or ORAS executable is installed here. Downloading `https://github.com/oras-project/oras/releases/download/v1.3.4/oras_1.3.4_checksums.txt` failed with curl exit 7 (connection to GitHub unavailable), so the image build and live registry check remain unverified. This environment-only change does not complete T607 or the full-plugin lifecycle tasks.
+
+## T608 — Copyable examples and URL bootstrap (2026-10-15)
+
+**Result: Done (R2–R4, R15).** This task prepares source and instructions; it does not claim the manager's new materialization flow is implemented. It was completed independently of the blocked registry pull, under the user's instruction to execute all unblocked tasks.
+
+- All four example files (v1/v2 plugin manifests and skill files) are publicly available through GitHub; each was verified with `gh api repos/dmartinol/claude-oci-marketplace-poc/contents/<example-path> --jq .sha`.
+- Copied both complete example roots to `/tmp/oci-copy-examples-k4fotslb`. Executed both shell publishing snippets from the example README with only `--oci-layout` added to ORAS commands and a temporary repository path. Both strict plugin validations, root-directory pushes, and metadata lookups passed using installed tools. No project script or POC checkout is required by the snippets.
+- The example README now includes the short marketplace JSON declaration using the existing `source` field. The demo guide links directly to the four copyable source files.
+- From `/tmp`, with a fresh `CLAUDE_CONFIG_DIR=/tmp/oci-bootstrap-spike-25fg5mjg`, executed:
+
+```text
+claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user --json
+claude plugin install marketplace-manager@claude-oci-marketplace --scope user --json
+claude plugin list --json
+```
+
+Both mutations returned `outcome: "ok"`. Listing reported `marketplace-manager@claude-oci-marketplace`, version `0.5.0`, `enabled: true`, installed under that isolated profile. Claude retrieved Git content internally; there was no manual clone or command run from a POC checkout.
+
+The registry v1 direct-directory push is recorded under T607; its layer retrieval is blocked by the active Quay CDN network policy. The installed bootstrap still contains the legacy skill backend, so bootstrap installation alone is not proof of OCI marketplace materialization. macOS interactive end-to-end acceptance remains T613.
