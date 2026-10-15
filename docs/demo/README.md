@@ -2,7 +2,7 @@
 
 This is the target POC walkthrough. Local macOS checks and the Linux registry-backed ORAS/native CLI install/update probe have passed. T607 still needs the Mac interactive check; the manager's generated-marketplace implementation remains pending. Commands describing manager materialization below are expected behavior, not a claim that it is implemented.
 
-Use installed Claude Code, ORAS, and Git on macOS, your existing Quay credentials, and a GitHub repository where you can publish the marketplace JSON. You do not need to clone the POC repository or run its scripts. GitHub's web editor is sufficient for publishing the marketplace configuration.
+Use installed Claude Code, ORAS, Git, and Python 3 on macOS, your existing Quay credentials, and a GitHub repository where you can publish the marketplace JSON. You do not need to clone the POC repository or run its scripts. GitHub's web editor is sufficient for publishing the marketplace configuration.
 
 ## 1. Create or copy a plugin and publish v1
 

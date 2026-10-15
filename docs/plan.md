@@ -50,7 +50,9 @@ Evidence: [T608 copied-example and bootstrap check](implementation-report.md#t60
 
 ## T609 — Materialize and register OCI marketplaces
 
-**Status:** In progress. **Requirements:** R3–R7, R9–R12, R15. **Depends on:** G3.
+**Status:** Done. **Requirements:** R3–R7, R9–R12, R15. **Depends on:** G3.
+
+Evidence: [T609 helper materialization](implementation-report.md#t609--materialize-and-register-oci-marketplaces-2026-10-15). The bundled helper is implemented; UI wiring is T611.
 
 - Replace the legacy payload backend with deterministic ORAS calls.
 - Implement `add <git-url>`: retrieve marketplace content, confirm, pull/extract/validate OCI plugins, write local plugin paths in a generated marketplace, and register with native Claude commands.
@@ -59,7 +61,7 @@ Evidence: [T608 copied-example and bootstrap check](implementation-report.md#t60
 
 ## T610 — Install and update through the native path
 
-**Status:** Backlog. **Requirements:** R5–R8, R10, R12. **Depends on:** T609.
+**Status:** In progress. **Requirements:** R5–R8, R10, R12. **Depends on:** T609.
 
 - Use the spike-proven Claude install/update path for manager actions and recognize installations made through `/plugin`.
 - Check tag metadata at startup/manual refresh without pulling layers.

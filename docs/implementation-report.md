@@ -720,3 +720,13 @@ claude plugin list --json
 Both mutations returned `outcome: "ok"`. Listing reported `marketplace-manager@claude-oci-marketplace`, version `0.5.0`, `enabled: true`, installed under that isolated profile. Claude retrieved Git content internally; there was no manual clone or command run from a POC checkout.
 
 The registry v1 direct-directory push is recorded under T607; its layer retrieval is blocked by the active Quay CDN network policy. The installed bootstrap still contains the legacy skill backend, so bootstrap installation alone is not proof of OCI marketplace materialization. macOS interactive end-to-end acceptance remains T613.
+
+## T609 — Materialize and register OCI marketplaces (2026-10-15)
+
+**Result: Done for the deterministic helper (R3–R7, R9–R12, R15).** Added bundled `hooks/manager.py`, using Python 3's standard library and installed Git/ORAS/Claude executables. UI wiring follows under T611.
+
+`add` retrieves Git content, inspects OCI manifests, pulls by the resolved digests, validates complete plugins, rewrites only the generated marketplace's OCI sources to `./.oci-plugins/<name>`, and registers the retained directory using native Claude commands. Original Git/OCI sources, versions, and digests are stored in the generated directory's small provenance file. Standard entries and their files are preserved. Standard-only input is registered through Claude's original Git source. Listing consults native registrations and installed plugins, recognizes native installations, and makes no registry calls.
+
+Live integration used a disposable local Git source with the configured Quay spike reference plus a native relative-path plugin. `manager.py add file://<fixture>` succeeded in a fresh profile under `/tmp/oci-t609-ow3hvnay`. The generated mixed marketplace passed `claude plugin validate --strict`; native installation of `standard-demo@claude-oci-demo-marketplace` returned `outcome: "ok"`. The OCI entry retained version 0.2.0 and resolved digest `sha256:d30f1fe6baff6a1951a94a50c18954318198aa8f0a5a407925df4327c9439685`. Listing showed exactly one marketplace and one materialized OCI plugin; the original fixture source remained raw OCI.
+
+The first integration fixture lacked author metadata on its standard plugin and strict validation correctly rejected it. Adding author metadata to that disposable fixture made the test pass; the product validator was not relaxed. Eighteen deterministic Python tests pass for mixed/standard-only behavior, source preservation, native discovery, artifact metadata, failed-add cleanup, bundle validation, and credential/error handling. No credentials, local fixture state, or generated profile files are committed.
