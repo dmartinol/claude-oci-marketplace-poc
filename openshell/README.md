@@ -1,10 +1,10 @@
 # Run Codex in OpenShell on macOS with Podman
 
-This directory packages the setup developed for `dmartinol/claude-oci-marketplace-poc`: a Codex/Claude/skillctl workload image, an explicit OpenShell policy, and a Mac-side helper script. Codex works on a clone under `/sandbox`; it does not modify your Mac checkout. Push changes from the sandbox and pull them on the Mac when ready.
+This directory packages the setup developed for `dmartinol/claude-oci-marketplace-poc`: a Codex/Claude/skillctl workload image, an explicit OpenShell policy, and a Mac-side helper script. Claude Code uses Google Cloud Vertex AI with host Application Default Credentials (ADC); it does not use an Anthropic API key. Codex works on a clone under `/sandbox`; it does not modify your Mac checkout. Push changes from the sandbox and pull them on the Mac when ready.
 
 ## Baseline and validation status
 
-The troubleshooting session used macOS arm64, Podman 6.0.0, OpenShell 0.1.4, and Codex CLI 0.162.1 (the original community image had 0.117.0). This bundle consolidates those commands and adds the project dependency/rehearsal patch. Shell syntax, YAML structure, and isolated rehearsal-fixture generation are checked locally. No Podman image build, live Claude invocation, or complete end-to-end replay has been executed here. Check your installed CLI help if a later release changes flags.
+The troubleshooting session used macOS arm64, Podman 6.0.0, OpenShell 0.1.4, and Codex CLI 0.162.1 (the original community image had 0.117.0). This bundle consolidates those commands and adds the project dependency/rehearsal patch. The Vertex ADC helper has local syntax and fixture checks. The current checkout environment has no `gcloud`, Podman, or OpenShell executable and no configured ADC, so it cannot run the live Vertex check or a sandbox replay. No Podman image build or complete end-to-end replay has been executed here. Check your installed CLI help if a later release changes flags.
 
 The Dockerfile deliberately derives from the **retired NVIDIA community base image** for this POC. It updates Codex but does not modernize every dependency. `latest` is mutable and does not imply the latest agent CLI. For a maintained deployment, replace the base with an image you maintain and pin its digest. The explicit policy bypasses the invalid bundled image policy encountered during setup.
 
@@ -13,9 +13,11 @@ The Dockerfile deliberately derives from the **retired NVIDIA community base ima
 | File | Purpose |
 | --- | --- |
 | `Dockerfile` | Build Codex 0.162.1, Claude 2.1.299, and skillctl 0.4.0; no credentials are baked in |
-| `policy.yaml` | OpenAI access plus HTTPS Git and REST API access scoped to this repository |
+| `policy.yaml` | OpenAI, Google Vertex AI/ADC, Quay, and repository-scoped GitHub access |
 | `rehearsal.py` | Generate fresh v1 catalogs and switch to already-published v2 tags |
-| `agent.sh` | Mac-side lifecycle, authentication, Git setup, and Codex launch |
+| `agent.sh` | Mac-side lifecycle, Vertex ADC transfer, Git setup, and Codex launch |
+| `vertex-config.py` | Validate user ADC and write Vertex launch settings inside the sandbox |
+| `vertex-config.test.py` | No-network checks for credential validation and generated launch files |
 
 Copy this directory into the repository as `openshell-agent/`. Run the following commands from that directory on your **Mac**, unless stated otherwise.
 
@@ -57,7 +59,7 @@ On macOS the installer uses Homebrew and starts a gateway service. This is a mac
 
 ## 2. Build the image
 
-The image now pins the project rehearsal versions: Claude Code 2.1.299 and skillctl 0.4.0, alongside Codex 0.162.1. Build-time checks require the matching versions and `claude plugin test --help`. The tagged skillctl installer verifies the release archive checksum and selects Linux arm64/amd64 automatically. Claude auto-updates are disabled; upgrade versions explicitly when needed.
+The image now pins the project rehearsal versions: Claude Code 2.1.299 and skillctl 0.4.0, alongside Codex 0.162.1. Build-time checks require the matching versions and `claude plugin test --help`. The tagged skillctl installer verifies the release archive checksum and selects Linux arm64/amd64 automatically. Claude auto-updates are disabled; upgrade versions explicitly when needed. Model credentials are configured separately after sandbox creation.
 
 ```bash
 bash agent.sh build
@@ -77,7 +79,7 @@ Choose a different validated release consistently for build and creation:
 export CODEX_VERSION=0.162.1
 ```
 
-The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy now allows `api.anthropic.com` for the native Claude executable and `quay.io` for skillctl. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
+The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, plus `quay.io` for skillctl. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
 
 ## 3. Configure and register the gateway
 
@@ -196,17 +198,32 @@ Quit Codex with `/q`; relaunch with `bash agent.sh run`. Leave terminal A's shel
 
 New images affect **new sandboxes**, not already-created ones. Keep the old sandbox and use `SANDBOX_NAME=codex-project-v2` in both Mac terminals while validating this build. Push/download existing work before deleting anything.
 
-After clone and authentication, run these from terminal B on the Mac:
+Before configuring Claude Code, prepare Google Cloud access for Claude on Vertex AI. The project needs billing enabled, the Vertex AI API enabled, access to the Claude model you will use in Model Garden, and quota in the selected region. Grant the account used for ADC `roles/aiplatform.user` (or an equivalent role containing `aiplatform.endpoints.predict`). On the Mac, install/configure `gcloud`, select the intended account, and create user ADC:
 
 ```bash
-bash agent.sh claude-auth
+gcloud auth application-default login
+```
+
+Then run these from terminal B on the Mac:
+
+```bash
+# Required for an existing sandbox created with the previous policy.
+bash agent.sh policy
+bash agent.sh vertex-auth
+bash agent.sh vertex-check
 bash agent.sh quay-auth
 bash agent.sh project-check
 bash agent.sh rehearsal-init
 bash agent.sh claude
 ```
 
-`claude-auth` prompts for an Anthropic API key and stores it at `/sandbox/.config/anthropic-key` with mode 600. `run` and `claude` load it into their process environment, without printing it. This path uses Anthropic API billing, not your Mac's cached Claude subscription login. The pinned native executable is `/usr/local/bin/claude`.
+For a newly created sandbox using the current `policy.yaml`, skip `bash agent.sh policy`. For an existing sandbox, the command replaces its active policy; save any local policy additions first.
+
+`vertex-auth` prompts for the Google Cloud project ID. It finds the host ADC file through `gcloud info`, validates that it is user ADC created by `gcloud auth application-default login`, and uploads it to `/sandbox/.config/vertex/application_default_credentials.json` with mode 600. Service-account keys and other ADC types are rejected and are not copied. The helper writes Vertex settings to `/sandbox/.config/vertex/env.sh`, also mode 600. The credential file is sensitive and remains in the sandbox; never print it, commit it, or include it in an image. Delete the sandbox when you are done if you no longer need those credentials.
+
+Claude launches through `claude` source that settings file. `run` puts a small `claude` wrapper first on Codex's `PATH`; the wrapper loads Vertex settings only when Claude is launched, so Codex itself does not inherit Google credential environment variables. The settings set `CLAUDE_CODE_USE_VERTEX=1`, `ANTHROPIC_VERTEX_PROJECT_ID`, `CLOUD_ML_REGION`, and `GOOGLE_APPLICATION_CREDENTIALS`, and clear Anthropic API-key/base-URL overrides. The default region is `global`. If you set `VERTEX_REGION` to another supported location, add the corresponding Google Vertex endpoint host to `policy.yaml` before applying the policy. The model endpoint is selected by Claude Code from the region. The pinned native executable is `/usr/local/bin/claude`.
+
+`vertex-check` makes one short Claude Code model request and succeeds only if the configured ADC, project, model access, region, and OpenShell network policy allow it. In the interactive session, `/status` should show `Google Vertex AI` as the API provider and the configured project and region. This sends a small billable request to Vertex AI. If it fails, check that model access is enabled in Model Garden and that the selected region has quota and supports the model.
 
 `quay-auth` prompts for a Quay username (including a robot username if applicable) and password/token. It writes only that host's entry into the sandbox Docker/containers credential stores, preserving existing entries. It does not copy Mac credential helpers or unrelated host credentials. The files are mode 600; base64 encoding is not encryption. For existing-artifact rehearsal, grant registry read access; grant write only if publishing is part of the intended work.
 
@@ -236,13 +253,13 @@ The helper only changes catalog references to already-published tags; it does no
 
 A successful Linux rehearsal is new evidence. It does not retroactively validate the original Mac environment, and it does not automatically mark T501/T502/T503 complete. Record each observed outcome and remaining platform gap.
 
-If extra network traffic is blocked (telemetry, login, blob redirects), inspect `openshell logs` for the exact destination and binary before adding rules. The supplied policy intentionally covers the API-key authentication route; subscription OAuth is not configured.
+If Vertex requests fail because of network policy, inspect `openshell logs` for the denied endpoint and binary before adding rules. The bundled policy covers global Vertex model requests and OAuth token refresh; another region may require its specific Vertex hostname.
 
 ## Policy scope and updates
 
-The policy permits Codex's OpenAI endpoints, HTTPS Git Smart HTTP operations for this exact repository, and `gh` REST calls to `/`, `/user`, and this repository's REST API subtree, plus the Claude API and skillctl Quay endpoints. Local edits, branches, commits, and tests require no GitHub network access. Push requires both policy permission and valid Git credentials.
+The policy permits Codex's OpenAI endpoints, HTTPS Git Smart HTTP operations for this exact repository, and `gh` REST calls to `/`, `/user`, and this repository's REST API subtree, plus Google Vertex AI/ADC endpoints and skillctl Quay endpoints. Local edits, branches, commits, and tests require no GitHub network access. Push requires both policy permission and valid Git credentials.
 
-The policy does **not** enable GitHub GraphQL (`/graphql`), so some high-level `gh pr` commands may still be denied even with a valid PAT. Use repository-scoped REST calls via `gh api` or deliberately extend the policy after reviewing the required operation. Claude API and Quay rules are included, but authentication, fresh installation, and interactive acceptance checks still need to be completed. Linux replay does not establish the original macOS-specific acceptance criteria.
+The policy does **not** enable GitHub GraphQL (`/graphql`), so some high-level `gh pr` commands may still be denied even with a valid PAT. Use repository-scoped REST calls via `gh api` or deliberately extend the policy after reviewing the required operation. Vertex AI and Quay rules are included, but Google Cloud authentication, model access, and interactive acceptance checks still need to be completed. Linux replay does not establish the original macOS-specific acceptance criteria.
 
 To apply the bundled complete policy:
 
@@ -263,6 +280,13 @@ openshell policy update codex-sandbox \
 ```
 
 After reviewing the preview, replace `--dry-run` with `--wait` to apply it.
+
+Run the local configuration checks from this directory:
+
+```bash
+bash -n agent.sh
+python3 vertex-config.test.py
+```
 
 ## Diagnostics from the Mac
 
@@ -324,3 +348,5 @@ Then repeat create, clone, authentication, identity, and run. Credentials are co
 
 - [skillctl installation source](https://github.com/redhat-et/skillimage/blob/v0.4.0/install.sh)
 - [Claude native version pinning](https://code.claude.com/docs/en/setup)
+- [Claude Code on Google Cloud Vertex AI](https://code.claude.com/docs/en/google-vertex-ai)
+- [Google Cloud Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc)

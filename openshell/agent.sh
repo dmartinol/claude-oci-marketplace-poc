@@ -7,6 +7,7 @@ SANDBOX_NAME="${SANDBOX_NAME:-codex-sandbox}"
 CODEX_VERSION="${CODEX_VERSION:-0.162.1}"
 CLAUDE_VERSION="${CLAUDE_VERSION:-2.1.299}"
 SKILLCTL_VERSION="${SKILLCTL_VERSION:-0.4.0}"
+VERTEX_REGION="${VERTEX_REGION:-global}"
 IMAGE="${CODEX_IMAGE:-localhost/codex-project:$CODEX_VERSION-claude$CLAUDE_VERSION-skillctl$SKILLCTL_VERSION}"
 REPO_URL=https://github.com/dmartinol/claude-oci-marketplace-poc.git
 PROJECT=/sandbox/claude-oci-marketplace-poc
@@ -80,29 +81,22 @@ case "${1:-help}" in
     # Keep credentials scoped to github.com. The helper passes protocol stdin to gh.
     remote /bin/bash -c 'git config --global credential.https://github.com.helper '\''!f() { GH_TOKEN="$(cat /sandbox/.config/github-token)" /usr/bin/gh auth git-credential "$@"; }; f'\'''
     ;;
-  claude-auth)
-    need python3
-    vertex_project="${ANTHROPIC_VERTEX_PROJECT_ID:-${GOOGLE_CLOUD_PROJECT:-}}"
-    IFS= read -r -p "Vertex project ID [${vertex_project:-required}]: " entered_project </dev/tty
-    vertex_project="${entered_project:-$vertex_project}"
+  vertex-auth)
+    need python3; need gcloud; need openshell
+    IFS= read -r -p 'Google Cloud project ID: ' vertex_project </dev/tty
     [ -n "$vertex_project" ] || { echo 'Project ID required' >&2; exit 1; }
-    # ADC is copied only after checking its type; no credential contents are printed.
-    python3 "$BASE_DIR/vertex-config.py" "$vertex_project" | remote python3 -c '
-import json,os,sys,shlex
-from pathlib import Path
-value=json.load(sys.stdin)
-os.umask(0o077)
-root=Path("/sandbox/.config/vertex"); root.mkdir(parents=True,exist_ok=True); root.chmod(0o700)
-credential=root/"application_default_credentials.json"
-credential.write_text(json.dumps(value["adc"])+"\n"); credential.chmod(0o600)
-env=root/"env.sh"
-settings=value["env"]
-settings["GOOGLE_APPLICATION_CREDENTIALS"]=str(credential)
-env.write_text("unset ANTHROPIC_API_KEY ANTHROPIC_AUTH_TOKEN\n"+"".join("export "+key+"="+shlex.quote(val)+"\n" for key,val in settings.items()))
-env.chmod(0o600)
-print("Vertex configuration and ADC saved; restart Codex to inherit them.")
-'
-    unset vertex_project entered_project
+    adc_dir="$(gcloud info --format='value(config.paths.global_config_dir)')"
+    adc_path="$adc_dir/application_default_credentials.json"
+    [ -s "$adc_path" ] || { echo 'ADC not found; run gcloud auth application-default login first.' >&2; exit 1; }
+    # Validate ADC before upload. The helper accepts gcloud user ADC only and never prints credential fields.
+    vertex_settings="$(python3 "$BASE_DIR/vertex-config.py" "$vertex_project" "$VERTEX_REGION" "$adc_path")"
+    remote /bin/bash -c 'umask 077; mkdir -p /sandbox/.config/vertex; chmod 700 /sandbox/.config/vertex'
+    openshell sandbox upload "$SANDBOX_NAME" "$adc_path" /sandbox/.config/vertex/application_default_credentials.json --no-git-ignore
+    remote chmod 600 /sandbox/.config/vertex/application_default_credentials.json
+    openshell sandbox upload "$SANDBOX_NAME" "$BASE_DIR/vertex-config.py" /sandbox/.config/vertex/vertex-config.py --no-git-ignore
+    remote chmod 600 /sandbox/.config/vertex/vertex-config.py
+    printf '%s\n' "$vertex_settings" | remote python3 /sandbox/.config/vertex/vertex-config.py install /sandbox/.config/vertex
+    unset vertex_project vertex_settings adc_dir adc_path
     ;;
   quay-auth)
     IFS= read -r -p 'Quay username (or robot username): ' quay_username </dev/tty
@@ -136,7 +130,11 @@ for name in ("/sandbox/.docker/config.json", "/sandbox/.config/containers/auth.j
     ;;
   claude)
     openshell sandbox exec -n "$SANDBOX_NAME" --tty --workdir "$PROJECT" -- \
-      /bin/bash -c 'export CLAUDE_CONFIG_DIR=/sandbox/rehearsal/claude-config REHEARSAL_DIR=/sandbox/rehearsal/catalogs; if [ -s /sandbox/.config/anthropic-key ]; then export ANTHROPIC_API_KEY="$(cat /sandbox/.config/anthropic-key)"; fi; exec claude'
+      /bin/bash -c 'set -eu; . /sandbox/.config/vertex/env.sh; export CLAUDE_CONFIG_DIR=/sandbox/rehearsal/claude-config REHEARSAL_DIR=/sandbox/rehearsal/catalogs; exec claude'
+    ;;
+  vertex-check)
+    openshell sandbox exec -n "$SANDBOX_NAME" --workdir "$PROJECT" -- \
+      /bin/bash -c 'set -eu; . /sandbox/.config/vertex/env.sh; test -s "$GOOGLE_APPLICATION_CREDENTIALS"; claude -p --max-turns 1 "Reply exactly with VERTEX_OK."'
     ;;
   project-check)
     remote claude --version
@@ -152,9 +150,9 @@ for name in ("/sandbox/.docker/config.json", "/sandbox/.config/containers/auth.j
     remote git config --global user.email "$3"
     ;;
   run)
-    # Load fine-grained PAT for all gh subprocesses launched by Codex.
+    # Load the fine-grained PAT for gh; Claude's wrapper loads Vertex ADC only for Claude.
     openshell sandbox exec -n "$SANDBOX_NAME" --tty --workdir "$PROJECT" -- \
-      /bin/bash -c 'if [ -s /sandbox/.config/github-token ]; then export GH_TOKEN="$(cat /sandbox/.config/github-token)"; fi; if [ -s /sandbox/.config/anthropic-key ]; then export ANTHROPIC_API_KEY="$(cat /sandbox/.config/anthropic-key)"; fi; export CLAUDE_CONFIG_DIR=/sandbox/rehearsal/claude-config REHEARSAL_DIR=/sandbox/rehearsal/catalogs; exec codex --yolo'
+      /bin/bash -c 'set -eu; test -x /sandbox/.config/vertex/bin/claude || { echo "Run vertex-auth before starting Codex." >&2; exit 1; }; if [ -s /sandbox/.config/github-token ]; then export GH_TOKEN="$(cat /sandbox/.config/github-token)"; fi; export PATH=/sandbox/.config/vertex/bin:$PATH CLAUDE_CONFIG_DIR=/sandbox/rehearsal/claude-config REHEARSAL_DIR=/sandbox/rehearsal/catalogs; exec codex --yolo'
     ;;
   verify)
     remote codex --version
@@ -170,7 +168,7 @@ for name in ("/sandbox/.docker/config.json", "/sandbox/.config/containers/auth.j
   status) openshell sandbox get "$SANDBOX_NAME" ;;
   help|--help|-h)
     printf '%s\n' 'Usage: bash agent.sh COMMAND' \
-      'Commands: install build gateway create clone openai-auth github-auth identity run verify policy logs status claude-auth quay-auth rehearsal-init rehearsal-v2 claude project-check' \
+      'Commands: install build gateway create clone openai-auth github-auth identity run verify policy logs status vertex-auth vertex-check quay-auth rehearsal-init rehearsal-v2 claude project-check' \
       'Defaults: SANDBOX_NAME=codex-sandbox CODEX_VERSION=0.162.1' \
       'create stays attached to Bash. Use another terminal for the remaining commands.'
     ;;

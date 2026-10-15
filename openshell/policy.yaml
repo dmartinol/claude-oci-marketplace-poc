@@ -76,10 +76,12 @@ network_policies:
           path: /repos/dmartinol/claude-oci-marketplace-poc/**
     binaries:
     - path: /usr/bin/gh
-  claude:
-    name: claude-api
+  claude_vertex:
+    name: claude-google-vertex-ai
     endpoints:
-    - host: api.anthropic.com
+    - host: aiplatform.googleapis.com
+      port: 443
+    - host: oauth2.googleapis.com
       port: 443
     binaries:
     - path: /usr/local/bin/claude
