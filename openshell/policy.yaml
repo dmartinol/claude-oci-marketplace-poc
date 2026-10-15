@@ -93,9 +93,9 @@ network_policies:
     binaries:
     - path: /usr/local/bin/claude
   quay:
-    name: skillctl-quay
+    name: oras-quay
     endpoints:
     - host: quay.io
       port: 443
     binaries:
-    - path: /usr/local/bin/skillctl
+    - path: /usr/local/bin/oras

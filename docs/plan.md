@@ -27,6 +27,8 @@ Keep each task's implementation, evidence report, and status together. Documenta
 - **Gate G3:** The user approved the direct-directory ORAS approach on 2026-10-15. Registry retrieval evidence remains part of T607; this plan does not claim the complete lifecycle has passed.
 - **T608 — Build and publish project-owned v1/v2 demo plugin:** In progress. The project-owned sources, direct-folder OCI-layout push/pull for both versions, same-tag digest change, and strict validation after pull are complete locally. Publishing the direct-directory layer to the configured registry and final end-to-end activation remain open. See the [T608 source and local direct-directory evidence](feasibility-report.md#direct-directory-oras-check-macos-2026-10-15).
 
+User-requested OpenShell installer alignment (2026-10-15) is complete at source level: ORAS replaces skillctl in image installation, build arguments, registry checks, and network policy. Local syntax and mocked command checks pass; image build/live registry validation remains unavailable in this sandbox. See [implementation evidence](implementation-report.md#openshell-oras-installer-alignment-2026-10-15). T607 and lifecycle task statuses remain as recorded above.
+
 ## P1 — Product-document reset
 
 ### T600 — Record the full-plugin ORAS direction and artifact ownership

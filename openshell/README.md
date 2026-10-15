@@ -1,6 +1,8 @@
 # Run Codex in OpenShell on macOS with Podman
 
-This directory packages the setup developed for `dmartinol/claude-oci-marketplace-poc`: a Codex/Claude/skillctl workload image, an explicit OpenShell policy, and a Mac-side helper script. Claude Code uses Google Cloud Vertex AI with host Application Default Credentials (ADC); it does not use an Anthropic API key. Codex works on a clone under `/sandbox`; it does not modify your Mac checkout. Push changes from the sandbox and pull them on the Mac when ready.
+This directory packages the setup developed for `dmartinol/claude-oci-marketplace-poc`: a Codex/Claude/ORAS workload image, an explicit OpenShell policy, and a Mac-side helper script. Claude Code uses Google Cloud Vertex AI with host Application Default Credentials (ADC); it does not use an Anthropic API key. Codex works on a clone under `/sandbox`; it does not modify your Mac checkout. Push changes from the sandbox and pull them on the Mac when ready.
+
+The catalog rehearsal commands below are historical individual-skill tooling and do not implement the ORAS plugin workflow. Use [the current demo guide](../docs/demo/README.md) for full-plugin publication and feasibility checks.
 
 ## Baseline and validation status
 
@@ -12,7 +14,7 @@ The Dockerfile deliberately derives from the **retired NVIDIA community base ima
 
 | File | Purpose |
 | --- | --- |
-| `Dockerfile` | Build Codex 0.162.1, Claude 2.1.299, and skillctl 0.4.0; no credentials are baked in |
+| `Dockerfile` | Build Codex 0.162.1, Claude 2.1.299, and ORAS 1.3.4; no credentials are baked in |
 | `policy.yaml` | OpenAI, Google Vertex AI/ADC, optional direct Anthropic API, Quay, and repository-scoped GitHub access |
 | `rehearsal.py` | Generate fresh v1 catalogs and switch to already-published v2 tags |
 | `agent.sh` | Mac-side lifecycle, Vertex ADC transfer, Git setup, and Codex launch |
@@ -59,7 +61,7 @@ On macOS the installer uses Homebrew and starts a gateway service. This is a mac
 
 ## 2. Build the image
 
-The image now pins the project rehearsal versions: Claude Code 2.1.299 and skillctl 0.4.0, alongside Codex 0.162.1. Build-time checks require the matching versions and `claude plugin test --help`. The tagged skillctl installer verifies the release archive checksum and selects Linux arm64/amd64 automatically. Claude auto-updates are disabled; upgrade versions explicitly when needed. Model credentials are configured separately after sandbox creation.
+The image now pins the project rehearsal versions: Claude Code 2.1.299 and ORAS 1.3.4, alongside Codex 0.162.1. Build-time checks require the matching versions and `claude plugin test --help`. The ORAS release download verifies the archive checksum and selects Linux arm64/amd64 automatically. Claude auto-updates are disabled; upgrade versions explicitly when needed. Model credentials are configured separately after sandbox creation.
 
 ```bash
 bash agent.sh build
@@ -69,8 +71,8 @@ Equivalent command:
 
 ```bash
 podman build --build-arg CODEX_VERSION=0.162.1 \
-  --build-arg CLAUDE_VERSION=2.1.299 --build-arg SKILLCTL_VERSION=0.4.0 \
-  -t localhost/codex-project:0.162.1-claude2.1.299-skillctl0.4.0 .
+  --build-arg CLAUDE_VERSION=2.1.299 --build-arg ORAS_VERSION=1.3.4 \
+  -t localhost/codex-project:0.162.1-claude2.1.299-oras1.3.4 .
 ```
 
 Choose a different validated release consistently for build and creation:
@@ -79,7 +81,7 @@ Choose a different validated release consistently for build and creation:
 export CODEX_VERSION=0.162.1
 ```
 
-The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, `api.anthropic.com` for direct Anthropic API sessions, and `quay.io` for skillctl. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
+The host-side Podman build downloads npm packages outside the sandbox policy. Runtime package installation, SSH Git, and arbitrary dependency downloads are not enabled. The policy allows `aiplatform.googleapis.com` and `oauth2.googleapis.com` for Claude Code's Vertex AI model requests and ADC refresh, `api.anthropic.com` for direct Anthropic API sessions, and `quay.io` for ORAS. These host-level rules permit traffic to those hosts, not only a single API path or OCI repository; scope the supplied registry credentials appropriately. Redirected registry blob hosts are not pre-authorized; add only destinations observed in policy-denial logs if needed.
 
 ## 3. Configure and register the gateway
 
@@ -125,7 +127,7 @@ Equivalent:
 ```bash
 openshell sandbox create \
   --name codex-sandbox \
-  --from localhost/codex-project:0.162.1-claude2.1.299-skillctl0.4.0 \
+  --from localhost/codex-project:0.162.1-claude2.1.299-oras1.3.4 \
   --policy ./policy.yaml \
   -- /bin/bash -l
 ```
@@ -231,7 +233,7 @@ The separate `claude_anthropic` policy rule allows the Claude executable to reac
 
 `quay-auth` prompts for a Quay username (including a robot username if applicable) and password/token. It writes only that host's entry into the sandbox Docker/containers credential stores, preserving existing entries. It does not copy Mac credential helpers or unrelated host credentials. The files are mode 600; base64 encoding is not encryption. For existing-artifact rehearsal, grant registry read access; grant write only if publishing is part of the intended work.
 
-`project-check` verifies tool versions, availability of `claude plugin test`, Python, and metadata inspection of both v1 samples. It does not claim a full demo pass.
+`project-check` verifies Claude, ORAS, and Python versions and availability of `claude plugin test`. If `DEMO_PLUGIN_REF` is set in the Mac terminal, both `quay-auth` and `project-check` run `oras manifest fetch --descriptor` on that full-plugin reference without downloading layers. Set it from the supplied demo registry configuration and the project-owned tag described in [the demo guide](../docs/demo/README.md); historical skill artifact tags are not used. Without it, registry metadata checks are skipped with a message. It does not claim a full demo pass.
 
 `rehearsal-init` uploads the bundled `rehearsal.py`, creates fresh state under `/sandbox/rehearsal`, validates the plugin/marketplace, registers the repository via **HTTPS**, installs the manager, and registers two local v1 catalogs. It refuses to overwrite an existing nonempty rehearsal profile or catalog tree. If registration fails midway, inspect the preserved profile and repair it rather than blindly rerunning initialization.
 
@@ -261,7 +263,7 @@ If Vertex requests fail because of network policy, inspect `openshell logs` for 
 
 ## Policy scope and updates
 
-The policy permits Codex's OpenAI endpoints, HTTPS Git Smart HTTP operations for this exact repository, and `gh` REST calls to `/`, `/user`, and this repository's REST API subtree, plus Google Vertex AI/ADC endpoints and skillctl Quay endpoints. Local edits, branches, commits, and tests require no GitHub network access. Push requires both policy permission and valid Git credentials.
+The policy permits Codex's OpenAI endpoints, HTTPS Git Smart HTTP operations for this exact repository, and `gh` REST calls to `/`, `/user`, and this repository's REST API subtree, plus Google Vertex AI/ADC endpoints and ORAS Quay endpoints. Local edits, branches, commits, and tests require no GitHub network access. Push requires both policy permission and valid Git credentials.
 
 The policy does **not** enable GitHub GraphQL (`/graphql`), so some high-level `gh pr` commands may still be denied even with a valid PAT. Use repository-scoped REST calls via `gh api` or deliberately extend the policy after reviewing the required operation. Vertex AI and Quay rules are included, but Google Cloud authentication, model access, and interactive acceptance checks still need to be completed. Linux replay does not establish the original macOS-specific acceptance criteria.
 
@@ -350,7 +352,7 @@ Then repeat create, clone, authentication, identity, and run. Credentials are co
 - [GitHub CLI authentication](https://cli.github.com/manual/gh_auth_login)
 - [Codex CLI reference](https://learn.chatgpt.com/docs/cli/reference)
 
-- [skillctl installation source](https://github.com/redhat-et/skillimage/blob/v0.4.0/install.sh)
+- [ORAS installation](https://oras.land/docs/installation/)
 - [Claude native version pinning](https://code.claude.com/docs/en/setup)
 - [Claude Code on Google Cloud Vertex AI](https://code.claude.com/docs/en/google-vertex-ai)
 - [Google Cloud Application Default Credentials](https://cloud.google.com/docs/authentication/provide-credentials-adc)

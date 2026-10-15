@@ -6,9 +6,9 @@ BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SANDBOX_NAME="${SANDBOX_NAME:-codex-sandbox}"
 CODEX_VERSION="${CODEX_VERSION:-0.162.1}"
 CLAUDE_VERSION="${CLAUDE_VERSION:-2.1.299}"
-SKILLCTL_VERSION="${SKILLCTL_VERSION:-0.4.0}"
+ORAS_VERSION="${ORAS_VERSION:-1.3.4}"
 VERTEX_REGION="${VERTEX_REGION:-global}"
-IMAGE="${CODEX_IMAGE:-localhost/codex-project:$CODEX_VERSION-claude$CLAUDE_VERSION-skillctl$SKILLCTL_VERSION}"
+IMAGE="${CODEX_IMAGE:-localhost/codex-project:$CODEX_VERSION-claude$CLAUDE_VERSION-oras$ORAS_VERSION}"
 REPO_URL=https://github.com/dmartinol/claude-oci-marketplace-poc.git
 PROJECT=/sandbox/claude-oci-marketplace-poc
 # Prevent terminal-wide OpenCode XDG settings from hiding Podman/OpenShell state.
@@ -33,7 +33,7 @@ case "${1:-help}" in
   build)
     need podman; podman info >/dev/null
     podman build --build-arg "CODEX_VERSION=$CODEX_VERSION" \
-      --build-arg "CLAUDE_VERSION=$CLAUDE_VERSION" --build-arg "SKILLCTL_VERSION=$SKILLCTL_VERSION" \
+      --build-arg "CLAUDE_VERSION=$CLAUDE_VERSION" --build-arg "ORAS_VERSION=$ORAS_VERSION" \
       -t "$IMAGE" "$BASE_DIR"
     ;;
   gateway)
@@ -117,7 +117,11 @@ for name in ("/sandbox/.docker/config.json", "/sandbox/.config/containers/auth.j
     p.write_text(json.dumps(value)+"\n"); p.chmod(0o600)
 '
     unset agent_secret quay_username
-    remote skillctl inspect quay.io/dmartino/claude-oci-demo:0.1.1-draft
+    if [ -n "${DEMO_PLUGIN_REF:-}" ]; then
+      remote oras manifest fetch --descriptor "$DEMO_PLUGIN_REF"
+    else
+      echo 'Set DEMO_PLUGIN_REF to the configured full-plugin OCI reference to check registry metadata.'
+    fi
     ;;
   rehearsal-init)
     remote mkdir -p /sandbox/rehearsal
@@ -138,11 +142,14 @@ for name in ("/sandbox/.docker/config.json", "/sandbox/.config/containers/auth.j
     ;;
   project-check)
     remote claude --version
-    remote skillctl --version
+    remote oras version
     remote claude plugin test --help
     remote python3 --version
-    remote skillctl inspect quay.io/dmartino/claude-oci-demo:0.1.1-draft
-    remote skillctl inspect quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.1.0-draft
+    if [ -n "${DEMO_PLUGIN_REF:-}" ]; then
+      remote oras manifest fetch --descriptor "$DEMO_PLUGIN_REF"
+    else
+      echo 'Set DEMO_PLUGIN_REF to the configured full-plugin OCI reference to check registry metadata.'
+    fi
     ;;
   identity)
     [ "$#" -eq 3 ] || { echo 'Usage: agent.sh identity "Full Name" "commit-email"' >&2; exit 1; }
