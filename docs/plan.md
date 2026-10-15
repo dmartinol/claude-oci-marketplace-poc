@@ -61,7 +61,9 @@ Evidence: [T609 helper materialization](implementation-report.md#t609--materiali
 
 ## T610 — Install and update through the native path
 
-**Status:** In progress. **Requirements:** R5–R8, R10, R12. **Depends on:** T609.
+**Status:** Done. **Requirements:** R5–R8, R10, R12. **Depends on:** T609.
+
+Evidence: [T610 native lifecycle](implementation-report.md#t610--native-installation-and-pinned-updates-2026-10-15).
 
 - Use the spike-proven Claude install/update path for manager actions and recognize installations made through `/plugin`.
 - Check tag metadata at startup/manual refresh without pulling layers.
@@ -70,7 +72,7 @@ Evidence: [T609 helper materialization](implementation-report.md#t609--materiali
 
 ## T611 — Connect the manager UI
 
-**Status:** Backlog. **Requirements:** R5, R9–R10, R13–R14. **Depends on:** T610.
+**Status:** In progress. **Requirements:** R5, R9–R10, R13–R14. **Depends on:** T610.
 
 Reuse the current mod command, confirmation, and SessionStart architecture. Align labels/state with complete plugins; expose list, add, install, installed state, and update review. Show a non-blocking notice, allow plugin selection, and honor session dismissal. Downloads during add and update require approval.
 

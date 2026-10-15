@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Small ORAS-to-Claude marketplace adapter. All output is JSON; no credentials are stored."""
 import argparse
-import copy
 import json
 import os
 from pathlib import Path
@@ -144,6 +143,83 @@ class Manager:
         result = self.list()
         return {'plugins': [plugin for plugin in result['plugins'] if plugin['installed']], 'errors': result['errors']}
 
+    def plugin(self, identity):
+        result = self.list()
+        for plugin in result['plugins']:
+            if plugin['identity'] == identity:
+                return plugin
+        raise ValueError('No materialized OCI plugin named ' + identity)
+
+    def updates(self):
+        result = self.list()
+        updates, errors = [], result['errors']
+        for plugin in result['plugins']:
+            try:
+                metadata = self.inspect(plugin['source'])
+                if metadata['name'] != plugin['name']:
+                    raise ValueError('OCI title does not match the marketplace plugin name')
+                if metadata['digest'] != plugin['digest']:
+                    updates.append(dict(plugin, metadata=metadata, installedVersion=plugin['version']))
+            except Exception as error:
+                errors.append(safe_error(plugin['identity'] + ': ' + str(error)))
+        return {'updates': updates, 'errors': errors}
+
+    def install(self, identity):
+        self.plugin(identity)
+        self.run(['claude', 'plugin', 'install', identity, '--scope', 'user', '--json'])
+        return {'text': 'Installed ' + identity + '. Restart Claude to use the plugin.'}
+
+    def update(self, identity, digest, version):
+        plugin = self.plugin(identity)
+        # Inspect the reviewed digest, never re-resolve the mutable tag after approval.
+        metadata = self.inspect(plugin['source'], digest)
+        if metadata['version'] != version:
+            raise ValueError('Version does not match the reviewed OCI digest')
+        if metadata['digest'] == plugin['digest']:
+            return {'text': identity + ' is already at the reviewed digest.'}
+        marketplace = self.marketplaces / plugin['marketplace']
+        target = marketplace / PLUGIN_DIR / plugin['name']
+        state_path = marketplace / STATE_FILE
+        manifest_path = marketplace / '.claude-plugin/marketplace.json'
+        previous_state = state_path.read_bytes()
+        previous_manifest = manifest_path.read_bytes()
+        state = json.loads(previous_state)
+        manifest = json.loads(previous_manifest)
+        was_installed = plugin['installed']
+        with tempfile.TemporaryDirectory(prefix='.update-', dir=self.root) as temporary:
+            stage = Path(temporary) / 'plugin'
+            backup = Path(temporary) / 'previous'
+            self.pull(plugin['source'], metadata, stage, plugin['name'])
+            target.rename(backup)
+            try:
+                stage.rename(target)
+                for entry in manifest['plugins']:
+                    if entry['name'] == plugin['name'] and 'version' in entry:
+                        entry['version'] = version
+                atomic_json(manifest_path, manifest)
+                self.run(['claude', 'plugin', 'validate', '--strict', str(marketplace)])
+                if was_installed:
+                    self.run(['claude', 'plugin', 'update', identity, '--scope', 'user', '--json'])
+                state['plugins'][plugin['name']].update(version=version, digest=digest)
+                atomic_json(state_path, state)
+            except Exception as error:
+                if target.exists():
+                    shutil.rmtree(target)
+                backup.rename(target)
+                manifest_path.write_bytes(previous_manifest)
+                state_path.write_bytes(previous_state)
+                # Native update normally leaves its old record on failure. If it did
+                # change, restore through the same supported command against v1.
+                if was_installed:
+                    try:
+                        native = self.native_installed().get(identity)
+                        if native and native.get('version') != plugin['version']:
+                            self.run(['claude', 'plugin', 'update', identity, '--scope', 'user', '--json'])
+                    except Exception as recovery:
+                        raise RuntimeError(safe_error(f'{error}; previous bundle restored, but native recovery failed: {recovery}')) from error
+                raise RuntimeError(safe_error(f'{error}; previous plugin and digest restored')) from error
+        return {'text': 'Updated ' + identity + ' to v' + version + ' (' + digest + '). Restart Claude to apply.'}
+
     def inspect(self, source, digest=None):
         repository, _ = parse_reference(source)
         if digest is None:
@@ -220,14 +296,18 @@ class Manager:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('action', choices=['list', 'installed', 'add'])
+    parser.add_argument('action', choices=['list', 'installed', 'updates', 'add', 'install', 'update'])
     parser.add_argument('arguments', nargs='*')
     args = parser.parse_args()
     manager = Manager()
     try:
         if args.action == 'add' and len(args.arguments) == 1:
             result = manager.add(args.arguments[0])
-        elif args.action in ('list', 'installed') and not args.arguments:
+        elif args.action == 'install' and len(args.arguments) == 1:
+            result = manager.install(args.arguments[0])
+        elif args.action == 'update' and len(args.arguments) == 3:
+            result = manager.update(*args.arguments)
+        elif args.action in ('list', 'installed', 'updates') and not args.arguments:
             result = getattr(manager, args.action)()
         else:
             raise ValueError('Invalid command arguments')

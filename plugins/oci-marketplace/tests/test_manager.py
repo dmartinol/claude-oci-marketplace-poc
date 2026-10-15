@@ -54,6 +54,7 @@ class FixtureRunner:
         self.fail_pull = False
         self.fail_native = False
         self.bad_bundle = False
+        self.fail_validation = False
 
     def __call__(self, argv, cwd=None):
         self.calls.append(list(argv))
@@ -88,6 +89,8 @@ class FixtureRunner:
             bundle(Path(argv[-1]), version, name='wrong' if self.bad_bundle else 'demo')
             return ''
         if argv[:3] == ['claude', 'plugin', 'validate']:
+            if self.fail_validation:
+                raise RuntimeError('injected native validation failure')
             return '{}'
         if argv[:3] in (['claude', 'plugin', 'update'], ['claude', 'plugin', 'install']):
             if self.fail_native:
@@ -156,6 +159,128 @@ class ManagerCases(unittest.TestCase):
                     self.materialize()
                 self.assertFalse((self.helper.marketplaces / 'demo-marketplace').exists())
                 setattr(self.runner, failure, False)
+
+    def snapshot(self, target):
+        return {str(path.relative_to(target)): path.read_bytes()
+                for path in target.rglob('*') if path.is_file()}
+
+    def test_updates_checks_only_metadata_and_detects_same_version_digest_change(self):
+        self.materialize()
+        self.runner.digest = DIGEST_V2
+        self.runner.artifacts[DIGEST_V2] = artifact('1.0.0')
+        self.runner.calls.clear()
+        result = self.helper.updates()
+        self.assertEqual(result['errors'], [])
+        self.assertEqual(result['updates'][0]['metadata']['digest'], DIGEST_V2)
+        self.assertEqual(result['updates'][0]['installedVersion'], '1.0.0')
+        self.assertTrue(all(call[:3] == ['oras', 'manifest', 'fetch']
+                            for call in self.runner.calls if call[0] == 'oras'))
+
+    def test_successful_update_uses_reviewed_digest_after_tag_moves(self):
+        target = self.materialize()
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]
+        self.runner.digest = DIGEST_V1  # Tag differs from the approved replacement.
+        self.runner.calls.clear()
+        self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+        state = json.loads((target / manager.STATE_FILE).read_text())
+        self.assertEqual(state['plugins']['demo']['digest'], DIGEST_V2)
+        self.assertEqual(state['plugins']['demo']['version'], '2.0.0')
+        self.assertEqual(json.loads((target / '.oci-plugins/demo/.claude-plugin/plugin.json').read_text())['version'], '2.0.0')
+        manifest = json.loads((target / '.claude-plugin/marketplace.json').read_text())
+        self.assertEqual(manifest['plugins'][1], self.runner.manifest['plugins'][1])
+        self.assertTrue((target / 'standard/.claude-plugin/plugin.json').is_file())
+        oras = [call for call in self.runner.calls if call[0] == 'oras']
+        self.assertFalse(any('--descriptor' in call for call in oras))
+        self.assertEqual([call[2] for call in oras if call[1] == 'pull'],
+                         ['quay.io/example/demo@' + DIGEST_V2])
+        self.assertIn(['claude', 'plugin', 'update', IDENTITY, '--scope', 'user', '--json'], self.runner.calls)
+
+    def test_uninstalled_update_materializes_without_native_install(self):
+        self.materialize()
+        self.runner.calls.clear()
+        self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+        self.assertFalse(any(call[:3] in (['claude', 'plugin', 'install'], ['claude', 'plugin', 'update'])
+                             for call in self.runner.calls))
+
+    def test_manager_install_uses_native_identity_and_user_scope(self):
+        self.materialize()
+        self.runner.calls.clear()
+        self.helper.install(IDENTITY)
+        self.assertIn(['claude', 'plugin', 'install', IDENTITY, '--scope', 'user', '--json'], self.runner.calls)
+        self.assertFalse(any(call[0] == 'oras' for call in self.runner.calls))
+
+    def test_failed_updates_preserve_working_files_and_recorded_digest(self):
+        target = self.materialize()
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]
+        previous = self.snapshot(target)
+        for failure in ('fail_pull', 'bad_bundle', 'fail_validation', 'fail_native'):
+            with self.subTest(failure=failure):
+                setattr(self.runner, failure, True)
+                with self.assertRaises((ValueError, RuntimeError)):
+                    self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+                self.assertEqual(self.snapshot(target), previous)
+                setattr(self.runner, failure, False)
+        for digest, version in [('sha256:bad', '2.0.0'), (DIGEST_V2, 'unapproved-version')]:
+            with self.subTest(digest=digest, version=version):
+                with self.assertRaises(ValueError):
+                    self.helper.update(IDENTITY, digest, version)
+                self.assertEqual(self.snapshot(target), previous)
+
+    def test_failed_metadata_lookup_does_not_touch_working_bundle(self):
+        target = self.materialize()
+        previous = self.snapshot(target)
+        for invalid in [artifact(name='another'), dict(artifact(), artifactType='unsupported')]:
+            with self.subTest(artifact=invalid):
+                self.runner.artifacts[DIGEST_V2] = invalid
+                with self.assertRaises(ValueError):
+                    self.helper.update(IDENTITY, DIGEST_V2, '1.0.0')
+                self.assertEqual(self.snapshot(target), previous)
+        self.runner.digest = DIGEST_V2
+        result = self.helper.updates()
+        self.assertEqual(result['updates'], [])
+        self.assertTrue(result['errors'])
+        self.assertEqual(self.snapshot(target), previous)
+
+    def test_native_partial_change_is_recovered_against_restored_bundle(self):
+        target = self.materialize()
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]
+        previous = self.snapshot(target)
+        original = self.runner
+        attempts = []
+
+        def partial_native_change(argv, cwd=None):
+            if argv[:3] == ['claude', 'plugin', 'update']:
+                version = json.loads((target / '.oci-plugins/demo/.claude-plugin/plugin.json').read_text())['version']
+                attempts.append(version)
+                original.installed[0]['version'] = version
+                if len(attempts) == 1:
+                    raise RuntimeError('native update failed after changing installation')
+                return '{}'
+            return original(argv, cwd)
+
+        self.helper.run = partial_native_change
+        with self.assertRaisesRegex(RuntimeError, 'previous plugin and digest restored'):
+            self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+        self.assertEqual(attempts, ['2.0.0', '1.0.0'])
+        self.assertEqual(self.runner.installed[0]['version'], '1.0.0')
+        self.assertEqual(self.snapshot(target), previous)
+
+    def test_native_recovery_failure_is_reported_and_bundle_restored(self):
+        target = self.materialize()
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]
+        previous = self.snapshot(target)
+        original = self.runner
+
+        def fail_after_native_change(argv, cwd=None):
+            if argv[:3] == ['claude', 'plugin', 'update']:
+                original.installed[0]['version'] = '2.0.0'
+                raise RuntimeError('native update failed after changing installation')
+            return original(argv, cwd)
+
+        self.helper.run = fail_after_native_change
+        with self.assertRaisesRegex(RuntimeError, 'native recovery failed'):
+            self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+        self.assertEqual(self.snapshot(target), previous)
 
     def test_inspect_is_metadata_only_and_reads_resolved_digest(self):
         result = self.helper.inspect(SOURCE)
