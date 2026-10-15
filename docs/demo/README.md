@@ -1,74 +1,58 @@
 # Demo: publish and update a Claude plugin with OCI
 
-This demo builds a complete Claude plugin from the project examples, publishes it to Quay with ORAS, and installs it through `marketplace-manager`. Then it pushes a new version to the same tag, reviews the update in Claude, and restarts to use the new plugin.
+This is the target POC walkthrough. Local direct-directory ORAS publication/extraction and Claude validation have passed. Remote directory retrieval and the generated marketplace's complete native install/update flow remain to be demonstrated in T607. Commands describing manager materialization below are expected behavior, not a claim that it is implemented.
 
-The manager is meant to make OCI delivery controlled and maintainable: it checks metadata before downloading, asks before installation, pulls by digest, validates the complete plugin, and preserves the working version if an update fails.
+Use installed Claude Code, ORAS, and Git on macOS, your existing Quay credentials, and a GitHub repository where you can publish the marketplace JSON. You do not need to clone the POC repository or run its scripts. GitHub's web editor is sufficient for publishing the marketplace configuration.
 
-**Current status:** ORAS direct-folder push, pull, and Claude validation pass in a local OCI layout. Registry-backed directory retrieval and the manager's complete-plugin install/update flow are still being validated. Do not publish this guide as a passed end-to-end demo until those gates pass.
+## 1. Create or copy a plugin and publish v1
 
-## Tools and prerequisites
+Use your own complete Claude plugin, or copy the four example files into local `v1` and `v2` plugin directories from these links:
 
-- Stock [Claude Code](https://code.claude.com/docs/en/plugins/marketplace-reference), logged in through the isolated profile used below.
-- [ORAS](https://oras.land/docs/installation/) 1.3.4 or later, [Git](https://git-scm.com/), `curl`, and `tar`.
-- Push access to the Quay repository supplied for the demo, with ORAS using your existing local registry credentials.
-- The bootstrap marketplace Git URL and the separate demo marketplace Git URL. The demo marketplace source points at the tag you publish.
+- [v1 plugin manifest](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v1/.claude-plugin/plugin.json)
+- [v1 skill](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v1/skills/demo/SKILL.md)
+- [v2 plugin manifest](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v2/.claude-plugin/plugin.json)
+- [v2 skill](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v2/skills/demo/SKILL.md)
 
-No skillctl installation or separate archive-packaging script is needed. If you use your own Quay repository, point a demo marketplace you control at that repository and tag.
+Preserve `.claude-plugin/plugin.json` and `skills/demo/SKILL.md` under each version's root. The [example instructions](../../examples/oci-demo-plugin/README.md) contain the short ORAS commands.
 
-## The plugin
-
-| Version | Invocation | Expected response |
-| --- | --- | --- |
-| v1 (`0.1.0`) | `/oci-demo-plugin:demo` | `OCI demo plugin version 0.1.0` |
-| v2 (`0.2.0`) | `/oci-demo-plugin:demo` | `OCI demo plugin version 0.2.0` |
-
-## 1. Download the example and publish v1
-
-This downloads the source archive from GitHub; it does not clone the POC repository. Set `OCI_REPOSITORY` to the exact repository from the supplied demo configuration.
+Set `OCI_REPOSITORY` to your actual Quay repository (for the project rehearsal, use only the supplied demo configuration), then run from the copied v1 plugin root:
 
 ```bash
-claude --version
-oras version
-git --version
-
-export RUN_DIR="$(mktemp -d "${TMPDIR:-/tmp}/claude-oci-demo.XXXXXX")"
-export OCI_REPOSITORY="<repository-from-demo-configuration>"
+export OCI_REPOSITORY="<your-configured-quay-repository>"
 export OCI_REF="${OCI_REPOSITORY}:oci-demo-plugin-draft"
-
-curl -fL "https://github.com/dmartinol/claude-oci-marketplace-poc/archive/refs/heads/main.tar.gz" \
-  -o "$RUN_DIR/poc.tar.gz"
-tar -xzf "$RUN_DIR/poc.tar.gz" -C "$RUN_DIR"
-export PLUGIN_ROOT="$RUN_DIR/claude-oci-marketplace-poc-main/examples/oci-demo-plugin/v1"
-
-claude plugin validate --strict "$PLUGIN_ROOT"
-(
-  cd "$PLUGIN_ROOT"
-  oras push "$OCI_REF" \
-    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
-    --annotation org.opencontainers.image.title=oci-demo-plugin \
-    --annotation org.opencontainers.image.version=0.1.0 \
-    .
-)
+claude plugin validate --strict .
+oras push "$OCI_REF" \
+  --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+  --annotation org.opencontainers.image.title=oci-demo-plugin \
+  --annotation org.opencontainers.image.version=0.1.0 .
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-Record the manifest digest and confirm artifact type, version annotation, and layer media type `application/vnd.oci.image.layer.v1.tar+gzip`. ORAS packages the directory during push; using `.` from the plugin root makes a pull extract `.claude-plugin/plugin.json` directly at its output root.
+ORAS packages the directory itself; no tarball or packaging script is needed. Record the digest. For your own plugin, use its actual name and version in the annotations.
 
-## 2. Start with a clean Claude profile
+## 2. Publish the marketplace on GitHub
 
-The profile keeps this run's login, marketplaces, and plugins separate from your normal Claude setup. Treat it as private; do not share its files or credentials.
+Create `.claude-plugin/marketplace.json` in a separate GitHub repository, using the web editor or your existing Git tools:
 
-```bash
-export CLAUDE_CONFIG_DIR="$RUN_DIR/claude-profile"
-export CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL=1
-mkdir -p "$CLAUDE_CONFIG_DIR"
-claude plugin marketplace list --json
-claude plugin list
+```json
+{
+  "name": "oci-demo-marketplace",
+  "owner": { "name": "Your name" },
+  "plugins": [
+    {
+      "name": "oci-demo-plugin",
+      "description": "OCI plugin demo",
+      "source": "<the exact value of OCI_REF>"
+    }
+  ]
+}
 ```
 
-Confirm the profile has no registered marketplaces or plugins. If Claude asks you to log in, do so in this profile.
+Replace the source placeholder with the published raw tagged reference, without `oci://`. The published configuration is input for the manager. Claude validates the generated local-path marketplace after extraction.
 
-Add the POC bootstrap marketplace through Claude's native flow and install the manager:
+## 3. Install the manager and add the marketplace
+
+Install using your existing Claude CLI, from any directory:
 
 ```bash
 claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
@@ -76,64 +60,47 @@ claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 claude
 ```
 
-## 3. Add the OCI demo marketplace and install v1
-
-In Claude Code, add the separate demo marketplace by its published Git URL:
+In Claude, run:
 
 ```text
-/marketplace-manager add <demo-marketplace-git-url>
+/marketplace-manager add <your-marketplace-git-url>
 /marketplace-manager list
 ```
 
-Confirm `claude-oci-demo-marketplace` is listed as OCI-enabled and contains `oci-demo-plugin@claude-oci-demo-marketplace`. Install it through the manager and approve both the manager confirmation and Claude's permission prompt:
+Approve the manager confirmation and Claude permission request. The manager retrieves the Git content, pulls and extracts the OCI bundle with ORAS, validates it, and registers a generated local marketplace named `oci-demo-marketplace`. It retains the original OCI source for update checks. You do not manually clone, extract, edit the generated files, or register a second marketplace.
+
+Open `/plugin` and confirm the marketplace and `oci-demo-plugin` are available. Install through `/plugin`, or use:
 
 ```text
-/marketplace-manager install oci-demo-plugin@claude-oci-demo-marketplace
+/marketplace-manager install oci-demo-plugin@oci-demo-marketplace
 /marketplace-manager installed
 ```
 
-Open `/plugin` and confirm Claude reports the installed plugin. Exit Claude completely and start it again from the same terminal; plugin changes apply after restart. Invoke `/oci-demo-plugin:demo` and confirm the v1 response.
+Restart Claude and invoke `/oci-demo-plugin:demo`. v1 responds `OCI demo plugin version 0.1.0`. The manager must recognize installation through either interface.
 
-## 4. Publish v2 to the same tag and update
+## 4. Publish v2 and approve the update
 
-After v1 works, set `PLUGIN_ROOT` to the downloaded `examples/oci-demo-plugin/v2` directory and publish to the same `OCI_REF`:
+From the copied v2 plugin root, in a terminal retaining the same `OCI_REF`:
 
 ```bash
-export PLUGIN_ROOT="$RUN_DIR/claude-oci-marketplace-poc-main/examples/oci-demo-plugin/v2"
-claude plugin validate --strict "$PLUGIN_ROOT"
-(
-  cd "$PLUGIN_ROOT"
-  oras push "$OCI_REF" \
-    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
-    --annotation org.opencontainers.image.title=oci-demo-plugin \
-    --annotation org.opencontainers.image.version=0.2.0 \
-    .
-)
+claude plugin validate --strict .
+oras push "$OCI_REF" \
+  --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+  --annotation org.opencontainers.image.title=oci-demo-plugin \
+  --annotation org.opencontainers.image.version=0.2.0 .
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-Confirm the version annotation is `0.2.0` and the resolved manifest digest changed. Start a new Claude session and wait for the update notice. Then review and apply only this plugin's update:
+The tag stays the same; its digest and version change. Start a new Claude session to receive the update notice, or review updates manually:
 
 ```text
 /marketplace-manager updates
 ```
 
-Approve the update and Claude's permission prompt. Restart Claude, check `/marketplace-manager installed` and `/plugin`, then invoke `/oci-demo-plugin:demo`. Confirm the v2 response.
+Approve the selected update and Claude's permission prompt. Restart Claude and invoke `/oci-demo-plugin:demo` again; expect `OCI demo plugin version 0.2.0`. Listing and update checks do not download plugin layers; adding an OCI marketplace and applying approved updates do.
 
-## Evidence and cleanup
+## Rehearsal evidence
 
-| Gate | Result and evidence |
-| --- | --- |
-| Clean Claude profile and manager bootstrap | |
-| OCI marketplace and plugin listed | |
-| v1 install, digest, and response | |
-| Same-tag v2 push changed version and digest | |
-| Approved update and v2 response after restart | |
-| Failed update preserved the working plugin | |
+For project acceptance, use a fresh Claude profile, record tool versions and the two digests, verify both interfaces, and exercise one failed update that leaves the old plugin usable. Keep credentials and profile files private. Record the result in the existing reports; do not treat this target walkthrough as passing evidence.
 
-Keep evidence free of credentials and authentication files. When finished, exit Claude and restore the shell environment:
-
-```bash
-unset CLAUDE_CONFIG_DIR CLAUDE_CODE_DISABLE_OFFICIAL_MARKETPLACE_AUTOINSTALL
-unset RUN_DIR OCI_REPOSITORY OCI_REF PLUGIN_ROOT
-```
+After the demo, remove the demo marketplace with Claude's native marketplace removal command. The manager's generated-file cleanup instructions will be finalized after the supported path is verified; do not delete undocumented Claude cache/settings files.

@@ -2,7 +2,7 @@
 
 Proof of concept for managing Claude marketplaces in stock Claude Code. The revised product specification targets complete Claude plugin bundles published as OCI artifacts with ORAS.
 
-**Status:** The current manager implementation still uses skillctl for individual skill artifacts and does not satisfy the revised full-plugin contract. ORAS direct-directory publication, digest-pinned local pulls, and Claude validation pass on macOS. An earlier archived manager bundle was pushed to Quay and its descriptor resolved; registry retrieval of the direct-directory layer remains unverified. See [feasibility evidence](docs/feasibility-report.md) and the [implementation plan](docs/plan.md).
+**Status:** The current manager implementation still uses the legacy individual-skill backend and does not satisfy the revised full-plugin contract. ORAS direct-directory publication, digest-pinned local pulls, and Claude validation pass on macOS. An earlier archived manager bundle was pushed to Quay and its descriptor resolved; registry retrieval of the direct-directory layer remains unverified. See [feasibility evidence](docs/feasibility-report.md) and the [implementation plan](docs/plan.md).
 
 ## Project documentation
 
@@ -16,10 +16,8 @@ Proof of concept for managing Claude marketplaces in stock Claude Code. The revi
 
 ## Install the manager bootstrap
 
-The repository root is the bootstrap marketplace. Its manager plugin can be validated and installed independently of the pending ORAS plugin-bundle workflow:
+Install the manager by URL using your installed Claude CLI. No clone or commands run from this repository are required:
 
-    claude plugin validate --strict .
-    claude plugin validate --strict ./plugins/oci-marketplace
     claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
     claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 
@@ -27,11 +25,13 @@ The demo setup supplies registry configuration and credentials; the project supp
 
 ## OCI plugin workflow status
 
-The product contract uses raw tagged OCI references in marketplace plugin source fields. The manager will own parsing and ORAS operations; Claude's built-in strict validator is not expected to accept that source value. The manager must retrieve and activate a complete validated plugin bundle through a supported Claude path.
+The developer publishes a complete plugin with ORAS to Quay and a GitHub marketplace containing its raw tagged OCI reference in `plugins[].source`.
 
-The current manager install path is still skill-specific. Do not use it as proof of full-plugin installation. T607 still tracks registry retrieval by digest and supported persistent Claude activation for the direct-directory artifact.
+The intended `/marketplace-manager add <git-url>` flow pulls and extracts OCI plugins after approval, generates a Claude-compatible local marketplace with local plugin paths, and registers it. The marketplace and plugins are then visible and installable through both `/plugin` and `/marketplace-manager`. Session-start or manual metadata checks detect a changed tag and offer an approved update; restarting Claude is sufficient for activation.
 
-The complete v1/v2 demo plugin source and direct ORAS publishing instructions are in [examples/oci-demo-plugin](examples/oci-demo-plugin/README.md). The human-run flow is in the [demo guide](docs/demo/README.md).
+This generated-marketplace flow is not implemented yet. The existing skill-specific manager path is historical; the next step is the small ORAS/native-marketplace spike in T607.
+
+Copyable v1/v2 plugin files and direct ORAS publishing instructions are in [examples/oci-demo-plugin](examples/oci-demo-plugin/README.md). The [demo guide](docs/demo/README.md) describes the target developer flow and its current validation status.
 
 ## Development
 

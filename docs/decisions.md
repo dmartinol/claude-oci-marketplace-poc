@@ -2,7 +2,24 @@
 
 This document records agreed product choices and unresolved feasibility questions. Normative behavior belongs in [requirements.md](requirements.md).
 
-## Scope revision — OCI-source marketplace flow (2026-10-15)
+## Current direction — D22: native-compatible marketplace POC
+
+The latest developer-flow clarification supersedes earlier manager-only OCI visibility and registration choices in D1, D2, D4, D6, D11, D14, and D15, and corresponding wording in the scope revision below. Historical decisions and evidence remain recorded rather than silently rewritten.
+
+- The publisher keeps raw tagged OCI references in `plugins[].source` in a GitHub marketplace. ORAS publishes and extracts complete plugin directories, as in D17/D20.
+- `/marketplace-manager add <git-url>` retrieves that content and, after approval, pulls/extracts the plugins, generates a local marketplace with native relative plugin paths, and registers it with supported Claude commands. Raw OCI sources need not pass native validation; the generated marketplace must.
+- Preserve the published marketplace name and plugin identities. The generated marketplace is visible and installable in both `/plugin` and the manager, without a duplicate source registration. The manager keeps minimal original Git/OCI provenance alongside its files; Claude registrations remain authoritative for the visible list.
+- Adding an OCI marketplace downloads its plugin bundles after confirmation and Claude permission. Listing and update checks do not download layers. Updates check the same OCI tags at session start or manual refresh and apply only after approval. Restart activation is sufficient.
+- Users install the manager by URL and use installed tools. No POC checkout, repository scripts, or custom packager is required; copying example plugins is allowed. The configured demo coordinates remain environment inputs. OpenShell is contributor tooling only.
+- Keep the spike and implementation small. Prove the native registration/install/update path before implementing it; retain the feasibility/report/approval workflow in AGENTS.md. Earlier packaging approval is retained, not treated as proof of the new flow.
+
+The current [requirements](requirements.md) and [plan](plan.md) govern implementation. The remaining evidence needed is remote direct-directory retrieval plus the generated marketplace's native install, persistence, and update behavior. Older open-question and status wording below is historical.
+
+## Historical decisions
+
+The sections below retain superseded product choices and tool names for traceability. They are not current setup instructions or dependencies for the intended ORAS workflow.
+
+### Historical scope revision — OCI-source marketplace flow (2026-10-15)
 
 The requirements revision on 2026-10-15 supersedes the catalog-based OCI declaration in D3 and every catalog-specific discovery rule in D5, D6, D11, D12, and D14. The current product contract is the raw tagged OCI reference in a marketplace plugin entry's `source` field, with a `name` and `description`; the user directed that `oci-catalog.json` be retired. Claude's registered marketplace list remains authoritative, and content is read from each registration's `installLocation`. The manager parses OCI entries; Claude's built-in validator and `/plugin` do not need to parse the extension value. Standard plugin sources remain native `/plugin` entries.
 

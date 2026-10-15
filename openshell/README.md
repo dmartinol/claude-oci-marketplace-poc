@@ -1,5 +1,7 @@
 # Run Codex in OpenShell on macOS with Podman
 
+This is optional contributor infrastructure. Developers publishing and installing OCI plugins do not need OpenShell, a POC clone, or these scripts; use the [developer demo guide](../docs/demo/README.md).
+
 This directory packages the setup developed for `dmartinol/claude-oci-marketplace-poc`: a Codex/Claude/ORAS workload image, an explicit OpenShell policy, and a Mac-side helper script. Claude Code uses Google Cloud Vertex AI with host Application Default Credentials (ADC); it does not use an Anthropic API key. Codex works on a clone under `/sandbox`; it does not modify your Mac checkout. Push changes from the sandbox and pull them on the Mac when ready.
 
 The catalog rehearsal commands below are historical individual-skill tooling and do not implement the ORAS plugin workflow. Use [the current demo guide](../docs/demo/README.md) for full-plugin publication and feasibility checks.

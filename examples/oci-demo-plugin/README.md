@@ -1,5 +1,7 @@
 # OCI demo plugin
 
+Copy the `v1` and `v2` example files into local directories, preserving their paths; no clone of this repository is required. Use the file links in the [demo guide](../../docs/demo/README.md#1-create-or-copy-a-plugin-and-publish-v1).
+
 Each version is a complete Claude plugin root with `.claude-plugin/plugin.json` and `skills/demo/SKILL.md`. Invoke it as `/oci-demo-plugin:demo`:
 
 | Version | Response |
@@ -9,16 +11,16 @@ Each version is a complete Claude plugin root with `.claude-plugin/plugin.json` 
 
 ## Validate and publish
 
-ORAS publishes the directory directly. Run the command from the version directory and pass `.` so a pull places `.claude-plugin/plugin.json` at the output root. Set `OCI_REF` to the repository from the supplied demo registry configuration and the project-owned tag `oci-demo-plugin-draft`.
+ORAS publishes the directory directly. Run the command from the version directory and pass `.` so a pull places `.claude-plugin/plugin.json` at the output root. Set `OCI_REPOSITORY` to your actual Quay repository (use the supplied configuration for the project rehearsal). The demo uses the same `oci-demo-plugin-draft` tag for both versions. Run the following from the parent of your copied `v1` and `v2` directories.
 
 ```sh
-claude plugin validate --strict ./examples/oci-demo-plugin/v1
-claude plugin validate --strict ./examples/oci-demo-plugin/v2
+claude plugin validate --strict ./v1
+claude plugin validate --strict ./v2
 
 export OCI_REF="${OCI_REPOSITORY}:oci-demo-plugin-draft"
 
 (
-  cd examples/oci-demo-plugin/v1
+  cd v1
   oras push "$OCI_REF" \
     --artifact-type application/vnd.dmartino.claude.plugin.v1 \
     --annotation org.opencontainers.image.title=oci-demo-plugin \
@@ -32,7 +34,7 @@ After validating v1 in Claude, publish v2 to the same `OCI_REF` with version ann
 
 ```sh
 (
-  cd examples/oci-demo-plugin/v2
+  cd v2
   oras push "$OCI_REF" \
     --artifact-type application/vnd.dmartino.claude.plugin.v1 \
     --annotation org.opencontainers.image.title=oci-demo-plugin \
@@ -42,4 +44,4 @@ After validating v1 in Claude, publish v2 to the same `OCI_REF` with version ann
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-ORAS creates the `application/vnd.oci.image.layer.v1.tar+gzip` layer and extracts it on pull. No intermediate tarball or package script is needed. The repository and credentials come from the demo setup; do not substitute a historical skill artifact tag. If you publish to a different repository, update the source in a demo marketplace you control to the same repository and tag.
+ORAS creates the `application/vnd.oci.image.layer.v1.tar+gzip` layer and extracts it on pull. No intermediate tarball or package script is needed. Put the exact `OCI_REF` in your GitHub marketplace plugin entry’s `source` field. Add that Git URL through marketplace-manager; it will extract the plugin and register a native-compatible local marketplace visible in `/plugin` and the manager. This materialization flow remains pending implementation; see the [plan](../../docs/plan.md).

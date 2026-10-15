@@ -1,5 +1,7 @@
 # Feasibility Report
 
+> Scope notice: The current POC generates and registers a native-compatible local marketplace from GitHub OCI `source` entries, visible in both `/plugin` and `/marketplace-manager`, without a user checkout. Earlier checks below prove only the behaviors actually exercised; they do not establish this revised end-to-end flow. See [requirements](requirements.md), [D22](decisions.md#current-direction--d22-native-compatible-marketplace-poc), and the [current plan](plan.md).
+
 This report records evidence gathered during the P0 feasibility spike defined in [plan.md](plan.md). Credential values, tokens, usernames, and registry namespaces are intentionally excluded.
 
 ## Environment

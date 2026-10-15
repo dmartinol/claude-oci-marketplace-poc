@@ -1,5 +1,7 @@
 # MVP Implementation Report
 
+> Scope notice: The current POC generates and registers a native-compatible local marketplace from GitHub OCI `source` entries, visible in both `/plugin` and `/marketplace-manager`, without a user checkout. Earlier checks below prove only the behaviors actually exercised; they do not establish this revised end-to-end flow. See [requirements](requirements.md), [D22](decisions.md#current-direction--d22-native-compatible-marketplace-poc), and the [current plan](plan.md).
+
 The P1–P5 sections preserve evidence for the prior catalog-based implementation. The current raw-source revision is recorded in P6 and tracked in [plan.md](plan.md). P0 feasibility findings remain in [feasibility-report.md](feasibility-report.md). The prior flow was approved at G1 on 2026-10-14; revised source parsing was authorized at G2 on 2026-10-15.
 
 ## Scope revision — general marketplace management
