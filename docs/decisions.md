@@ -2,15 +2,33 @@
 
 This document records agreed product choices and unresolved feasibility questions. Normative behavior belongs in [requirements.md](requirements.md).
 
+## Scope revision — OCI-source marketplace flow (2026-10-15)
+
+The requirements revision on 2026-10-15 supersedes the catalog-based OCI declaration in D3 and every catalog-specific discovery rule in D5, D6, D11, D12, and D14. The current product contract is the raw tagged OCI reference in a marketplace plugin entry's `source` field, with a `name` and `description`; the user directed that `oci-catalog.json` be retired. Claude's registered marketplace list remains authoritative, and content is read from each registration's `installLocation`. The manager parses OCI entries; Claude's built-in validator and `/plugin` do not need to parse the extension value. Standard plugin sources remain native `/plugin` entries.
+
+### D15 — Raw OCI-source declaration and renewed feasibility gate
+
+The 2026-10-15 requirements define raw tagged OCI references in `plugins[].source` as the OCI marketplace contract. The manager plugin parses this field from Claude's registered marketplace content; the strict validator's rejection is expected because the built-in source schema does not understand the extension-owned OCI value. On Claude Code 2.1.299, `claude plugin validate --strict` reports `plugins.0.source: Invalid string: must start with "./"`, while local marketplace directory registration succeeds. The user clarified on 2026-10-15 that the built-in commands are expected to reject this field and that manager parsing is the intended product behavior. The built-in `/plugin` UI is reserved for standard plugin sources; the manager lists OCI identities for direct install. This validation behavior is recorded and does not block implementation.
+
+### D16 — Retire the legacy catalog
+
+Do not parse or support root `oci-catalog.json`. Marketplace OCI declarations use raw tagged references in `plugins[].source` with a plugin `name` and `description`. OCI demo fixtures declare the source directly; the bootstrap marketplace keeps its ordinary relative manager-plugin source. Previously installed state records may still be read for migration, but old catalog files do not contribute entries.
+
+### D17 — ORAS distribution of complete Claude plugin bundles
+
+The user clarified that skillctl builds OCI artifacts for individual skills, not complete Claude plugins, and requested ORAS instead. Treat one raw OCI source entry as one complete Claude plugin bundle. Package the complete plugin root, including .claude-plugin/plugin.json and its components, as a compressed archive in a generic OCI artifact. Use ORAS for publication, metadata lookup, and retrieval; do not use skillctl for this plugin payload. The project-defined artifact and layer media types, archive layout, annotations, authenticated registry behavior, and persistent Claude activation path must be confirmed by the ORAS feasibility spike before implementation. Artifact title and version annotations must match plugin.json. Metadata checks must not retrieve artifact layers. The earlier G2 approval applied to skillctl-based individual skills and does not approve this changed workflow.
+
+**Supersession:** D17 supersedes D12's skillctl payload contract, D13's skill-directory installation target, and OCI-skill-specific language in D1, D2, D7–D9, D11, and D14. Their evidence remains historical and does not prove full-plugin OCI packaging or activation. D15's manager-owned raw-source decision and D16's catalog retirement remain active.
+
 ## Accepted decisions
 
 ### D1 — Standard marketplace visibility
 
-The regular `/plugin` UI remains Claude's native interface for standard marketplace plugins. The custom marketplace manager lists all registered marketplaces, including standard-only ones, and identifies OCI-enabled marketplaces. OCI skills appear in the manager's OCI extension view; standard plugin operations remain in `/plugin`.
+The regular `/plugin` UI remains Claude's native interface for standard marketplace plugins. The custom marketplace manager lists all registered marketplaces, including standard-only ones, and identifies OCI-enabled marketplaces. OCI plugin entries are listed and installed through the manager; standard plugin operations remain in `/plugin`.
 
 ### D2 — Marketplace add contract
 
-The manager command is the generic `/marketplace-manager`, subject to validation against the supported Claude version's built-in command and alias set. It replaces the OCI-specific `/oci-marketplace` entry point; T003 found that `/marketplace` conflicts with a built-in alias. Its `list` action shows every Claude-registered marketplace; `add <source>` registers a standard or OCI-enabled marketplace at user scope through Claude's marketplace registration command and refreshes the complete list. The existing OCI skill commands remain an extension of this general manager. On Claude Code 2.1.299, T304 loaded and executed `/marketplace-manager list` from the marketplace manager plugin without a built-in command collision.
+The manager command is the generic `/marketplace-manager`, subject to validation against the supported Claude version's built-in command and alias set. It replaces the OCI-specific `/oci-marketplace` entry point; T003 found that `/marketplace` conflicts with a built-in alias. Its `list` action shows every Claude-registered marketplace; `add <source>` registers a standard or OCI-enabled marketplace at user scope through Claude's marketplace registration command and refreshes the complete list. OCI plugin installation and update are extensions of this general manager. On Claude Code 2.1.299, T304 loaded and executed `/marketplace-manager list` from the marketplace manager plugin without a built-in command collision.
 
 ### D3 — OCI catalog separation
 
@@ -30,7 +48,7 @@ Adding a valid Claude marketplace without an OCI catalog still succeeds. It appe
 
 ### D7 — Update interaction
 
-Available updates produce a non-blocking indicator and one summary with per-skill selection. Applying an update requires a native mod confirmation followed by Claude's standard permission flow.
+Available plugin updates produce a non-blocking indicator and one summary with per-plugin selection. Applying an update requires a native mod confirmation followed by Claude's standard permission flow.
 
 Claude Code 2.1.296 supports this path with `$.ui.toast`, `$.ui.ask`, and a permission-checked `$.tool.call`. The manager may use `$.ui.status` while the permission request is pending.
 
@@ -40,31 +58,31 @@ Dismissing an available-update alert suppresses it for the current session only.
 
 ### D9 — Reload behavior
 
-Install and update use Claude's standard lifecycle. On Claude Code 2.1.299, a `SessionStart` hook can return `reloadSkills: true` so a skill installed by that hook is available to the first prompt; `/reload-skills` re-scans skill and command directories, `/reload-plugins` reloads active plugins, and a new session discovers a replacement. The POC should use the standard refresh command after interactive installs and may require a new session when needed. No custom hot-reload mechanism is required.
+The recorded `SessionStart`, `reloadSkills`, and `/reload-skills` behavior applies to the historical individual-skill implementation only. D17 requires the ORAS feasibility spike to establish a supported plugin activation and reload path; the implementation must use that path and need not add custom hot reload.
 
 ### D10 — Feasibility gate
 
 Agents complete the feasibility spike, report evidence and blockers, and stop for explicit approval before implementing the full workflow. Unsupported mod behavior is a blocker to report, not permission to silently replace the intended UX.
 
-The spike was approved for full implementation on 2026-10-14; Gate G1 is cleared. The same-name skill collision caveat is accepted as a demo limitation that can be avoided by using unique skill names in the demo catalogs.
+The skill-distribution spike was approved for full implementation on 2026-10-14; Gate G1 is cleared for that historical workflow. D17 introduces Gate G3 for the ORAS full-plugin workflow. The earlier approval does not clear G3.
 
 ### D11 — Registered marketplace discovery
 
-The manager enumerates all registered marketplaces through Claude Code's `claude plugin marketplace list --json` output and uses those registrations as the authoritative all-marketplace list. Each entry's `installLocation` is the authoritative content location. A marketplace is OCI-enabled only when it contains the finalized extension-owned catalog file; absence of that file classifies the marketplace as standard-only rather than hiding it. The manager does not create or maintain a second marketplace registry.
+The manager enumerates all registered marketplaces through Claude Code's `claude plugin marketplace list --json` output and uses those registrations as the authoritative all-marketplace list. Each entry's `installLocation` is the authoritative content location. A marketplace is OCI-enabled when its marketplace manifest contains a valid manager-owned raw OCI source; absence of one classifies it as standard-only. The manager does not create or maintain a second remote marketplace registry.
 
-### D12 — `skillctl` distribution contract
+### D12 — Historical `skillctl` distribution contract (superseded by D17)
 
-The manager uses `skillctl` 0.4.0 to build, inspect, push, pull, and unpack OCI skill artifacts. A Claude-compatible artifact contains both `SKILL.md` and `skill.yaml`; `inspect` resolves the published digest without downloading layers, and `pull` retrieves and unpacks the artifact. A catalog's tagged repository reference selects the published artifact; SkillCard version and resolved digest come from `inspect` and are not stored in the catalog. The source registry is the host in the repository reference. Protected Quay credentials are reused from the local container credential stores.
+The prior POC used `skillctl` 0.4.0 to build, inspect, push, pull, and unpack individual OCI skill artifacts. This evidence is retained for the historical skill workflow only. D17 replaces it with complete plugin bundles and ORAS.
 
-### D13 — Respect the active Claude config directory for skills
+### D13 — Historical skill installation target (superseded by D17)
 
-When `CLAUDE_CONFIG_DIR` is set, the manager installs skills under `<CLAUDE_CONFIG_DIR>/skills` so Claude discovers them in that profile. With no override, it uses `~/.claude/skills`. This follows the active Claude configuration and preserves the marketplace-qualified directory name.
+The earlier skill flow installed under `<CLAUDE_CONFIG_DIR>/skills` or `~/.claude/skills`. D17 requires the ORAS plugin flow to respect the active config directory through a supported plugin installation path, which T607 must establish.
 
 ### D14 — General marketplace manager with OCI extension
 
-Marketplace listing and source registration are the manager's general-purpose core and apply to standard as well as OCI-enabled Claude marketplaces. OCI catalog parsing, skill installation, and skill updates are optional capabilities layered onto entries that provide `oci-catalog.json`. Standard plugin browsing and installation continue through Claude's native `/plugin` interface. The user clarified this product scope on 2026-10-14; T304 implements it and records live validation.
+Marketplace listing and source registration are the manager's general-purpose core and apply to standard as well as OCI-enabled Claude marketplaces. The 2026-10-14 implementation layered individual-skill installation onto that core; D17 changes the OCI payload to complete plugins. Standard plugin browsing and installation continue through Claude's native `/plugin` interface.
 
 ## Open feasibility questions
 
-None. The P0 feasibility questions are resolved, and the user has approved implementation beyond G1.
+- T607 has not tested ORAS against the demo registry or a complete plugin bundle. The supplied macOS demo host, valid registry authentication, and a real plugin-bundle source/reference are required. The feasibility spike and explicit approval Gate G3 must be completed before implementation. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
 

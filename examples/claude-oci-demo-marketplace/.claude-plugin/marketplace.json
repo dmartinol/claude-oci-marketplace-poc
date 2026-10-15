@@ -1,0 +1,14 @@
+{
+  "name": "claude-oci-demo-marketplace",
+  "description": "OCI-source marketplace fixture for Claude Marketplace Manager",
+  "owner": {
+    "name": "dmartinol"
+  },
+  "plugins": [
+    {
+      "name": "claude-oci-demo",
+      "description": "Demonstrates OCI skill distribution and reload behavior",
+      "source": "quay.io/dmartino/claude-oci-demo:0.2.0-draft"
+    }
+  ]
+}

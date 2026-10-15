@@ -1,8 +1,8 @@
 {
   "name": "marketplace-manager",
   "displayName": "Claude Marketplace Manager",
-  "version": "0.4.0",
-  "description": "List and add Claude marketplaces, with OCI skill discovery, installation, and updates as an extension",
+  "version": "0.5.0",
+  "description": "List and add Claude marketplaces, with raw OCI-source skill discovery, installation, and updates as an extension",
   "author": {
     "name": "dmartinol"
   },

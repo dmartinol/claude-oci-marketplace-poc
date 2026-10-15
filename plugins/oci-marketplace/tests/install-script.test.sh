@@ -83,4 +83,7 @@ for mode in fail-fetch missing-card wrong-name mismatch fail-activate; do
   [ ! -e "$backup" ]
 done
 
-echo 'PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.'
+reload_output=$("$plugin_root/hooks/session-start.sh")
+[ "$reload_output" = '{"hookSpecificOutput":{"hookEventName":"SessionStart","reloadSkills":true}}' ]
+
+echo 'PASS: install/replacement, SessionStart skill reload, and fetch/digest/validation/activation rollback fixtures.'

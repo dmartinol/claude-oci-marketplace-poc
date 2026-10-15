@@ -1,8 +1,14 @@
 {
   "name": "claude-oci-guide-marketplace",
-  "description": "A second OCI skill catalog for the multi-marketplace demo",
+  "description": "A second OCI-source marketplace fixture",
   "owner": {
     "name": "dmartinol"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "claude-oci-guide",
+      "description": "Demonstrates a second uniquely named OCI skill",
+      "source": "quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.2.0-draft"
+    }
+  ]
 }

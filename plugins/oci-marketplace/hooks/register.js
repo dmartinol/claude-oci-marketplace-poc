@@ -1,5 +1,5 @@
 import {
-  catalogsFromRegistrations,
+  artifactsFromRegistrations,
   identityFor,
   installDirectoryName,
   marketplacesFromRegistrations,
@@ -11,7 +11,7 @@ import {
 
 const STORE_KEY = 'installedSkills'
 const DISMISS_KEY = 'dismissedSessionId'
-const CATALOG_FILE = 'oci-catalog.json'
+const MARKETPLACE_FILE = '.claude-plugin/marketplace.json'
 const COMMAND_NAME = 'marketplace-manager'
 
 function errorText(error) {
@@ -25,7 +25,6 @@ function usage() {
     'Commands:',
     '  /marketplace-manager list',
     '  /marketplace-manager add <source>',
-    '  /marketplace-manager browse  (OCI-enabled marketplaces only)',
     '  /marketplace-manager install <skill@marketplace>',
     '  /marketplace-manager updates',
     '  /marketplace-manager installed',
@@ -57,45 +56,42 @@ async function registeredMarketplaces($) {
   return registrations
 }
 
-async function registeredCatalogs($, registrations = undefined) {
+async function registeredArtifacts($, registrations = undefined) {
   registrations ??= await registeredMarketplaces($)
-  return catalogsFromRegistrations(registrations, async (registration) => {
-    const catalogPath = `${registration.installLocation}/${CATALOG_FILE}`
-    if (!(await $.fs.exists(catalogPath))) return undefined
-    return $.fs.read(catalogPath)
+  return artifactsFromRegistrations(registrations, async (registration) => {
+    const marketplacePath = `${registration.installLocation}/${MARKETPLACE_FILE}`
+    if (!(await $.fs.exists(marketplacePath))) return undefined
+    return $.fs.read(marketplacePath)
   })
 }
 
-function formatMarketplaces(marketplaces) {
+function formatMarketplaces(marketplaces, artifacts = [], errors = []) {
   if (marketplaces.length === 0) return 'No Claude marketplaces are registered.'
-  return [
+  const lines = [
     'Registered Claude marketplaces:',
     ...marketplaces.map((marketplace) => `- ${marketplace.name} | ${marketplace.source} | ${marketplace.classification}`),
     '',
-    'Use /plugin to browse and install standard marketplace plugins.',
-    'Use /marketplace-manager browse for OCI skills from OCI-enabled marketplaces.',
-  ].join('\n')
+    ...artifacts.map((artifact) => `  - ${artifact.identity} | ${artifact.source} | ${artifact.description}`),
+    '',
+    'Use /plugin to discover and install standard marketplace plugins.',
+    'Install a listed OCI entry with /marketplace-manager install <plugin@marketplace>.',
+  ]
+  if (errors.length) lines.push('', ...errors.map((error) => `Marketplace discovery warning: ${error}`))
+  return lines.join('\n')
 }
 
 async function listMarketplaces($, registrations = undefined) {
   registrations ??= await registeredMarketplaces($)
+  const { artifacts, errors } = await registeredArtifacts($, registrations)
   const marketplaces = await marketplacesFromRegistrations(registrations, async (registration) =>
-    $.fs.exists(`${registration.installLocation}/${CATALOG_FILE}`),
+    artifacts.some((artifact) => artifact.marketplace === registration.name),
   )
-  return formatMarketplaces(marketplaces)
+  return formatMarketplaces(marketplaces, artifacts, errors)
 }
 
 async function inspectSkill($, skill) {
-  const output = await runProcess((argv, options) => $.process.run(argv, options), ['skillctl', 'inspect', skill.repository], 60000)
+  const output = await runProcess((argv, options) => $.process.run(argv, options), ['skillctl', 'inspect', skill.source], 60000)
   return parseInspection(output)
-}
-
-function flattenCatalogs(catalogs) {
-  return catalogs.flatMap((catalog) => catalog.skills.map((skill) => ({
-    ...skill,
-    marketplace: catalog.marketplace,
-    installLocation: catalog.installLocation,
-  })))
 }
 
 async function inspectedEntries($, entries) {
@@ -108,29 +104,10 @@ async function inspectedEntries($, entries) {
   }))
 }
 
-function lineFor(skill, metadata, installed) {
-  const installedText = installed
-    ? `installed v${installed.version} (${installed.digest})`
-    : 'not installed'
-  if (!metadata) return `- ${skill.identity}: metadata check failed; ${installedText}`
-  return `- ${skill.identity}: ${skill.description} | v${metadata.version} | ${skill.registry} | ${metadata.digest} | ${installedText}`
-}
-
-function formatListing(checked, errors, installed) {
-  const lines = ['OCI skills from registered marketplaces:']
-  for (const item of checked) {
-    lines.push(lineFor(item.skill, item.metadata, installed[item.skill.identity]))
-    if (item.error) lines.push(`  Metadata error: ${item.error}`)
-  }
-  for (const error of errors) lines.push(`- Catalog error: ${error}`)
-  return lines.join('\n')
-}
-
 async function checkInstalledUpdates($) {
-  const { catalogs, errors: catalogErrors } = await registeredCatalogs($)
-  const entries = flattenCatalogs(catalogs)
+  const { artifacts, errors: discoveryErrors } = await registeredArtifacts($)
   const installed = await readInstalled($)
-  const matching = entries.filter((skill) => installed[skill.identity])
+  const matching = artifacts.filter((skill) => installed[skill.identity])
   const checked = await inspectedEntries($, matching)
   const inspectErrors = checked.flatMap(({ skill, error }) => error ? [`${skill.identity}: ${error}`] : [])
   const updates = checked.flatMap(({ skill, metadata, error }) => {
@@ -138,7 +115,7 @@ async function checkInstalledUpdates($) {
     if (!metadata || metadata.digest === prior.digest) return []
     return [{ ...skill, metadata, installed: prior, inspectError: error }]
   })
-  return { updates, errors: [...catalogErrors, ...inspectErrors], installed, catalogs }
+  return { updates, errors: [...discoveryErrors, ...inspectErrors], installed, artifacts }
 }
 
 async function announceUpdates($) {
@@ -154,55 +131,10 @@ async function announceUpdates($) {
   }
 }
 
-async function browse($) {
-  const { catalogs, errors } = await registeredCatalogs($)
-  const entries = flattenCatalogs(catalogs)
-  if (entries.length === 0 && errors.length === 0) {
-    return 'No registered marketplaces contain an OCI catalog. Standard marketplace plugins remain available through /plugin. Run /marketplace-manager list to see every registered marketplace.'
-  }
-
-  const installed = await readInstalled($)
-  const checked = await inspectedEntries($, entries)
-  const listing = formatListing(checked, errors, installed)
-  const selected = await chooseSkill($, checked)
-  if (!selected) return `${listing}\n\nNo skill selected.`
-  if (selected.error) return `${listing}\n\n${selected.skill.identity}: metadata check failed: ${selected.error}`
-  const installedSkill = installed[selected.skill.identity]
-  if (installedSkill?.digest === selected.metadata.digest) {
-    return `${listing}\n\n${selected.skill.identity} is already installed at v${installedSkill.version}.`
-  }
-  const intent = installedSkill ? 'update' : 'install'
-  const result = await promptInstall($, selected.skill, selected.metadata, intent)
-  const refreshedListing = formatListing(checked, errors, await readInstalled($))
-  return `${refreshedListing}\n\n${result}`
-}
-
-async function chooseSkill($, checked) {
-  for (let offset = 0; offset < checked.length; offset += 3) {
-    const page = checked.slice(offset, offset + 3)
-    const hasMore = offset + page.length < checked.length
-    const options = page.map(({ skill }) => skill.identity)
-    options.push(hasMore ? 'More…' : 'Done')
-    let answer
-    try {
-      answer = await $.ui.ask('Choose an OCI skill to install or update.', {
-        header: 'OCI skills',
-        options,
-      })
-    } catch {
-      return undefined
-    }
-    if (answer === 'Done') return undefined
-    if (answer === 'More…') continue
-    return page.find(({ skill }) => skill.identity === answer)
-  }
-  return undefined
-}
-
 async function showInstalled($) {
   const installed = await readInstalled($)
   const entries = Object.values(installed)
-  if (entries.length === 0) return 'No OCI skills are installed yet. Run /marketplace-manager browse.'
+  if (entries.length === 0) return 'No OCI skills are installed yet. Use /plugin to discover marketplace entries.'
   return [
     'Installed OCI skills:',
     ...entries.map((item) => `- ${identityFor(item.name, item.marketplace)}: v${item.version} | ${item.registry} | ${item.digest}`),
@@ -227,7 +159,7 @@ async function performInstall($, skill, metadata, intent) {
   const backup = `${skillsRoot}/.oci-marketplace-backup-${timestamp}-${installDirectory}`
   const command = [
     shellQuote(`${$.plugin.root}/hooks/install.sh`),
-    shellQuote(skill.repository),
+    shellQuote(skill.source),
     shellQuote(metadata.digest),
     shellQuote(skill.name),
     shellQuote(stageRoot),
@@ -249,7 +181,7 @@ async function performInstall($, skill, metadata, intent) {
     installed[skill.identity] = {
       name: skill.name,
       marketplace: skill.marketplace,
-      repository: skill.repository,
+      source: skill.source,
       registry: skill.registry,
       version: metadata.version,
       digest: metadata.digest,
@@ -273,10 +205,10 @@ async function promptInstall($, skill, metadata, intent = 'install') {
 }
 
 async function installByIdentity($, requestedIdentity) {
-  const { catalogs, errors } = await registeredCatalogs($)
-  const skill = flattenCatalogs(catalogs).find((entry) => entry.identity === requestedIdentity)
+  const { artifacts, errors } = await registeredArtifacts($)
+  const skill = artifacts.find((entry) => entry.identity === requestedIdentity)
   if (!skill) {
-    const suffix = errors.length ? ` Catalog errors: ${errors.join('; ')}` : ''
+    const suffix = errors.length ? ` Marketplace errors: ${errors.join('; ')}` : ''
     return `No OCI skill named ${requestedIdentity} is available.${suffix}`
   }
   const metadata = await inspectSkill($, skill)
@@ -362,7 +294,6 @@ async function dispatch($, args) {
   const [action, ...rest] = args.split(/\s+/)
   const value = rest.join(' ').trim()
   if (action === 'list' && !value) return listMarketplaces($)
-  if (action === 'browse' && !value) return browse($)
   if (action === 'installed' && !value) return showInstalled($)
   if (action === 'updates' && !value) return reviewUpdates($)
   if (action === 'install' && value) return installByIdentity($, value)
@@ -375,7 +306,7 @@ export function register(on) {
     await $.command.register({
       name: COMMAND_NAME,
       description: 'List and add Claude marketplaces, with OCI skill management for OCI-enabled marketplaces',
-      argumentHint: '[list|add <source>|browse|install <skill@marketplace>|updates|installed]',
+      argumentHint: '[list|add <source>|install <plugin@marketplace>|updates|installed]',
     })
     const result = await next(event)
     void announceUpdates($)

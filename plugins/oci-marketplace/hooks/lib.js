@@ -17,13 +17,13 @@ export function installDirectoryName(name, marketplace) {
 
 export function parseOciReference(reference) {
   if (typeof reference !== 'string' || reference.trim() !== reference) {
-    throw new Error('repository must be a tagged OCI image reference')
+    throw new Error('source must be a tagged OCI image reference')
   }
 
   const slash = reference.indexOf('/')
   const colon = reference.lastIndexOf(':')
   if (slash < 1 || colon <= slash + 1 || colon === reference.length - 1) {
-    throw new Error(`repository must include a registry, path, and tag: ${reference}`)
+    throw new Error(`source must include a registry, path, and tag: ${reference}`)
   }
 
   const registry = reference.slice(0, slash)
@@ -37,42 +37,63 @@ export function parseOciReference(reference) {
   return { registry, repository, tag }
 }
 
-export function validateCatalog(value, marketplaceName) {
+function isOciSourceCandidate(source) {
+  if (typeof source !== 'string' || source.trim() !== source || source === '') return false
+  if (source.startsWith('oci://')) return true
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(source) || source.startsWith('git@')) return false
+  if (/^(?:github|gitlab|git|url|directory):/i.test(source)) return false
+  if (source.startsWith('./') || source.startsWith('../') || source.startsWith('/')) return false
+  const slash = source.indexOf('/')
+  if (slash < 1) return false
+  const registry = source.slice(0, slash)
+  return registry === 'localhost' || registry.includes('.') || registry.includes(':')
+}
+
+export function parseMarketplacePlugins(value, marketplaceName) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    throw new Error('catalog must be a JSON object')
+    throw new Error('marketplace manifest must be a JSON object')
   }
   validateName(marketplaceName, 'registered marketplace name')
-  if (!Array.isArray(value.skills)) {
-    throw new Error('catalog.skills must be an array')
-  }
+  if (value.plugins === undefined) return { artifacts: [], errors: [] }
+  if (!Array.isArray(value.plugins)) throw new Error('marketplace.plugins must be an array')
 
   const names = new Set()
-  return value.skills.map((skill, index) => {
-    if (!skill || typeof skill !== 'object' || Array.isArray(skill)) {
-      throw new Error(`catalog.skills[${index}] must be an object`)
-    }
-    for (const key of ['name', 'description', 'repository']) {
-      if (typeof skill[key] !== 'string' || skill[key].trim() === '') {
-        throw new Error(`catalog.skills[${index}].${key} must be a non-empty string`)
+  const artifacts = []
+  const errors = []
+  value.plugins.forEach((plugin, index) => {
+    if (!plugin || typeof plugin !== 'object' || Array.isArray(plugin) ||
+        !isOciSourceCandidate(plugin.source)) return
+    try {
+      for (const key of ['name', 'description']) {
+        if (typeof plugin[key] !== 'string' || plugin[key].trim() === '') {
+          throw new Error(`marketplace.plugins[${index}].${key} must be a non-empty string`)
+        }
       }
-    }
-    validateName(skill.name, `catalog.skills[${index}].name`)
-    if (names.has(skill.name)) {
-      throw new Error(`duplicate skill name in catalog: ${skill.name}`)
-    }
-    names.add(skill.name)
-    const reference = parseOciReference(skill.repository)
-    return {
-      name: skill.name,
-      description: skill.description.trim(),
-      repository: skill.repository,
-      marketplace: marketplaceName,
-      identity: identityFor(skill.name, marketplaceName),
-      installDirectory: installDirectoryName(skill.name, marketplaceName),
-      registry: reference.registry,
-      tag: reference.tag,
+      validateName(plugin.name, `marketplace.plugins[${index}].name`)
+      if (names.has(plugin.name)) throw new Error(`duplicate OCI plugin name in marketplace: ${plugin.name}`)
+      names.add(plugin.name)
+      const reference = parseOciReference(plugin.source)
+      artifacts.push({
+        name: plugin.name,
+        description: plugin.description.trim(),
+        source: plugin.source,
+        marketplace: marketplaceName,
+        identity: identityFor(plugin.name, marketplaceName),
+        installDirectory: installDirectoryName(plugin.name, marketplaceName),
+        registry: reference.registry,
+        tag: reference.tag,
+      })
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error))
     }
   })
+  return { artifacts, errors }
+}
+
+export function validateMarketplacePlugins(value, marketplaceName) {
+  const { artifacts, errors } = parseMarketplacePlugins(value, marketplaceName)
+  if (errors.length) throw new Error(errors.join('; '))
+  return artifacts
 }
 
 export function validateInstalledState(value) {
@@ -97,9 +118,10 @@ export function validateInstalledState(value) {
           throw new Error(`${key} must be a non-empty string`)
         }
       }
-      const reference = parseOciReference(item.repository)
+      const source = typeof item.source === 'string' ? item.source : item.repository
+      const reference = parseOciReference(source)
       if (item.registry !== reference.registry) {
-        throw new Error('registry does not match the repository reference')
+        throw new Error('registry does not match the OCI source reference')
       }
       if (!/^sha256:[a-f0-9]{64}$/.test(item.digest)) {
         throw new Error('digest must be a sha256 digest')
@@ -112,7 +134,7 @@ export function validateInstalledState(value) {
       entries[identity] = {
         name: item.name,
         marketplace: item.marketplace,
-        repository: item.repository,
+        source,
         registry: reference.registry,
         version: item.version,
         digest: item.digest,
@@ -126,27 +148,30 @@ export function validateInstalledState(value) {
   return { entries, errors }
 }
 
-export async function catalogsFromRegistrations(registrations, readCatalog) {
+export async function artifactsFromRegistrations(registrations, readMarketplace) {
   if (!Array.isArray(registrations)) {
     throw new Error('Claude marketplace list did not return an array')
   }
-  const catalogs = []
+  const artifacts = []
   const errors = []
   for (const registration of registrations) {
     if (typeof registration?.name !== 'string' || typeof registration?.installLocation !== 'string') {
       errors.push('Claude returned a marketplace without a name or installLocation')
       continue
     }
+
     try {
-      const text = await readCatalog(registration)
-      if (text === undefined || text === null) continue
-      const skills = validateCatalog(JSON.parse(text), registration.name)
-      catalogs.push({ marketplace: registration.name, installLocation: registration.installLocation, skills })
+      const text = await readMarketplace(registration)
+      if (text !== undefined && text !== null) {
+        const parsed = parseMarketplacePlugins(JSON.parse(text), registration.name)
+        artifacts.push(...parsed.artifacts)
+        errors.push(...parsed.errors.map((error) => `${registration.name}: ${error}`))
+      }
     } catch (error) {
       errors.push(`${registration.name}: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
-  return { catalogs, errors }
+  return { artifacts, errors }
 }
 
 function marketplaceSource(registration) {
@@ -168,7 +193,7 @@ function marketplaceSource(registration) {
   return 'source unavailable'
 }
 
-export async function marketplacesFromRegistrations(registrations, hasCatalog) {
+export async function marketplacesFromRegistrations(registrations, hasOciArtifacts) {
   if (!Array.isArray(registrations)) {
     throw new Error('Claude marketplace list did not return an array')
   }
@@ -180,7 +205,7 @@ export async function marketplacesFromRegistrations(registrations, hasCatalog) {
     return {
       name: registration.name,
       source: marketplaceSource(registration),
-      classification: await hasCatalog(registration) ? 'OCI-enabled' : 'standard-only',
+      classification: await hasOciArtifacts(registration) ? 'OCI-enabled' : 'standard-only',
     }
   }))
 }

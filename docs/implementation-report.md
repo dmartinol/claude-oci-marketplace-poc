@@ -1,6 +1,6 @@
 # MVP Implementation Report
 
-This report records evidence for P1–P5 tasks in [plan.md](plan.md). The P0 feasibility findings remain in [feasibility-report.md](feasibility-report.md). Full implementation was approved at G1 on 2026-10-14.
+The P1–P5 sections preserve evidence for the prior catalog-based implementation. The current raw-source revision is recorded in P6 and tracked in [plan.md](plan.md). P0 feasibility findings remain in [feasibility-report.md](feasibility-report.md). The prior flow was approved at G1 on 2026-10-14; revised source parsing was authorized at G2 on 2026-10-15.
 
 ## Scope revision — general marketplace management
 
@@ -592,3 +592,56 @@ The tracked-file review found no credential, token, private-key, authentication-
 **Final verdict: No-go for complete acceptance; revise the live rehearsal after Quay access and Claude login are available.** T503 itself is complete because its validation, secret review, acceptance outcomes, recommendation, and blockers are recorded.
 
 No credentials, authentication files, or machine-local configuration files are staged or tracked. `.serena/` and `openshell/` were not staged or modified.
+
+## P6 — OCI-source marketplace revision
+
+This section records the 2026-10-15 source-format revision. It supersedes the catalog-based behavior described in P1–P5. The normative contract is in [requirements.md](requirements.md), and the user's strict-validation and catalog-retirement decisions are in [D15/D16](decisions.md#scope-revision--oci-source-marketplace-flow-2026-10-15).
+
+### T601 — Compatibility decision
+
+On Claude Code 2.1.299, a disposable local Git marketplace with `quay.io/dmartino/claude-oci-demo:0.2.0-draft` in `plugins[].source` failed `claude plugin validate --strict` because the source must begin with `./`. The corrected `oci-demo` spike fixture isolated that source error; registering the local Git directory with `claude plugin marketplace add` succeeded and `claude plugin marketplace list --json` returned its registration and install location. No plugin install, `skillctl pull`, or registry operation ran during registration.
+
+The maintained OCI demo sample uses the required `claude-oci-demo` plugin name. Strict validation reports both the raw-source schema error and Claude's reserved third-party plugin-name error. Both are built-in validation constraints; per the user's direction, the marketplace manager reads and handles this extension-owned OCI declaration. Native `/plugin` is not used to discover OCI entries.
+
+The sandbox cannot allocate a pseudo-terminal, is not the macOS demo host, and does not have the separate demo Git URL. T605 owns the live macOS rehearsal. See the [compatibility spike](feasibility-report.md#oci-source-marketplace-compatibility-spike) for exact commands and outputs.
+
+### T602 — Registered marketplace discovery
+
+The manager now reads only `.claude-plugin/marketplace.json` from each Claude-reported `installLocation`. It recognizes tagged raw OCI references in `plugins[].source`, ignores standard relative, Git, URL, and object sources, and reports malformed likely-OCI entries without hiding valid siblings. Marketplace classification remains complete: every Claude registration stays listed, including standard-only marketplaces, and valid OCI entries appear beneath the marketplace as `name@marketplace`.
+
+The old root and guide `oci-catalog.json` fixtures and their parser are removed under D16. The demo and second-marketplace fixture now declare their OCI references directly in marketplace manifests. Older installed-state records that contain a `repository` field may still be read into canonical `source` state; this does not restore catalog-file support.
+
+### T603 — OCI lifecycle through marketplace sources
+
+Install, inspect, update, and installer calls now use the marketplace's raw `source` value. Installed records store `source`. The existing deterministic installer still stages and validates retrieved artifacts before activation and restores the prior installation after failure. The previous Claude lifecycle evidence in T006/T303 covers `SessionStart` reload behavior and the standard `/reload-skills` path; current source-based interaction fixtures cover direct install, native confirmation before the permission-checked installer, selected updates on changed digests, and dismissal/denial paths.
+
+### T604 — Command and deterministic coverage
+
+The `/marketplace-manager browse` command and chooser are absent from the dispatcher, argument hint, and user documentation. `/marketplace-manager list` prints OCI identities and sources for direct install. Standard plugin discovery remains in `/plugin`.
+
+Validation and test commands:
+
+```text
+$ claude plugin validate --strict .
+✔ Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+21 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install/replacement, SessionStart skill reload, and fetch/digest/validation/activation rollback fixtures.
+```
+
+The 21 plugin tests cover raw source parsing, malformed references, standard-only and mixed marketplaces, multiple marketplace identities, non-retrieval during listing and metadata checks, direct installation by qualified identity, approval and permission denial, update selection on a changed digest, installed-state output, and error handling. The installer fixture checks the SessionStart reloadSkills response and covers retrieval, digest, unpack/validation, activation, and rollback failures.
+
+The strict validator was also run against `examples/claude-oci-demo-marketplace`; it rejected the expected raw OCI `source` and the reserved `claude-oci-demo` plugin name. The manager parser accepts this entry; the source parser's deterministic tests exercise the same shape without invoking Claude's built-in validator.
+
+### T605–T606 — Live rehearsal and demo guide
+
+T605 remains blocked because this sandbox lacks the supplied separate demo Git URL and current Quay authentication and cannot run the interactive macOS acceptance session. The earlier live reports record Quay HTTP 401 responses and missing Claude model login. No artifact was published during this revision. T606 remains dependent on T605; the root README now documents the current command contract and links to the plan, but a human-run `docs/demo/README.md` is deferred until the real acceptance flow can be replayed.
+
+The final local documentation scan resolved 53 relative Markdown links, and the bootstrap marketplace, manager plugin, demo marketplace, and guide marketplace JSON files parsed successfully.

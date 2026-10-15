@@ -20,7 +20,7 @@ test('registers the generic marketplace manager command and shows its actions', 
   const answer = await $.command.run({ command: 'marketplace-manager', args: '' })
 
   expect(registeredCommand.name).toBe('marketplace-manager')
-  expect(registeredCommand.argumentHint).toBe('[list|add <source>|browse|install <skill@marketplace>|updates|installed]')
+  expect(registeredCommand.argumentHint).toBe('[list|add <source>|install <plugin@marketplace>|updates|installed]')
   expect(answer.text).toContain('/marketplace-manager list')
   expect(answer.text).toContain('/marketplace-manager updates')
 })
@@ -41,126 +41,25 @@ test('lists every registered marketplace with its source and capability', async 
     invocations.push(event.argv)
     return { value: { exitCode: 0, stdout: JSON.stringify(registrations), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
-  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-marketplace/oci-catalog.json' }))
+  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-marketplace/.claude-plugin/marketplace.json' }))
+  on('fs.read', (_, event) => ({ value: JSON.stringify({ plugins: [{
+    name: 'demo', description: 'OCI demo', source: 'quay.io/example/demo:1.0.0',
+  }] }) }))
 
   const answer = await $.command.run({ command: 'marketplace-manager', args: 'list' })
 
   expect(answer.text).toContain('- standard-marketplace | github: example/standard | standard-only')
   expect(answer.text).toContain('- oci-marketplace | git: https://example.invalid/oci.git | OCI-enabled')
-  expect(answer.text).toContain('Use /plugin to browse and install standard marketplace plugins.')
-  expect(answer.text).toContain('/marketplace-manager browse')
+  expect(answer.text).toContain('demo@oci-marketplace | quay.io/example/demo:1.0.0 | OCI demo')
+  expect(answer.text).toContain('Use /plugin to discover and install standard marketplace plugins.')
+  expect(answer.text).toContain('/marketplace-manager install <plugin@marketplace>')
   expect(invocations).toEqual([['claude', 'plugin', 'marketplace', 'list', '--json']])
-})
-
-test('browses multiple OCI catalogs and ignores standard-only marketplaces', async ($, on) => {
-  const catalogs = [
-    { name: 'marketplace-one', installLocation: '/tmp/marketplace-one' },
-    { name: 'standard-only', installLocation: '/tmp/standard-only' },
-    { name: 'marketplace-two', installLocation: '/tmp/marketplace-two' },
-  ]
-  const document = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
-  const installed = {
-    'guide@marketplace-one': {
-      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
-      registry: 'quay.io', version: '1.1.0', digest: oldDigest,
-      installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
-    },
-  }
-  const invocations: string[][] = []
-  on('process.run', (_, event) => {
-    invocations.push(event.argv)
-    if (event.argv[0] === 'claude') {
-      return { value: { exitCode: 0, stdout: JSON.stringify(catalogs), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
-    }
-    return { value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
-  })
-  on('store.get', () => ({ value: installed }))
-  on('fs.exists', (_, event) => ({ value: event.path !== '/tmp/standard-only/oci-catalog.json' }))
-  on('fs.read', () => ({ value: document }))
-  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => ({
-    result: { questions: event.questions, answers: { [event.questions[0].question]: 'Done' } },
-  }))
-
-  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
-
-  expect(answer.text).toContain('guide@marketplace-one')
-  expect(answer.text).toContain('guide@marketplace-two')
-  expect(answer.text).not.toContain('guide@standard-only')
-  expect(answer.text).toContain('v1.2.0 | quay.io |')
-  expect(answer.text).toContain(newDigest)
-  expect(answer.text).toContain(`installed v1.1.0 (${oldDigest})`)
-  expect(invocations).toEqual([
-    ['claude', 'plugin', 'marketplace', 'list', '--json'],
-    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
-    ['skillctl', 'inspect', 'quay.io/example/guide:1.2.0'],
-  ])
-})
-
-test('selects a browser entry and can cancel before retrieval', async ($, on) => {
-  const calls: string[][] = []
-  let bashCalls = 0
-  on('process.run', (_, event) => {
-    calls.push(event.argv)
-    return event.argv[0] === 'claude'
-      ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-      : ({ value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-  })
-  on('store.get', () => ({ value: undefined }))
-  on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
-  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
-    const question = event.questions[0].question
-    const answer = question.startsWith('Choose an OCI skill') ? 'guide@marketplace-one' : 'Cancel'
-    return { result: { questions: event.questions, answers: { [question]: answer } } }
-  })
-  on('tool.call', { tool: 'Bash' }, () => {
-    bashCalls += 1
-    return { result: { text: 'unexpected install' } }
-  })
-
-  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
-
-  expect(answer.text).toContain('guide@marketplace-one')
-  expect(answer.text).toContain('install cancelled')
-  expect(bashCalls).toBe(0)
-  expect(calls.some((argv) => argv[0] === 'skillctl' && argv[1] === 'pull')).toBe(false)
-})
-
-test('refreshes browse status after a successful install', async ($, on) => {
-  const digest = newDigest
-  const state: Record<string, unknown> = {}
-  let questionCount = 0
-  let envReadCount = 0
-  on('process.run', (_, event) => event.argv[0] === 'claude'
-    ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
-    : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
-  on('store.get', (_, event) => ({ value: state[event.key] }))
-  on('store.set', (_, event) => {
-    state[event.key] = event.value
-    return { value: undefined }
-  })
-  on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
-  on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
-  on('clock.now', () => ({ value: 1791936000000 }))
-  on('ui.status', () => ({ value: undefined }))
-  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
-    questionCount += 1
-    const answer = questionCount === 1 ? 'guide@marketplace-one' : 'Continue'
-    return { result: { questions: event.questions, answers: { [event.questions[0].question]: answer } } }
-  })
-  on('tool.call', { tool: 'Bash' }, () => ({ result: { text: 'Activated skill' } }))
-
-  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
-
-  expect(answer.text).toContain(`installed v1.2.0 (${digest})`)
-  expect(answer.text).not.toContain('not installed')
 })
 
 test('dismisses update alerts for the rest of the session', async ($, on) => {
   const installed = {
     'guide@marketplace-one': {
-      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
       registry: 'quay.io', version: '1.1.0', digest: oldDigest, installDirectory: 'guide@marketplace-one',
     },
   }
@@ -182,7 +81,7 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
     return { value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('fs.read', () => ({ value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] }) }))
   let dialogs = 0
   on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
     dialogs += 1
@@ -203,7 +102,7 @@ test('dismisses update alerts for the rest of the session', async ($, on) => {
 test('manual update check reports unchanged skills without an alert', async ($, on) => {
   const installed = {
     'guide@marketplace-one': {
-      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
       registry: 'quay.io', version: '1.2.0', digest: newDigest,
       installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
     },
@@ -219,7 +118,7 @@ test('manual update check reports unchanged skills without an alert', async ($, 
       : ({ value: { exitCode: 0, stdout: inspectOutput(newDigest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
   })
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('fs.read', () => ({ value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] }) }))
   on('ui.toast', () => {
     toasts += 1
     return { value: undefined }
@@ -235,11 +134,11 @@ test('manual update check reports unchanged skills without an alert', async ($, 
   ])
 })
 
-test('isolates update digests by marketplace and reports one catalog metadata error', async ($, on) => {
+test('isolates update digests by marketplace and reports one OCI source metadata error', async ($, on) => {
   const installed = Object.fromEntries(['one', 'two', 'three'].map((suffix, index) => {
     const marketplace = `marketplace-${suffix}`
     return [`guide@${marketplace}`, {
-      name: 'guide', marketplace, repository: `quay.io/example/guide-${suffix}:1.2.0`,
+      name: 'guide', marketplace, source: `quay.io/example/guide-${suffix}:1.2.0`,
       registry: 'quay.io', version: '1.1.0', digest: oldDigest,
       installDirectory: `guide@${marketplace}`, installedAt: '2026-10-14T00:00:00.000Z',
     }]
@@ -269,7 +168,7 @@ test('isolates update digests by marketplace and reports one catalog metadata er
   on('fs.exists', () => ({ value: true }))
   on('fs.read', (_, event) => {
     const suffix = event.path.includes('marketplace-one') ? 'one' : event.path.includes('marketplace-two') ? 'two' : 'three'
-    return { value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: `quay.io/example/guide-${suffix}:1.2.0` }] }) }
+    return { value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: `quay.io/example/guide-${suffix}:1.2.0` }] }) }
   })
   on('ui.toast', () => {
     eventOrder.push('toast')
@@ -297,12 +196,12 @@ test('isolates update digests by marketplace and reports one catalog metadata er
 test('summarizes multiple updates, retains a subset, and postpones without pulling', async ($, on) => {
   const installed = {
     'guide@marketplace-one': {
-      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
       registry: 'quay.io', version: '1.1.0', digest: oldDigest,
       installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
     },
     'reference@marketplace-two': {
-      name: 'reference', marketplace: 'marketplace-two', repository: 'quay.io/example/reference:1.2.0',
+      name: 'reference', marketplace: 'marketplace-two', source: 'quay.io/example/reference:1.2.0',
       registry: 'quay.io', version: '1.1.0', digest: oldDigest,
       installDirectory: 'reference@marketplace-two', installedAt: '2026-10-14T00:00:00.000Z',
     },
@@ -333,7 +232,7 @@ test('summarizes multiple updates, retains a subset, and postpones without pulli
   on('fs.read', (_, event) => {
     const marketplace = event.path.includes('marketplace-one') ? 'marketplace-one' : 'marketplace-two'
     const name = marketplace === 'marketplace-one' ? 'guide' : 'reference'
-    return { value: JSON.stringify({ skills: [{ name, description: 'A demo skill', repository: `quay.io/example/${name}:1.2.0` }] }) }
+    return { value: JSON.stringify({ plugins: [{ name, description: 'A demo skill', source: `quay.io/example/${name}:1.2.0` }] }) }
   })
   on('ui.toast', () => {
     eventOrder.push('toast')
@@ -368,12 +267,12 @@ test('summarizes multiple updates, retains a subset, and postpones without pulli
 test('applies only selected updates and persists only their new metadata', async ($, on) => {
   const installed = {
     'guide@marketplace-one': {
-      name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+      name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
       registry: 'quay.io', version: '1.1.0', digest: oldDigest,
       installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
     },
     'reference@marketplace-two': {
-      name: 'reference', marketplace: 'marketplace-two', repository: 'quay.io/example/reference:1.2.0',
+      name: 'reference', marketplace: 'marketplace-two', source: 'quay.io/example/reference:1.2.0',
       registry: 'quay.io', version: '1.1.0', digest: oldDigest,
       installDirectory: 'reference@marketplace-two', installedAt: '2026-10-14T00:00:00.000Z',
     },
@@ -402,7 +301,7 @@ test('applies only selected updates and persists only their new metadata', async
   on('fs.read', (_, event) => {
     const marketplace = event.path.includes('marketplace-one') ? 'marketplace-one' : 'marketplace-two'
     const name = marketplace === 'marketplace-one' ? 'guide' : 'reference'
-    return { value: JSON.stringify({ skills: [{ name, description: 'A demo skill', repository: `quay.io/example/${name}:1.2.0` }] }) }
+    return { value: JSON.stringify({ plugins: [{ name, description: 'A demo skill', source: `quay.io/example/${name}:1.2.0` }] }) }
   })
   let envReadCount = 0
   on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
@@ -436,7 +335,7 @@ test('applies only selected updates and persists only their new metadata', async
 
 test('failed selected update preserves v1 installed state', async ($, on) => {
   const record = {
-    name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+    name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
     registry: 'quay.io', version: '1.1.0', digest: oldDigest,
     installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
   }
@@ -454,7 +353,7 @@ test('failed selected update preserves v1 installed state', async ($, on) => {
     ? ({ value: { exitCode: 0, stdout: JSON.stringify([{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     : ({ value: { exitCode: 0, stdout: `Version: 0.2.0\nDigest: ${newDigest}\n`, stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('fs.read', () => ({ value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] }) }))
   let envReadCount = 0
   on('env.get', () => ({ value: envReadCount++ % 2 === 0 ? '/tmp/demo-home' : undefined }))
   on('clock.now', () => ({ value: 1791936000000 }))
@@ -482,7 +381,7 @@ test('failed selected update preserves v1 installed state', async ($, on) => {
 test('persists a successful install and shows it in a later installed view', async ($, on) => {
   const digest = newDigest
   const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
-  const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  const manifest = JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] })
   const store: Record<string, unknown> = {}
   const actionOrder: string[] = []
   let bashCommand = ''
@@ -491,7 +390,7 @@ test('persists a successful install and shows it in a later installed view', asy
     ? ({ value: { exitCode: 0, stdout: JSON.stringify(registration), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
     : ({ value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: catalog }))
+  on('fs.read', () => ({ value: manifest }))
   on('store.get', (_, event) => ({ value: store[event.key] }))
   on('store.set', (_, event) => {
     store[event.key] = event.value
@@ -520,7 +419,7 @@ test('persists a successful install and shows it in a later installed view', asy
   expect(record).toEqual({
     name: 'guide',
     marketplace: 'marketplace-one',
-    repository: 'quay.io/example/guide:1.2.0',
+    source: 'quay.io/example/guide:1.2.0',
     registry: 'quay.io',
     version: '1.2.0',
     digest,
@@ -536,13 +435,13 @@ test('persists a successful install and shows it in a later installed view', asy
 test('cancelled and failed installs do not change installed state', async ($, on) => {
   const digest = newDigest
   const record = {
-    name: 'guide', marketplace: 'marketplace-one', repository: 'quay.io/example/guide:1.2.0',
+    name: 'guide', marketplace: 'marketplace-one', source: 'quay.io/example/guide:1.2.0',
     registry: 'quay.io', version: '1.1.0', digest: oldDigest,
     installDirectory: 'guide@marketplace-one', installedAt: '2026-10-14T00:00:00.000Z',
   }
   const store: Record<string, unknown> = { installedSkills: { 'guide@marketplace-one': record } }
   const registration = [{ name: 'marketplace-one', installLocation: '/tmp/marketplace-one' }]
-  const catalog = JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] })
+  const manifest = JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] })
   let questionCount = 0
   let writes = 0
   let bashCalls = 0
@@ -556,7 +455,7 @@ test('cancelled and failed installs do not change installed state', async ($, on
     return { value: { exitCode: 0, stdout: inspectOutput(digest), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: catalog }))
+  on('fs.read', () => ({ value: manifest }))
   on('store.get', (_, event) => ({ value: store[event.key] }))
   on('store.set', (_, event) => {
     writes += 1
@@ -607,7 +506,7 @@ test('reports skillctl process and metadata failures clearly', async ($, on) => 
     return { value: { exitCode: 0, stdout: 'Version: 1.2.0\n', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
   })
   on('fs.exists', () => ({ value: true }))
-  on('fs.read', () => ({ value: JSON.stringify({ skills: [{ name: 'guide', description: 'A demo guide', repository: 'quay.io/example/guide:1.2.0' }] }) }))
+  on('fs.read', () => ({ value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] }) }))
 
   const processFailure = await $.command.run({ command: 'marketplace-manager', args: 'install guide@marketplace-one' })
   failureMode = 'metadata'
@@ -648,13 +547,14 @@ test('adds standard-only and OCI marketplaces at user scope, then refreshes disc
       isStderrTruncated: false,
     },
   }))
-  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-enabled/oci-catalog.json' }))
+  on('fs.exists', (_, event) => ({ value: event.path === '/tmp/oci-enabled/.claude-plugin/marketplace.json' }))
+  on('fs.read', () => ({ value: JSON.stringify({ plugins: [{ name: 'guide', description: 'A demo guide', source: 'quay.io/example/guide:1.2.0' }] }) }))
 
   const standard = await $.command.run({ command: 'marketplace-manager', args: 'add https://example.invalid/standard.git' })
   const oci = await $.command.run({ command: 'marketplace-manager', args: 'add ssh://git@example.invalid/oci.git' })
 
   expect(standard.text).toContain('- standard-only | github: example/standard | standard-only')
-  expect(standard.text).toContain('/plugin to browse and install standard marketplace plugins')
+  expect(standard.text).toContain('/plugin to discover and install standard marketplace plugins')
   expect(oci.text).toContain('- standard-only | github: example/standard | standard-only')
   expect(oci.text).toContain('- oci-enabled | git: https://example.invalid/oci.git | OCI-enabled')
   expect(commands).toEqual([

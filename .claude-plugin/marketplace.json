@@ -8,7 +8,7 @@
     {
       "name": "marketplace-manager",
       "source": "./plugins/oci-marketplace",
-      "description": "List and add Claude marketplaces, with OCI skill discovery, installation, and updates as an extension"
+      "description": "List and add Claude marketplaces, with raw OCI-source skill discovery, installation, and updates as an extension"
     }
   ]
 }

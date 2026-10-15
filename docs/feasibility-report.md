@@ -701,3 +701,99 @@ No requirement conflicts were found, and no requirement changes are proposed. Th
 
 **Go to G1 review.** All P0 feasibility tasks are complete, and the prior reload and catalog questions in `docs/decisions.md` are resolved. Review this report and authorize full implementation explicitly before starting P1–P5. This recommendation does not clear G1 by itself.
 
+## OCI-source marketplace compatibility spike
+
+**Task:** T601 — Probe stock Claude compatibility for raw OCI source entries
+
+**Result:** Strict validation rejects the raw OCI source; the user confirmed this is expected because the manager parses it. Native local Git marketplace registration succeeds. OCI entry visibility in native `/plugin` is not required by the accepted product direction.
+
+**Observed:** 2026-10-15 (UTC), Linux sandbox; not the macOS demo host.
+
+### Environment and command versions
+
+```text
+$ uname -a
+Linux sandbox-codex-sandbox 6.12.7-200.fc41.aarch64 #1 SMP PREEMPT_DYNAMIC Fri Dec 27 17:14:27 UTC 2024 aarch64 aarch64 aarch64 GNU/Linux
+
+$ git --version
+git version 2.43.0
+
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl version
+unknown command "version" for "skillctl"
+
+$ skillctl --version
+skillctl version 0.4.0
+```
+
+The supported version switch is `skillctl --version`. The earlier P0 report records the macOS demo host as of 2026-10-13 (Claude Code 2.1.296, `skillctl` 0.4.0, Git 2.50.1); this session has no access to that host, so those values were not refreshed.
+
+### Maintained repository shape
+
+On Claude Code 2.1.299, both existing marketplace/plugin shapes still pass strict validation:
+
+```text
+$ claude plugin validate --strict .
+✔ Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
+```
+
+The manager validation output listed the current `SessionStart` and `command.run` hooks and calls to `$.command.register`, `$.ui.toast`, `$.ui.ask`, `$.tool.call`, `$.ui.status`, `$.process.run`, and filesystem/store APIs. Prior evidence in T003/T006 and implementation task T304 records the deterministic command/UI/permission path, session hook/reload behavior, and successful `/marketplace-manager list` execution on Claude Code 2.1.299. That evidence applies to the mod API, not to the revised OCI-source manifest compatibility.
+
+The available CLI exposes `claude plugin validate --strict` and native `claude plugin marketplace add <source>` / `list --json` commands. The manager's old authoritative discovery approach is recorded in T004/T201/T304: query Claude's registration list and read each reported `installLocation`. The manager must parse the raw OCI source from that installed marketplace content.
+
+### Raw OCI source validation and registration
+
+A disposable local Git working tree was created with `.claude-plugin/marketplace.json` containing a plugin entry with non-empty `name` and `description`, and the documented tagged reference `quay.io/dmartino/claude-oci-demo:0.2.0-draft` directly in `source` (no `oci://`). The initial validation also identified a reserved `claude-` plugin name; after changing only the entry name to `oci-demo`, strict validation isolated the source-field error:
+
+```text
+$ claude plugin validate --strict <temporary-marketplace-directory>
+Validating marketplace manifest: .../.claude-plugin/marketplace.json
+✘ Found 1 error:
+  ❯ plugins.0.source: Invalid string: must start with "./"
+✘ Validation failed
+strict validation exit: 1
+```
+
+Native registration of that local Git working tree by directory path succeeded even though strict validation fails:
+
+```text
+$ CLAUDE_CONFIG_DIR=<disposable-profile> claude plugin marketplace add <local-git-directory> --scope user --json
+{"command":"marketplace-add","outcome":"ok","marketplace":"oci-source-compatibility-probe", ...}
+
+$ CLAUDE_CONFIG_DIR=<disposable-profile> claude plugin marketplace list --json
+[{"name":"oci-source-compatibility-probe","source":"directory","path":"<local-git-directory>","installLocation":"<local-git-directory>"}]
+```
+
+The first disposable manifest used the reserved name `claude-oci-demo`; that produced a second strict validation error. The source-only result above uses `oci-demo` and is the controlling validation evidence. The CLI registration test used a local Git working tree because no separate demo marketplace Git URL was supplied in this session. No plugin install, `skillctl` pull, or registry request was invoked. The registration and `marketplace list` commands returned without starting an artifact operation. `/plugin` visibility and entry viewing were not checked because the sandbox cannot allocate a pseudo-terminal:
+
+```text
+$ exec_command(..., tty=true)
+failed to openpty: Permission denied
+
+$ script -q -c 'claude --version' /dev/null
+script: failed to create pseudo-terminal: Permission denied
+```
+
+The user clarified on 2026-10-15 that strict-validator rejection is expected because the manager plugin parses the raw OCI source field; native Claude commands are not expected to parse it. The manager lists OCI qualified identities and installs them directly. No plugin install, `skillctl` pull, or registry request was invoked during registration. Deterministic tests now confirm that listing uses only `skillctl inspect` for installed update checks and never pulls artifact layers.
+
+### Blocker and recommendation
+
+Strict validation rejects the raw source as expected, and the user directed implementation to proceed with manager-owned parsing and retire legacy catalogs. The local marketplace directory registers successfully. The available host is Linux rather than macOS, no separate demo marketplace Git URL was supplied, and pseudo-terminal creation is denied; T605 therefore still needs the supplied host, URL, and registry access for the full human-run rehearsal. Native `/plugin` visibility for OCI entries is outside the accepted product scope. See [D15/D16](decisions.md#scope-revision--oci-source-marketplace-flow-2026-10-15) and [T601/G2](plan.md#p6--oci-source-marketplace-revision).
+
+## ORAS plugin bundle feasibility spike
+
+**Status:** Not run. This section tracks the revised requirement for complete Claude plugin bundles; the earlier skillctl probes do not establish ORAS behavior.
+
+No ORAS version or ORAS command against the supplied registry or a complete plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for the supplied skillctl artifact references and the prior rehearsal lacked the macOS demo host and separate demo marketplace URL. Those observations are blockers to recheck, not evidence that ORAS itself fails.
+
+**Required inputs:** supplied macOS demo host, valid registry authentication, a complete plugin directory/archive, and its approved registry reference. Never expose credentials in this report.
+
+**Evidence to record:** OS, Claude Code, ORAS, and Git versions; exact ORAS push, manifest-fetch, and pull commands and output; artifact/layer media types; title/version annotations; resolved digest; proof manifest checks do not fetch layers; credential reuse behavior; Claude plugin validation; supported persistent activation and reload behavior; and all blockers.
+
+Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
+
