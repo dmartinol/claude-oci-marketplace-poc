@@ -146,3 +146,57 @@ test('failed update reports helper error and does not write installed state', as
   expect(answer.text).toContain('previous plugin retained')
   expect(writes).toEqual(['dismissedSessionId'])
 })
+
+test('startup emits a non-blocking update notice when the session has not dismissed it', async ($, on) => {
+  let resolveNotice: (value: string) => void = () => {}
+  const notice = new Promise<string>((resolve) => { resolveNotice = resolve })
+  const calls: string[][] = []
+  let mutations = 0
+  on('store.get', () => ({ value: undefined }))
+  on('session.id', () => ({ value: 'fresh-session' }))
+  on('process.run', (_, event) => { calls.push(event.argv); return processResult(updates) })
+  on('ui.toast', (_, event) => { resolveNotice(event.text); return { value: undefined } })
+  on('tool.call', { tool: 'Bash' }, () => { mutations += 1; return { result: { text: '{}' } } })
+  on('command.register', (_, event) => ({ value: { command: event.name } }))
+  on('session.start', (_, event) => ({ cwd: event.cwd }))
+  await $.session.start({ cwd: '/tmp/manager-test', surface: null, isInteractive: false })
+  expect(await notice).toContain('1 OCI plugin update available')
+  expect(calls).toHaveLength(1)
+  expect(calls[0][2]).toBe('updates')
+  expect(mutations).toBe(0)
+})
+
+test('multi-page update selection preserves marketplace identities and skips unselected plugins', async ($, on) => {
+  const pending = ['one', 'two', 'three', 'four', 'five'].map((marketplace, index) => ({
+    ...plugin, identity: `demo@${marketplace}`, marketplace,
+    installedVersion: '0.1.0', metadata: { version: `0.2.${index}`, digest: `sha256:${String(index + 1).repeat(64)}` },
+  }))
+  const prompts: string[] = []
+  const commands: string[] = []
+  on('process.run', () => processResult({ updates: pending, errors: [] }))
+  on('store.set', () => ({ value: undefined }))
+  on('tool.call', { tool: 'AskUserQuestion' }, (_, event) => {
+    prompts.push(event.questions[0].question)
+    const answers = ['Update 2, More…', 'Update 5', 'Apply selected']
+    return askResult(event, answers[prompts.length - 1])
+  })
+  on('tool.call', { tool: 'Bash' }, (_, event) => {
+    commands.push(event.command)
+    const text = JSON.stringify({ text: 'Selected plugin updated.' })
+    return { result: { text }, text }
+  })
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'updates' })
+  expect(prompts).toHaveLength(3)
+  expect(prompts[0]).toContain('demo@one')
+  expect(prompts[0]).toContain('demo@three')
+  expect(prompts[1]).toContain('demo@four')
+  expect(prompts[1]).toContain('demo@five')
+  expect(prompts[2]).toContain('Apply 2 selected OCI plugin updates')
+  expect(commands).toHaveLength(2)
+  expect(commands[0]).toContain(`'update' 'demo@two' '${pending[1].metadata.digest}' '0.2.1'`)
+  expect(commands[1]).toContain(`'update' 'demo@five' '${pending[4].metadata.digest}' '0.2.4'`)
+  expect(commands.join('\n')).not.toContain("'demo@one'")
+  expect(commands.join('\n')).not.toContain("'demo@three'")
+  expect(commands.join('\n')).not.toContain("'demo@four'")
+  expect(answer.text).toContain('Selected plugin updated.')
+})

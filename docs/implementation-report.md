@@ -748,3 +748,21 @@ The integration review caught that initial helper listing omitted standard plugi
 Validation: nine focused mod interaction tests pass; strict Claude plugin validation and shell hook syntax pass. A live `claude --plugin-dir ... -p '/marketplace-manager list'` command works. A disposable mod calling the real Bash tool with a read-only JSON stdout probe verified that `ToolCallResult.text` contains the helper's JSON stdout, matching the mutation parsing contract. This headless probe allowed only its static `printf` command; it did not bypass product download confirmation or permissions. A TTY session cannot be opened inside this sandbox (`openpty: Permission denied`), so the final interactive product permission/UI check remains part of T613.
 
 The native lifecycle was additionally tested through a supported downgrade to v1 and restore to v2; both helper calls succeeded. No undocumented Claude state was edited.
+
+## T612 — Focused checks (2026-10-15)
+
+**Result: Done (R3–R15).** The deterministic helper suite covers tagged OCI source parsing, generated local paths and provenance, native marketplace registration and plugin installation, standard-only and mixed marketplace behavior, discovery of native-installed plugins, metadata-only update checks, same-version digest changes, digest-pinned application after a tag moves, and preservation/recovery of the working plugin after pull, validation, or native update failure.
+
+The manager interaction suite covers confirmation before add permissions, cancellation and permission denial, native installed-state display, selected digest-pinned updates, dismissal and manual refresh, startup notices without mutation, and paged selection of multiple same-name plugins by qualified marketplace identity.
+
+```text
+$ python3 -m unittest discover -s plugins/oci-marketplace/tests -p 'test_*.py' -v
+Ran 29 tests in 0.086s
+OK
+
+$ claude plugin test ./plugins/oci-marketplace
+11 pass
+0 fail
+```
+
+`git diff --check` also passed. These focused checks validate the current POC helper and mod interactions; the configured Mac's complete installed-manager rehearsal remains T613.

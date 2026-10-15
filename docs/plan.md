@@ -80,9 +80,11 @@ Reuse the current mod command, confirmation, and SessionStart architecture. Alig
 
 ## T612 — Focused checks
 
-**Status:** In progress. **Requirements:** R3–R15. **Depends on:** T609–T611.
+**Status:** Done. **Requirements:** R3–R15. **Depends on:** T609–T611.
 
-Cover source parsing, generated local paths and provenance, native registration/install calls, standard compatibility, native-installed plugin discovery, metadata-only checks, approval before pulls, selected digest-pinned updates, and keeping the working plugin on failure. Prefer focused deterministic helper tests; no broad production test framework.
+Evidence: [T612 focused checks](implementation-report.md#t612--focused-checks-2026-10-15).
+
+The focused deterministic helper and UI tests cover source parsing, generated local paths and provenance, native registration/install calls, standard compatibility, native-installed plugin discovery, metadata-only checks, approval before pulls, selected digest-pinned updates, startup notice behavior, paged selection, and keeping the working plugin on failure. No broad production test framework was added.
 
 ## T613 — Rehearse the developer flow
 
