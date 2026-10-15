@@ -1,6 +1,6 @@
 # OCI demo plugin
 
-Copy the `v1` and `v2` example files into local directories, preserving their paths; no clone of this repository is required. Use the file links in the [demo guide](../../docs/demo/README.md#1-create-or-copy-a-plugin-and-publish-v1).
+Copy the `v1` and `v2` example files into local directories, preserving their paths; no clone of this repository is required. Use the file links in the [demo guide](../../docs/demo/README.md#1-copy-the-plugin-and-publish-v1).
 
 Each version is a complete Claude plugin root with `.claude-plugin/plugin.json` and `skills/demo/SKILL.md`. Invoke it as `/oci-demo-plugin:demo`:
 
@@ -44,24 +44,24 @@ After validating v1 in Claude, publish v2 to the same `OCI_REF` with version ann
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-ORAS creates the `application/vnd.oci.image.layer.v1.tar+gzip` layer and extracts it on pull. No intermediate tarball or package script is needed. Put the exact `OCI_REF` in your GitHub marketplace plugin entry’s `source` field. Add that Git URL through marketplace-manager; it will extract the plugin and register a native-compatible local marketplace visible in `/plugin` and the manager. This materialization flow remains pending implementation; see the [plan](../../docs/plan.md).
+ORAS creates the `application/vnd.oci.image.layer.v1.tar+gzip` layer and extracts it on pull. No intermediate tarball or package script is needed. Put the exact `OCI_REF` in the GitHub marketplace plugin entry's `source` field. The project keeps its bootstrap marketplace on `main` and its OCI demo marketplace on the `oci-demo-marketplace` branch of the same repository.
 
 ## Declare the plugin in your GitHub marketplace
 
-Create `.claude-plugin/marketplace.json` in your own GitHub repository, using the web editor or your existing Git tools:
+For the project rehearsal, use the already published `.claude-plugin/marketplace.json` on the `oci-demo-marketplace` branch. To publish a different plugin reference, edit that file on a branch you can publish using GitHub's web editor or your existing Git tools:
 
 ```json
 {
-  "name": "oci-demo-marketplace",
-  "owner": { "name": "Your name" },
+  "name": "claude-oci-demo-marketplace",
+  "owner": { "name": "dmartinol" },
   "plugins": [
     {
       "name": "oci-demo-plugin",
-      "description": "Complete OCI plugin demo",
-      "source": "<replace with the exact OCI_REF you published>"
+      "description": "Demonstrates complete OCI plugin distribution and updates",
+      "source": "quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft"
     }
   ]
 }
 ```
 
-Replace the placeholder with your raw tagged Quay reference, without `oci://`. The source configuration stays on GitHub; the manager generates local plugin paths after extraction. The [developer walkthrough](../../docs/demo/README.md) shows manager installation by URL and the intended add/install/update steps. Publishing the examples and installing the bootstrap are verified; marketplace materialization still awaits the feasibility gate.
+Use the raw tagged Quay reference without `oci://`. The manager retrieves the marketplace branch, extracts the OCI plugin, and registers a generated native-compatible marketplace. Follow the [developer walkthrough](../../docs/demo/README.md) to add it by its Git URL without cloning this repository.

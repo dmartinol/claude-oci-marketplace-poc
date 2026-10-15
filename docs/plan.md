@@ -4,9 +4,9 @@ Follow [requirements.md](requirements.md). Product choices are in [decisions.md]
 
 ## Current scope and evidence
 
-The clarified developer flow requires a generated native-compatible local marketplace, visible in both `/plugin` and `/marketplace-manager`, with no developer checkout of this repository. Earlier manager-only OCI discovery is superseded.
+The clarified developer flow requires a generated native-compatible local marketplace, visible in both `/plugin` and `/marketplace-manager`, with no developer checkout of this repository. The bootstrap stays on `main`; the demo marketplace is published on `oci-demo-marketplace` in the same GitHub repository and is selected with the supported `#ref` URL form. Earlier manager-only OCI discovery is superseded.
 
-Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux spike also passes registry push/pull by digest, generated marketplace registration, native v1 install/v2 update, and failed-pull preservation. macOS interactive behavior and the complete manager workflow remain unverified. The manager now uses the bundled ORAS/native-marketplace helper; the full developer rehearsal remains T613.
+Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux rehearsal installed manager 0.6.0 by URL into a fresh profile, fetched the same-repository demo branch through the helper, extracted and registered its OCI plugin, installed and invoked v1, detected and applied a same-tag v2 digest, and retained v2 after a failed update. The final macOS manager UI rehearsal remains T613.
 
 Use Done, In progress, Backlog, or Blocked. Only mark work Done with evidence. Keep one task In progress. Do not repeat unchanged checks or add production infrastructure.
 
@@ -88,15 +88,15 @@ The focused deterministic helper and UI tests cover source parsing, generated lo
 
 ## T613 — Rehearse the developer flow
 
-**Status:** Backlog. **Requirements:** R1–R15. **Depends on:** T608–T612.
+**Status:** In progress. **Requirements:** R1–R15. **Depends on:** T608–T612.
 
-Run the seven acceptance steps in requirements.md on the configured Mac with a fresh Claude profile. Use the published manager and a separate GitHub marketplace; copy examples without cloning the POC. Verify both plugin interfaces, v1 invocation, same-tag update notice, v2 after restart, and a failed update. Record concise command/output evidence without secrets.
+Linux rehearsal evidence: [T613 same-repository developer flow](implementation-report.md#t613--same-repository-developer-flow-2026-10-15). The bootstrap and demo marketplace use the same repository on separate branches. The fresh-profile Linux run validated both registered marketplace rows, native install, v1/v2 invocation, metadata-only update detection, and failed-update preservation. The remaining Mac check is to install the manager by URL in a fresh Claude profile, add the demo branch through `/marketplace-manager` and approve its confirmation/permission prompts, verify the generated marketplace in `/plugin` and the manager, invoke v1 after restart, publish v2 to the same tag, observe and approve the update notice, restart, and invoke v2. Also confirm the standard-only bootstrap remains listed and the manager recognizes native installed state. No developer checkout is part of this flow.
 
 ## T614 — Finalize the short demo guide
 
 **Status:** Backlog. **Requirements:** R15, POC acceptance. **Depends on:** T613.
 
-Replace provisional guidance with verified commands, native UI expectations, v1/v2 responses, and simple cleanup. Keep README and examples consistent. Do not add separate per-release documentation.
+Finish the short walkthrough with the verified same-repository branch URL, direct ORAS commands, native UI expectations, v1/v2 responses, and simple cleanup. Keep README and examples consistent. Do not add separate per-release documentation.
 
 ## Historical work
 

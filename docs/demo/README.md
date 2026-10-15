@@ -1,25 +1,22 @@
-# Demo: publish and update a Claude plugin with OCI
+# Demo: publish and install a Claude plugin with OCI
 
-This is the target POC walkthrough. Local macOS checks and the Linux registry-backed ORAS/native CLI install/update probe have passed. T607 still needs the Mac interactive check; the manager's generated-marketplace implementation remains pending. Commands describing manager materialization below are expected behavior, not a claim that it is implemented.
+This walkthrough uses stock Claude Code, ORAS, Git, and Python 3 on macOS. You do not clone the POC repository or run its scripts. Copying the example plugin files is expected. The installed manager retrieves the marketplace branch, pulls and extracts OCI plugins with ORAS, then registers a regular Claude marketplace.
 
-Use installed Claude Code, ORAS, Git, and Python 3 on macOS, your existing Quay credentials, and a GitHub repository where you can publish the marketplace JSON. You do not need to clone the POC repository or run its scripts. GitHub's web editor is sufficient for publishing the marketplace configuration.
+The bootstrap marketplace is on `main`; the OCI demo marketplace is on the `oci-demo-marketplace` branch of the same GitHub repository. The project rehearsal uses the supplied Quay reference `quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft` and existing local Quay credentials.
 
-## 1. Create or copy a plugin and publish v1
+## 1. Copy the plugin and publish v1
 
-Use your own complete Claude plugin, or copy the four example files into local `v1` and `v2` plugin directories from these links:
+Copy the four files below into local `v1` and `v2` plugin directories, preserving the paths:
 
 - [v1 plugin manifest](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v1/.claude-plugin/plugin.json)
 - [v1 skill](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v1/skills/demo/SKILL.md)
 - [v2 plugin manifest](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v2/.claude-plugin/plugin.json)
 - [v2 skill](https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/examples/oci-demo-plugin/v2/skills/demo/SKILL.md)
 
-Preserve `.claude-plugin/plugin.json` and `skills/demo/SKILL.md` under each version's root. The [example instructions](../../examples/oci-demo-plugin/README.md) contain the short ORAS commands.
-
-Set `OCI_REPOSITORY` to your actual Quay repository (for the project rehearsal, use only the supplied demo configuration), then run from the copied v1 plugin root:
+From the copied v1 plugin root, validate and publish directly with ORAS:
 
 ```bash
-export OCI_REPOSITORY="<your-configured-quay-repository>"
-export OCI_REF="${OCI_REPOSITORY}:oci-demo-plugin-draft"
+export OCI_REF="quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft"
 claude plugin validate --strict .
 oras push "$OCI_REF" \
   --artifact-type application/vnd.dmartino.claude.plugin.v1 \
@@ -28,31 +25,37 @@ oras push "$OCI_REF" \
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-ORAS packages the directory itself; no tarball or packaging script is needed. Record the digest. For your own plugin, use its actual name and version in the annotations.
+ORAS creates the gzip directory layer; there is no archive or package script. For your own plugin, use its actual repository, name, and version. The example's short publish instructions are in [the plugin guide](../../examples/oci-demo-plugin/README.md).
 
-## 2. Publish the marketplace on GitHub
+## 2. Publish or use the marketplace branch
 
-Create `.claude-plugin/marketplace.json` in a separate GitHub repository, using the web editor or your existing Git tools:
+For the project rehearsal, use the already published [marketplace branch](https://github.com/dmartinol/claude-oci-marketplace-poc/tree/oci-demo-marketplace). Its manifest is named `claude-oci-demo-marketplace` and puts the raw tagged Quay reference in the normal `plugins[].source` field. The branch URL is:
 
 ```json
 {
-  "name": "oci-demo-marketplace",
-  "owner": { "name": "Your name" },
+  "name": "claude-oci-demo-marketplace",
+  "owner": { "name": "dmartinol" },
   "plugins": [
     {
       "name": "oci-demo-plugin",
-      "description": "OCI plugin demo",
-      "source": "<the exact value of OCI_REF>"
+      "description": "Demonstrates complete OCI plugin distribution and updates",
+      "source": "quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft"
     }
   ]
 }
 ```
 
-Replace the source placeholder with the published raw tagged reference, without `oci://`. The published configuration is input for the manager. Claude validates the generated local-path marketplace after extraction.
+This exact file is published in the branch. Edit it with GitHub's web editor if you are publishing a different OCI reference.
+
+```text
+https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace
+```
+
+No second repository or local checkout is needed. If you publish a different OCI reference, update `.claude-plugin/marketplace.json` in a branch you can publish using GitHub's web editor or your existing Git tools. Keep the raw tagged OCI reference in `source` and use `<repository>.git#<branch>` when adding that marketplace.
 
 ## 3. Install the manager and add the marketplace
 
-Install using your existing Claude CLI, from any directory:
+Install the manager from the repository's default branch with your existing Claude CLI:
 
 ```bash
 claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
@@ -60,29 +63,30 @@ claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 claude
 ```
 
-In Claude, run:
+In Claude, add and inspect the demo marketplace:
 
 ```text
-/marketplace-manager add <your-marketplace-git-url>
+/marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace
 /marketplace-manager list
 ```
 
-Approve the manager confirmation and Claude permission request. The manager retrieves the Git content, pulls and extracts the OCI bundle with ORAS, validates it, and registers a generated local marketplace named `oci-demo-marketplace`. It retains the original OCI source for update checks. You do not manually clone, extract, edit the generated files, or register a second marketplace.
+Approve the manager's download confirmation and Claude permission prompt. The manager retrieves the branch, pulls and validates the OCI plugin, and registers a generated local marketplace named `claude-oci-demo-marketplace`. The published Git marketplace keeps its raw OCI source; the generated marketplace points to the extracted plugin directory.
 
-Open `/plugin` and confirm the marketplace and `oci-demo-plugin` are available. Install through `/plugin`, or use:
+Open `/plugin` and verify the marketplace and `oci-demo-plugin` appear. Install the plugin there, or through the manager:
 
 ```text
-/marketplace-manager install oci-demo-plugin@oci-demo-marketplace
+/marketplace-manager install oci-demo-plugin@claude-oci-demo-marketplace
 /marketplace-manager installed
 ```
 
-Restart Claude and invoke `/oci-demo-plugin:demo`. v1 responds `OCI demo plugin version 0.1.0`. The manager must recognize installation through either interface.
+Restart Claude and invoke `/oci-demo-plugin:demo`; v1 responds `OCI demo plugin version 0.1.0`. The manager also lists standard-only marketplaces, including the bootstrap marketplace.
 
-## 4. Publish v2 and approve the update
+## 4. Publish v2 to the same tag
 
-From the copied v2 plugin root, in a terminal retaining the same `OCI_REF`:
+From the copied v2 plugin root, set `OCI_REF` to the same value and publish:
 
 ```bash
+export OCI_REF="quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft"
 claude plugin validate --strict .
 oras push "$OCI_REF" \
   --artifact-type application/vnd.dmartino.claude.plugin.v1 \
@@ -91,16 +95,21 @@ oras push "$OCI_REF" \
 oras manifest fetch "$OCI_REF" --format json
 ```
 
-The tag stays the same; its digest and version change. Start a new Claude session to receive the update notice, or review updates manually:
+Start a new Claude session to see the update notice, or run `/marketplace-manager updates`. Select and approve the update, then approve Claude's permission prompt. Restart Claude and invoke `/oci-demo-plugin:demo`; v2 responds `OCI demo plugin version 0.2.0`. Listing and update checks inspect metadata only; layer downloads happen when adding the marketplace or applying an approved update.
 
-```text
-/marketplace-manager updates
+The failed-update preservation path is covered by the recorded live CLI rehearsal and focused helper checks; the previously working plugin remains usable after a failed pull or validation.
+
+## Cleanup
+
+Remove the demo plugin and marketplace with Claude's native commands:
+
+```bash
+claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope user
+claude plugin marketplace remove claude-oci-demo-marketplace --scope user
 ```
 
-Approve the selected update and Claude's permission prompt. Restart Claude and invoke `/oci-demo-plugin:demo` again; expect `OCI demo plugin version 0.2.0`. Listing and update checks do not download plugin layers; adding an OCI marketplace and applying approved updates do.
+If you also want to remove the extracted files, delete the manager-owned `marketplace-manager/marketplaces/claude-oci-demo-marketplace` directory under your active Claude config directory after removing the native registration.
 
-## Rehearsal evidence
+## Rehearsal status
 
-For project acceptance, use a fresh Claude profile, record tool versions and the two digests, verify both interfaces, and exercise one failed update that leaves the old plugin usable. Keep credentials and profile files private. Record the result in the existing reports; do not treat this target walkthrough as passing evidence.
-
-After the demo, remove the demo marketplace with Claude's native marketplace removal command. The manager's generated-file cleanup instructions will be finalized after the supported path is verified; do not delete undocumented Claude cache/settings files.
+The same-repository Linux rehearsal passed registry publication, manager installation, branch retrieval, native marketplace validation/registration, v1 install and invocation, same-tag v2 detection and update, and failed-update preservation. The final Mac check of the manager's interactive confirmation, permission prompt, `/plugin` view, and update notice remains in the plan; see the [implementation report](../implementation-report.md#t613--same-repository-developer-flow-2026-10-15).

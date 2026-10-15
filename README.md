@@ -2,7 +2,7 @@
 
 Proof of concept for managing Claude marketplaces in stock Claude Code. The revised product specification targets complete Claude plugin bundles published as OCI artifacts with ORAS.
 
-**Status:** Manager version 0.6.0 implements ORAS extraction into native-compatible local marketplaces, native plugin installation, and approved digest-pinned updates. Helper/CLI integration and focused tests pass; the final macOS developer rehearsal is pending. See [implementation evidence](docs/implementation-report.md) and the [plan](docs/plan.md).
+**Status:** Manager version 0.6.0 implements ORAS extraction into native-compatible local marketplaces, native plugin installation, and approved digest-pinned updates. Focused tests and a fresh-profile Linux rehearsal pass; the final interactive macOS manager rehearsal is pending. See [implementation evidence](docs/implementation-report.md) and the [plan](docs/plan.md).
 
 ## Project documentation
 
@@ -25,11 +25,11 @@ The demo setup supplies registry configuration and credentials; the project supp
 
 ## OCI plugin workflow status
 
-The developer publishes a complete plugin with ORAS to Quay and a GitHub marketplace containing its raw tagged OCI reference in `plugins[].source`.
+The developer publishes a complete plugin with ORAS to Quay and a GitHub marketplace containing its raw tagged OCI reference in `plugins[].source`. For the POC, the bootstrap is on `main` and the demo marketplace is on the `oci-demo-marketplace` branch of the same repository.
 
-The intended `/marketplace-manager add <git-url>` flow pulls and extracts OCI plugins after approval, generates a Claude-compatible local marketplace with local plugin paths, and registers it. The marketplace and plugins are then visible and installable through both `/plugin` and `/marketplace-manager`. Session-start or manual metadata checks detect a changed tag and offer an approved update; restarting Claude is sufficient for activation.
+`/marketplace-manager add <git-url>` pulls and extracts OCI plugins after approval, generates a Claude-compatible local marketplace with local plugin paths, and registers it. The marketplace and plugins are then visible and installable through both `/plugin` and `/marketplace-manager`. Session-start or manual metadata checks detect a changed tag and offer an approved update; restarting Claude is sufficient for activation.
 
-The generated-marketplace flow is implemented. It uses installed Claude Code, ORAS, Git, and Python 3; no POC checkout or development scripts are required. The remaining work is the full developer rehearsal and verified final guidance.
+The generated-marketplace flow is implemented and passed the same-repository Linux CLI/helper rehearsal. It uses installed Claude Code, ORAS, Git, and Python 3; no POC checkout or development scripts are required. The remaining check is the installed manager's interactive confirmation, permission, `/plugin`, and update-notice flow on macOS.
 
 Copyable v1/v2 plugin files and direct ORAS publishing instructions are in [examples/oci-demo-plugin](examples/oci-demo-plugin/README.md). The [demo guide](docs/demo/README.md) describes the target developer flow and its current validation status.
 

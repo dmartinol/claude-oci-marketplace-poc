@@ -11,9 +11,10 @@ The latest developer-flow clarification supersedes earlier manager-only OCI visi
 - Preserve the published marketplace name and plugin identities. The generated marketplace is visible and installable in both `/plugin` and the manager, without a duplicate source registration. The manager keeps minimal original Git/OCI provenance alongside its files; Claude registrations remain authoritative for the visible list.
 - Adding an OCI marketplace downloads its plugin bundles after confirmation and Claude permission. Listing and update checks do not download layers. Updates check the same OCI tags at session start or manual refresh and apply only after approval. Restart activation is sufficient.
 - Users install the manager by URL and use installed tools. No POC checkout, repository scripts, or custom packager is required; copying example plugins is allowed. The configured demo coordinates remain environment inputs. OpenShell is contributor tooling only.
+- The bootstrap and demo marketplaces may live in different branches of the same GitHub repository. The demo branch URL uses Claude's supported `repository.git#ref` form. A second repository is unnecessary for the POC.
 - Keep the spike and implementation small. Prove the native registration/install/update path before implementing it; retain the feasibility/report/approval workflow in AGENTS.md. Earlier packaging approval is retained, not treated as proof of the new flow.
 
-The current [requirements](requirements.md) and [plan](plan.md) govern implementation. Remote direct-directory retrieval and native CLI installation/update now pass; the user also confirmed Mac marketplace visibility, component invocation, and restart behavior. T607 is complete and the active instruction to implement all tasks authorizes the next phase. Older open-question and status wording below is historical.
+The current [requirements](requirements.md) and [plan](plan.md) govern implementation. Remote direct-directory retrieval and native CLI installation/update pass; the user also confirmed the Mac feasibility spike's marketplace visibility, component invocation, and restart behavior. T607 is complete. The current manager now passes a fresh Linux rehearsal using the same-repository demo branch; the final Mac manager UI check remains T613. Older open-question and status wording below is historical.
 
 ## Historical decisions
 
@@ -52,6 +53,10 @@ ORAS 1.3.4 accepts a directory operand. Run `oras push` from the plugin root wit
 ### D21 — Use the configured Mac host for current T607/T608 work
 
 After the Linux sandbox proved to lack ORAS and registry access, the user directed T607/T608 execution on this Mac host. ORAS 1.3.4, Claude Code 2.1.300, and Git 2.50.1 are available here. The local direct-directory OCI-layout check is recorded in the feasibility report. Linux sandbox results remain historical; Mac remains the first demo and acceptance target.
+
+### D23 — Keep the bootstrap and demo marketplace in one repository
+
+The user clarified that the POC should reuse one GitHub repository. Keep the native bootstrap marketplace on `main` and publish the demo marketplace configuration on branch `oci-demo-marketplace`. Add it with `https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace`; Claude's documented `repository.git#ref` syntax selects the branch without a manual clone. The branch manifest is named `claude-oci-demo-marketplace` and declares the configured `quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft` reference in the normal `plugins[].source` field. The native bootstrap URL remains the repository's default branch. Both direct manager retrieval and registration of the generated marketplace were exercised from a fresh Linux profile.
 
 ## Accepted decisions
 
@@ -117,5 +122,5 @@ Marketplace listing and source registration are the manager's general-purpose co
 
 ## Open feasibility questions
 
-- T607 has an earlier successful remote publication and manifest descriptor lookup for the archived manager bundle, but has not verified the new direct-directory layer or fetched it by digest from the registry. The configured repository and local credentials remain the source of registry coordinates and authentication. The complete bundle source and tags are project-owned. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
+No ORAS packaging or native CLI feasibility question remains open; T607/G3 are complete. T613 tracks the remaining interactive Mac rehearsal of the installed manager, including the confirmation and permission prompts, `/plugin` visibility, and same-tag update notice.
 

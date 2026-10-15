@@ -766,3 +766,19 @@ $ claude plugin test ./plugins/oci-marketplace
 ```
 
 `git diff --check` also passed. These focused checks validate the current POC helper and mod interactions; the configured Mac's complete installed-manager rehearsal remains T613.
+
+## T613 — Same-repository developer flow (2026-10-15)
+
+**Result: Linux CLI/helper rehearsal passed; Mac interactive manager acceptance remains open.** The demo marketplace is published on branch `oci-demo-marketplace` in the same repository as the bootstrap. Its Git URL is `https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace`; its manifest retains the raw configured OCI reference in `plugins[].source`. Branch commit: `3e5b51f1c352e78d738c9bf1117442352bb09066`.
+
+In a fresh profile at `/tmp/oci-t613-e2e-k48pvv5j/profile`, the stock Linux Claude CLI installed `marketplace-manager@claude-oci-marketplace` version `0.6.0` from the bootstrap URL. The installed helper added the `#oci-demo-marketplace` URL: it retrieved the branch, inspected the configured Quay tag, pulled the resolved digest with ORAS, generated a marketplace with `source: "./.oci-plugins/oci-demo-plugin"`, and registered `claude-oci-demo-marketplace` through Claude. `claude plugin validate --strict` passed for the generated marketplace.
+
+The same profile showed exactly one generated OCI marketplace plus the standard-only bootstrap marketplace. `/marketplace-manager list`, invoked through the installed plugin in a fresh Claude process, displayed both rows and showed the OCI plugin identity, version, registry, digest, and installed state. Native installation through the helper succeeded. A fresh Claude process invoked `/oci-demo-plugin:demo` and returned `OCI demo plugin version 0.1.0`.
+
+Published v2 to the same configured tag. The metadata-only helper check reported version `0.2.0` and digest `sha256:815177d735c009c1203abf321a6e0ad25ba85f08fb7c669620b012394f557c0b`. Applying that reviewed digest succeeded through the installed helper and supported Claude update command. A new Claude process returned `OCI demo plugin version 0.2.0`, and a subsequent metadata check returned no updates. The v1 digest in this run was `sha256:6c3ec1be65c4cc06934030ea90264be4ab052db96c0b8a892b16571772c7324b`.
+
+An attempted update to an unavailable digest failed with the registry's `not found` response. Claude still listed version `0.2.0`, manager state retained its v2 digest, and a fresh process invoked v2 successfully. T610 separately records the failed-update case retaining and invoking v1. No credentials or generated profile files were committed. The mutable demo tag was left at v2.
+
+Cleanup was checked against the disposable profile: native plugin uninstall and `claude plugin marketplace remove ... --scope user` both returned `outcome: "ok"`. Native removal leaves the manager-owned extracted directory on disk, so the demo guide identifies that specific optional cleanup path.
+
+The Linux run used the deterministic helper directly for add/install/update, so it did not exercise the manager's interactive confirmation, Claude permission prompt, actual `/plugin` screen, or visible session-start toast. T612 covers those interaction contracts with focused mod tests. The user confirmed the earlier T607 Mac feasibility UI, component invocation, and restart checks, but the final Mac run of the installed 0.6.0 manager remains required for T613.

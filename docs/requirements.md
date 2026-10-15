@@ -6,7 +6,7 @@ Demonstrate OCI distribution of a complete Claude plugin containing a developer'
 
 1. The developer creates a Claude plugin, or copies a provided example.
 2. From the plugin root, the developer uses ORAS to package and publish it to their Quay repository.
-3. The developer publishes a Claude marketplace configuration on GitHub. Each OCI plugin uses the existing `plugins[].source` field for its raw tagged OCI reference.
+3. The developer publishes a Claude marketplace configuration on GitHub. For the POC, the bootstrap marketplace stays on `main` and the demo marketplace uses a branch in this same repository; no second repository is required. Each OCI plugin uses the existing `plugins[].source` field for its raw tagged OCI reference.
 4. The developer installs marketplace-manager through Claude's native marketplace commands and adds their GitHub marketplace with `/marketplace-manager add <git-url>`.
 5. After approval, the manager retrieves the marketplace content, pulls and extracts its OCI plugins with ORAS, and registers a generated local marketplace that Claude understands. Its plugin sources point to the extracted plugin directories.
 6. The developer can view the marketplace and install its plugins through either `/plugin` or `/marketplace-manager`.
@@ -39,7 +39,7 @@ The developer never needs to clone this POC repository or run its development sc
 Use the supplied demo registry repository, Git URLs, and local credentials. The project supplies copyable plugin examples and creates its own demo tag; never invent registry coordinates or commit secrets.
 
 1. Record macOS, Claude Code, ORAS, and Git versions. Copy the example plugin and publish v1 with ORAS to the configured Quay repository.
-2. Publish a separate GitHub marketplace with the OCI reference in `source`.
+2. Publish or use the GitHub marketplace on the `oci-demo-marketplace` branch of the same repository as the bootstrap. Its Git URL is `https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace`, and its OCI reference is in `source`.
 3. In a fresh Claude profile, install the manager by URL without cloning this repository.
 4. Add the GitHub marketplace through the manager and approve extraction. Verify the generated marketplace passes Claude validation and appears in both `/plugin` and `/marketplace-manager`.
 5. Install v1 through `/plugin`, restart, and invoke the example skill. Verify the manager recognizes its installed state. Also exercise manager installation using the same native path.
