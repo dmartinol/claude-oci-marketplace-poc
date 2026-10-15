@@ -31,7 +31,7 @@ The developer publishes a complete plugin with ORAS to Quay and a GitHub marketp
 
 The generated-marketplace flow is implemented and passed the same-repository Linux CLI/helper rehearsal. It uses installed Claude Code, ORAS, Git, and Python 3; no POC checkout or development scripts are required. The remaining check is the installed manager's interactive confirmation, permission, `/plugin`, and update-notice flow on macOS.
 
-Copyable v1/v2 plugin files and direct ORAS publishing instructions are in [examples/oci-demo-plugin](examples/oci-demo-plugin/README.md). The [demo guide](docs/demo/README.md) describes the target developer flow and its current validation status.
+Copyable v1/v2 plugin files and direct ORAS publishing instructions are in [examples/oci-demo-plugin](examples/oci-demo-plugin/README.md). The [demo guide](docs/demo/README.md) describes the target developer flow; its [Mac acceptance run](docs/demo/README.md#mac-acceptance-run-t613) has the exact steps for repeating the remaining interactive check.
 
 ## Development
 

@@ -113,3 +113,48 @@ If you also want to remove the extracted files, delete the manager-owned `market
 ## Rehearsal status
 
 The same-repository Linux rehearsal passed registry publication, manager installation, branch retrieval, native marketplace validation/registration, v1 install and invocation, same-tag v2 detection and update, and failed-update preservation. The final Mac check of the manager's interactive confirmation, permission prompt, `/plugin` view, and update notice remains in the plan; see the [implementation report](../implementation-report.md#t613--same-repository-developer-flow-2026-10-15).
+
+## Mac acceptance run (T613)
+
+Repeat this from a Mac Terminal with the existing `claude`, `oras`, and `git` tools and Quay login. No POC checkout is needed. Keep these commands in the same terminal so Claude uses the temporary profile throughout:
+
+```bash
+sw_vers -productVersion
+claude --version
+oras version
+git --version
+
+export CLAUDE_CONFIG_DIR="$(mktemp -d "${TMPDIR:-/tmp}/oci-marketplace-t613.XXXXXX")"
+echo "$CLAUDE_CONFIG_DIR"
+```
+
+Use the copied example files and publish v1 with step 1 above. Save the digest from `oras manifest fetch`. Then bootstrap and launch the manager in the empty profile:
+
+```bash
+claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
+claude plugin install marketplace-manager@claude-oci-marketplace --scope user
+claude plugin list --json
+claude
+```
+
+In Claude, add the demo branch and check both marketplace views:
+
+```text
+/marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace
+/marketplace-manager list
+```
+
+Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that native installation.
+
+To exercise the manager's install command too, exit Claude and run this in the same terminal:
+
+```bash
+claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope user
+claude
+```
+
+In that Claude session run `/marketplace-manager install oci-demo-plugin@claude-oci-demo-marketplace`, approve the permission prompt, restart Claude, and confirm the v1 response again.
+
+Exit Claude and publish v2 to the same `OCI_REF` using step 4 above. Start Claude again, note whether the update notice appears, and run `/marketplace-manager updates` if needed. Review and approve the v2 update and its permission prompt. Restart Claude and confirm `/oci-demo-plugin:demo` returns `OCI demo plugin version 0.2.0`; `/marketplace-manager list` should show the new digest. Failed-update preservation is already covered by the Linux T610/T613 runs, so it need not be repeated here.
+
+Report the tool versions, v1/v2 digests, marketplace visibility, both install paths, restart responses, and whether the update notice appeared. Do not include credentials. When finished, remove the demo plugin and marketplace using the [cleanup commands](#cleanup), then delete the temporary profile with `rm -r "$CLAUDE_CONFIG_DIR"` if it is no longer needed.
