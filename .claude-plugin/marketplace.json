@@ -1,14 +1,14 @@
 {
   "name": "claude-oci-marketplace",
-  "description": "OCI-distributed skills for Claude Code",
+  "description": "A general Claude marketplace manager with optional OCI skill support",
   "owner": {
     "name": "dmartinol"
   },
   "plugins": [
     {
-      "name": "oci-marketplace",
+      "name": "marketplace-manager",
       "source": "./plugins/oci-marketplace",
-      "description": "Browse, install, and update skills distributed as OCI artifacts"
+      "description": "List and add Claude marketplaces, with OCI skill discovery, installation, and updates as an extension"
     }
   ]
 }

@@ -4,7 +4,7 @@ This report records evidence for P1–P5 tasks in [plan.md](plan.md). The P0 fea
 
 ## Scope revision — general marketplace management
 
-On 2026-10-14, the user clarified that this product is a general marketplace manager, with OCI skill handling as an optional extension. The current `/oci-marketplace` implementation lists OCI skills but hides standard-only marketplace rows. It does not meet the clarified request. Requirements R2, R10–R12, decisions D1, D2, D6, D11, and D14, and plan task T304 now track the generic `/marketplace-manager` entry point and complete marketplace listing. The previous T503 audit and go verdict apply only to the narrower OCI-focused scope and are superseded for the expanded MVP until T304 is implemented and T503 reruns.
+On 2026-10-14, the user clarified that this product is a general marketplace manager, with OCI skill handling as an optional extension. Before T304, the `/oci-marketplace` implementation listed OCI skills but hid standard-only marketplace rows. Requirements R2, R10–R12, decisions D1, D2, D6, D11, and D14, and plan task T304 tracked the generic `/marketplace-manager` entry point and complete marketplace listing. T304 is implemented and live-validated. The earlier T503 audit covered only the OCI-focused scope and is superseded by the final T503 audit below.
 
 ## T101 — Validated plugin scaffold
 
@@ -277,7 +277,7 @@ The live flow used the already supplied Quay repository and a native Claude perm
 
 ## T501 — End-to-end demo rehearsal
 
-**Result:** Blocked — the remaining live checks could not be resumed from the current execution environment. The prior checkpoint evidence remains useful, but the guide v2 invocation and installed-record recheck are not claimed complete.
+**Result:** Blocked — the current environment can exercise the supported manager and marketplace workflows, but Quay rejects the supplied artifact requests with HTTP 401 and Claude model invocation reports that the profile is not logged in. The installed-v2 record/digest recheck and guide v2 invocation are not claimed complete.
 
 The clean-config setup used Claude Code 2.1.299 and `skillctl` 0.4.0. I created an isolated `CLAUDE_CONFIG_DIR`, added the supplied Git marketplace URL, installed `oci-marketplace@claude-oci-marketplace` at user scope, and confirmed the plugin was enabled at v0.3.0. The isolated config was removed after the check. The first clone attempt was blocked by the restricted network; the same supplied URL succeeded when retried with network access.
 
@@ -331,7 +331,7 @@ The manager now chooses `<CLAUDE_CONFIG_DIR>/skills` when that environment varia
 
 The user-provided continuation checkpoint reports that plugin v0.3.2 was loaded in the isolated profile, both marketplace-qualified skills were updated to v2, demo v2 returned `T005 sample skill updated to v0.2.0.`, and guide v1 had been invoked. It supplies the demo digest `sha256:df8e88e3f80f14d821150ce419298bb849d4b9aabddab83b954462e08dfd2e9a` and guide digest `sha256:eed775096b6b1d87e7cde5ad255803f7952c8b83635e412f07cd15a2c96c19a1`. The guide v2 response is expected to be `T501 guide skill updated to v0.2.0.` These are checkpoint claims; the installed records and guide v2 response could not be re-observed here.
 
-Resume checks in this execution environment:
+Prior container resume checks (historical; superseded by the current recheck below):
 
 ```text
 $ git rev-parse HEAD
@@ -355,17 +355,64 @@ error: unknown command 'test' (this Claude Code version suggests 'list')
 
 The requested `/Users/...` checkout is not mounted in this environment; the available checkout is the same repository at the supplied `e743ab9` checkpoint. The global `/sandbox/.claude/skills` directory was inspected and is empty, so there were no rehearsal artifacts here to clean up. Neither `.serena/` nor `openshell/` exists in this checkout, and neither path is tracked. Prior live outputs and the supplied checkpoint are recorded above; rechecking installed records/digests, guide v2 invocation, and the live multi-update interaction requires the original rehearsal environment and supported tools. No artifact was republished.
 
+### Current-environment recheck — 2026-10-14
+
+This recheck ran on the updated `origin/main` checkout. It used Claude Code 2.1.299, `skillctl` 0.4.0, and disposable `CLAUDE_CONFIG_DIR` directories; the default profile was left unchanged. Its current registration output is empty:
+
+```text
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl --version
+skillctl version 0.4.0
+
+$ claude plugin marketplace list --json
+[]
+```
+
+The supplied origin was added through `/marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git`. Claude cloned and validated it, the manager refreshed the complete list, and the native plugin manager installed `marketplace-manager@claude-oci-marketplace` version 0.4.0 at user scope. A fresh session without `--plugin-dir` then executed `/marketplace-manager list`. In a separate clean profile, a valid standard-only fixture and the supplied Git marketplace both appeared in the complete list with the expected classifications; `/marketplace-manager browse` showed only the OCI entry. A second clean profile added both OCI marketplaces; the list showed `claude-oci-demo@claude-oci-marketplace` and `claude-oci-guide@claude-oci-guide-marketplace` as separate catalog entries. Browse attempted metadata-only inspection and showed both identities without retrieving layers. These live manager checks succeeded; the OCI metadata checks failed on registry authentication as recorded below.
+
+All four local demo skill fixtures validate with the installed `skillctl`:
+
+```text
+$ skillctl validate examples/claude-oci-demo/v1
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-demo/v2
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-guide/v1
+✓ skill.yaml is valid
+$ skillctl validate examples/claude-oci-guide/v2
+✓ skill.yaml is valid
+```
+
+Metadata checks used only the supplied references from the catalogs and README:
+
+```text
+quay.io/dmartino/claude-oci-demo:0.1.1-draft                  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:0.2.0-draft                  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.1.0-draft  → HTTP 401 Unauthorized
+quay.io/dmartino/claude-oci-demo:claude-oci-guide-0.2.0-draft  → HTTP 401 Unauthorized
+```
+
+The first guide-v2 request briefly returned `invalid OCI Image Index: EOF`; an immediate retry returned the same 401 response as the other three tags. A `skillctl pull` of the supplied demo-v1 reference to a temporary path also failed with `401 Unauthorized`. No artifact layers were downloaded and no registry content was published or modified. The failure means the previously recorded checkpoint digests cannot be independently verified in this environment; installed-v2 records cannot be created for this recheck.
+
+`claude -p /reload-skills` succeeded in a clean profile. Invoking the locally copied guide-v2 fixture immediately afterward failed with `Not logged in · Please run /login`, so the expected model response could not be observed. No login flow was attempted and no credentials were requested or exposed. The local fixture copy was temporary and removed automatically after the check.
+
+The remaining blocker is external state: the supplied Quay artifacts are not readable with the credential stores available to this process, and the Claude print session has no model login. T501 therefore remains blocked on the v2 installed-record/digest checks and guide-v2 invocation. The standard-only classification, both-OCI-catalog listing, remote Git marketplace install, and supported CLI/tool versions were rechecked successfully.
+
 ## T502 — README guidance
 
-**Result:** Blocked — the README now contains a complete clean-profile and two-catalog v1-to-v2 procedure, but the live isolated Claude replay could not be run in this execution environment.
+**Result:** Blocked — the generic guide and all locally runnable steps passed a clean-profile replay. The supplied Quay registry returns HTTP 401, Claude is not logged in, and the available host is Linux rather than the macOS demo environment, so artifact installation, update approval, and invocation could not be replayed.
 
-The procedure starts from the tested macOS prerequisites, creates a fresh `CLAUDE_CONFIG_DIR`, registers the Git marketplace, installs the manager, creates temporary demo and guide catalogs with the supplied v1 tags, and registers both local catalogs. It documents the installed v1 versions and digests, reload and invocation responses, the v2 tag switch, multi-select update approval, v2 records/digests, second reload, and expected updated responses. It uses only the already-published artifacts and existing `quay.io/dmartino/claude-oci-demo` repository.
+The guide now documents `/marketplace-manager list`, `add <source>`, OCI browse/install/update commands, and the boundary between the general marketplace list and OCI-only skill operations. It states that standard-only marketplaces remain visible in the manager and their standard plugins remain usable through native `/plugin`. The clean rehearsal adds the manager from the supplied HTTPS Git URL, creates two unique local OCI catalogs, registers those catalogs with the manager, and performs the documented v1-to-v2 tag switch. It uses only the supplied Quay repository and tags.
 
-I extracted and executed both Python heredocs from the README with a temporary `REHEARSAL_DIR`. Both catalog-only manifests passed `claude plugin validate` with the expected `Marketplace has no plugins defined` warning. Assertions confirmed the first step writes the demo `0.1.1-draft` and guide `claude-oci-guide-0.1.0-draft` references, and the second changes them to the supplied v2 tags. This checks the documented fixture generation and tag transition.
+I replayed the README setup and snippets in a fresh `CLAUDE_CONFIG_DIR` and temporary catalog directory. Strict repository and plugin validation passed. The supplied Git marketplace cloned and installed `marketplace-manager@claude-oci-marketplace` version 0.4.0 at user scope. Both README-created local catalogs passed `claude plugin validate` with the expected no-plugins warning, and `/marketplace-manager add` and `list` showed both OCI-enabled entries. Executing the second README snippet changed both references to the documented v2 tags; both catalog manifests validated again. The manager's live `browse` attempted metadata-only checks and returned 401 for the supplied demo and guide tags. `/marketplace-manager updates` reported no installed skills in the clean profile. This confirms setup, manager registration/listing, and catalog-editing steps while leaving registry-dependent steps incomplete.
 
-The actual clean-profile workflow remains unverified here: the rehearsal configs are absent, this container has Claude Code 2.1.156 instead of 2.1.299, `skillctl` is unavailable, and this CLI rejects `claude plugin test` as an unknown command. Marketplace registration, manager installation, browse, artifact installation, update selection, reload, and invocation were not run from the revised README. The final clean-user checklist item remains open.
+The first replay attempt inherited a pre-existing `REHEARSAL_DIR` from the environment rather than the temporary path intended for that test. It wrote the README's v1 fixture contents into that pre-existing directory; the following validation failed because it checked the separate temporary directory. After noticing, I stopped using the pre-existing directory and reran the guide with an explicitly isolated temporary `REHEARSAL_DIR`. At the user's direction, I restored the two external rehearsal catalogs' `skills[0].repository` references to the documented demo-v2 and guide-v2 tags, then reread both JSON files and verified the values. The machine-local location is omitted, and no external file was staged or committed.
 
-## T503 — Final validation and verdict
+The remaining guide acceptance item is a clean-user reproduction of registry-backed v1 install, v2 update/selection, reload, and invocation. T501 records the 401 responses and the missing Claude login. The guide is not marked complete while those steps remain blocked.
+
+## Prior T503 — Final validation and verdict (superseded)
 
 **Result:** Done — the final audit and verdict are recorded. T501 and T502 remain blocked on live checks that require the unavailable isolated macOS rehearsal environment.
 
@@ -399,7 +446,7 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | --- | --- | --- |
 | Validate the repository and add it from Git | Pass | T002 validation and live registration; clean-profile registration is recorded under T501. |
 | Show and install the manager through `/plugin` | Pass | T002 live marketplace and plugin checks. |
-| List every registered marketplace in the manager and classify standard-only versus OCI-enabled | Pending | The current OCI-specific implementation does not show standard-only marketplace rows; T304 tracks implementation and live verification. |
+| List every registered marketplace in the manager and classify standard-only versus OCI-enabled | Pass | T304 live isolated profiles show complete lists after standard-only and OCI-enabled adds; the current default profile list is empty. |
 | Add a standard-only marketplace and exclude it from OCI entries | Pass | T301/T501 registration and live browse evidence. |
 | Load two OCI marketplaces with distinct skill identities | Pass | T501 live browse listed the demo and guide entries under separate marketplace names. |
 | Publish sample v1 with the supplied registry coordinates | Pass | T005 and T303 report `skillctl` build, push, inspect, and resolved digest evidence. |
@@ -410,13 +457,68 @@ The README's two catalog-generation snippets were executed in a temporary direct
 | Apply a selected update through confirmation and permission, reload, and invoke v2 | Pass for demo | T403 records the complete live demo v2 flow. Guide v2 invocation and independent installed-record verification remain pending under T501. |
 | Preserve installed v1 after fetch, digest, validation, or activation failure | Pass | T403 fixtures and the final install-script failure-injection run. |
 
-**Verdict:** The prior go recommendation applies only to the OCI-focused install-and-update implementation. The expanded MVP is not yet ready for a go recommendation: the generic command, all-marketplace list, standard-only classification, and their live checks remain unimplemented under T304. T501 and T502 also retain the limitations recorded above. T503 must be rerun after the clarified scope is implemented. No registry coordinates were invented and no artifacts were republished.
+**Historical verdict (superseded by T304):** At the time of this audit, the expanded MVP was not ready for a go recommendation because the generic command and complete marketplace list were not implemented. T304 has since completed those items and records live checks below. T501 and T502 still require their expanded-scope rechecks, and T503 must rerun after them. No registry coordinates were invented and no artifacts were republished.
 
 ## T304 — General marketplace manager
 
-**Result:** Ready — implementation has not started.
+**Result:** Done.
 
-The user clarified that marketplace management is the core product and OCI skill management is an extension. The existing code and live evidence cover only the OCI-focused command and browser. T304 therefore tracks renaming the command to `/marketplace-manager` (with live collision validation), listing every marketplace from Claude's registered marketplace output, classifying standard-only and OCI-enabled entries, and adding either marketplace type while retaining the OCI workflow. No implementation or live validation evidence is claimed for these checks yet.
+The implementation now exposes one general `marketplace-manager` plugin and registers `/marketplace-manager`. Its `list` action reads `claude plugin marketplace list --json`, shows each registration's name and source, and classifies it by the presence of `oci-catalog.json` at Claude's reported `installLocation`. Standard-only entries stay visible in this list and are not parsed into OCI skill entries. `add <source>` invokes Claude's user-scope marketplace registration command and then renders the complete refreshed list. OCI browse/install/update actions remain on the same manager; standard plugin browsing and installation stay in Claude's `/plugin` interface.
+
+### Validation and live evidence
+
+The supported tools in this environment are:
+
+```text
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl --version
+skillctl version 0.4.0
+
+$ claude plugin marketplace list --json
+[]
+```
+
+The last output is the current default profile's authoritative marketplace list. I tested registration and listing in a fresh temporary `CLAUDE_CONFIG_DIR`, leaving the default profile unchanged. On Claude Code 2.1.299, the actual plugin runtime loaded and executed `/marketplace-manager list` successfully. The command did not collide with a built-in command or alias; T003's earlier `/marketplace` built-in alias conflict remains the reason for the longer command name.
+
+Through the manager command in that disposable profile, I added a temporary strict-valid standard-only marketplace and the repository marketplace, which contains the supplied OCI catalog. Each add refreshed the complete list:
+
+```text
+[standard add]
+Successfully added marketplace: manager-live-standard (declared in user settings)
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+
+[OCI add]
+Successfully added marketplace: claude-oci-marketplace (declared in user settings)
+- claude-oci-marketplace | directory: <repository path> | OCI-enabled
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+
+[complete list]
+- claude-oci-marketplace | directory: <repository path> | OCI-enabled
+- manager-live-standard | directory: <temporary fixture path> | standard-only
+```
+
+The live `list` output also directs users to `/plugin` for standard plugins and to `/marketplace-manager browse` for OCI skills. Interaction tests prove the list uses only Claude's authoritative registration output, standard-only marketplaces are omitted from OCI browsing, and add performs user-scope registration then refreshes all rows after both standard-only and OCI-enabled adds. Existing OCI update/install tests continue to pass.
+
+I also added the local repository marketplace and installed the renamed plugin through Claude's native plugin manager in a fresh profile. `claude plugin list` showed `marketplace-manager@claude-oci-marketplace`, version 0.4.0, enabled at user scope, and a new session without `--plugin-dir` successfully ran `/marketplace-manager list`.
+
+```text
+$ claude plugin validate --strict .
+Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+24 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+```
+
+The plugin marketplace entry now identifies the plugin as `marketplace-manager` version 0.4.0. README installation and command guidance use the generic plugin and command names. Historical OCI-only commands remain in earlier report sections as evidence for the superseded implementation and are labeled by their task and date.
 
 ## Current implementation status
 
@@ -424,6 +526,69 @@ The user clarified that marketplace management is the core product and OCI skill
 - P2 (T201–T204) is complete.
 - P3 (T301–T303) is complete.
 - P4 (T401–T403) is complete.
-- The clarified general-marketplace scope is incomplete: T304 is ready; T501 and T502 have remaining live verification and guidance work; T503's prior audit is superseded and must be rerun after T304.
+- T304's general-marketplace implementation and live manager checks are complete.
+- T501 and T502 remain blocked on the registry authentication and Claude model login recorded above.
+- The final T503 audit and no-go recommendation are recorded below.
+
+## T503 — Final validation and secret review
+
+**Result:** Done. **Recommendation: No-go for full demo acceptance** until the supplied registry artifacts and Claude model are accessible and the outstanding T501/T502 checks pass.
+
+The general marketplace manager is implemented and validated. The implementation, failure behavior, documentation, and repository content were checked after T304 and T502. The no-go recommendation is limited to the complete acceptance flow: no current Quay credentials were accepted and Claude model invocation required `/login`, so the current environment could not reproduce artifact installation/update or skill invocation.
+
+### Final validation
+
+```text
+$ claude --version
+2.1.299 (Claude Code)
+
+$ skillctl --version
+skillctl version 0.4.0
+
+$ claude plugin validate --strict .
+Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+24 pass
+0 fail
+
+$ sh plugins/oci-marketplace/tests/install-script.test.sh
+PASS: install and replacement activate validated artifacts; fetch, digest, validation, and activation failures preserve the prior installation.
+```
+
+`skillctl validate` passed for demo and guide v1/v2 directories. The README's strict setup, plugin install, catalog generation, manager `add`/`list`, and v1-to-v2 catalog edits were replayed in a clean temporary profile. The manager displayed both OCI catalogs. Registry inspection/browse and pull returned HTTP 401; the current profile's `claude plugin marketplace list --json` output was `[]`. A local guide-v2 invocation failed with `Not logged in · Please run /login`. These limits and the earlier successful T303/T403 live evidence are recorded under T501/T502; no artifact was published during this task.
+
+The final documentation scan checked 39 local Markdown links across tracked Markdown files; all resolved. The current README contains only `/marketplace-manager` user commands and explains complete listing, standard-only visibility, `/plugin`, and the OCI extension boundary. Earlier `/oci-marketplace` command lines remain only in historical report evidence and are identified as superseded.
+
+The tracked-file review found no credential, token, private-key, authentication-file, machine-local settings, `.serena/`, or `openshell/` matches. No pre-existing untracked repository files were present, and no external rehearsal files were staged. The external rehearsal-directory state issue encountered during T502 and its user-directed restoration to the documented v2 references are disclosed there; neither the external files nor their machine-local path are in the repository or commit.
+
+### Acceptance outcome
+
+| Acceptance area | Result | Evidence and limitation |
+| --- | --- | --- |
+| Validate and register the repository, then install the manager through Claude's marketplace manager | Pass | Current `origin` URL cloned in an isolated config; `marketplace-manager@claude-oci-marketplace` v0.4.0 installed and enabled. |
+| Run the generic manager command without colliding with a built-in command | Pass | `/marketplace-manager list` executed from both a local plugin directory and the marketplace-installed plugin on Claude Code 2.1.299. |
+| List every registered source and classify standard-only/OCI-enabled | Pass | Isolated live lists showed all registrations; the current default profile list is empty. |
+| Add standard-only and OCI marketplaces and refresh the list | Pass | Live manager adds displayed the complete refreshed list after each add. |
+| Keep standard-only entries out of OCI skills and retain native plugin use | Pass | Live browse excluded the standard-only row; interaction tests and T004 exercise native `/plugin` behavior. |
+| List two OCI catalogs with distinct marketplace-qualified identities | Pass | Live list/browse showed both unique identities; metadata resolution was blocked by 401. |
+| Validate supplied local demo v1/v2 artifacts | Pass | `skillctl validate` passed on all four local skill directories. |
+| Resolve published demo and guide versions/digests now | Blocked | Current Quay inspection and pull requests return 401 Unauthorized; prior checkpoint digest claims could not be rechecked. |
+| Install v1 through manager confirmation/permission, reload, and invoke | Historical pass; current recheck blocked | T303 records the earlier demo-v1 flow. The current profile cannot retrieve the supplied artifact and has no model login. |
+| Detect and apply selected v2 updates, then invoke v2 | Partial | T401/T403 record the earlier demo-v2 flow; current registry metadata is unavailable. Multi-update selection/dismissal is covered by tests, while a live multi-update acceptance remains unverified. |
+| Preserve installed content when retrieval, validation, or activation fails | Pass | Interaction and installer failure-injection tests pass. |
+| Reproduce the complete README workflow in a clean macOS user environment | Blocked | The replay used an isolated Linux profile. Registry authentication, Claude model login, and a macOS host are unavailable. |
+
+### Remaining limitations
+
+- T501 remains blocked until the supplied Quay tags can be inspected/pulled and both installed-v2 records plus the guide-v2 invocation can be rechecked.
+- T502 remains blocked until a clean user can complete the registry-backed install/update/reload/invocation procedure.
+- The successful live multi-update summary with multiple available updates has not been observed; interaction tests cover subset selection and dismissal.
+- During T502, an initial README fixture replay inherited a pre-existing external `REHEARSAL_DIR` and wrote the documented v1 fixture contents there. At the user's direction, both catalogs were restored to the documented v2 references and verified. No external files were committed.
+
+**Final verdict: No-go for complete acceptance; revise the live rehearsal after Quay access and Claude login are available.** T503 itself is complete because its validation, secret review, acceptance outcomes, recommendation, and blockers are recorded.
 
 No credentials, authentication files, or machine-local configuration files are staged or tracked. `.serena/` and `openshell/` were not staged or modified.

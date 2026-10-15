@@ -1,4 +1,4 @@
-# Claude OCI Marketplace POC Requirements
+# Claude Marketplace Manager POC Requirements
 
 ## Goal and product boundary
 
