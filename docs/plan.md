@@ -94,9 +94,9 @@ Linux rehearsal evidence: [T613 same-repository developer flow](implementation-r
 
 ## T614 — Finalize the short demo guide
 
-**Status:** Backlog. **Requirements:** R15, POC acceptance. **Depends on:** T613.
+**Status:** Done. **Requirements:** R15, POC acceptance. **Depends on:** T608–T612; the T613 Linux rehearsal supplies command evidence.
 
-Finish the short walkthrough with the verified same-repository branch URL, direct ORAS commands, native UI expectations, v1/v2 responses, and simple cleanup. Keep README and examples consistent. Do not add separate per-release documentation.
+Evidence: [T614 final demo guide](demo/README.md) and [T614 guide review](implementation-report.md#t614--final-demo-guide-2026-10-15). The short walkthrough uses the same-repository branch URL, direct ORAS commands, native UI expectations, the verified v1/v2 responses, and simple cleanup. README and example guidance are consistent. The guide states that the final Mac manager UI check is still T613; that live check does not change the published commands or cleanup path.
 
 ## Historical work
 

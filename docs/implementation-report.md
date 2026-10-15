@@ -782,3 +782,9 @@ An attempted update to an unavailable digest failed with the registry's `not fou
 Cleanup was checked against the disposable profile: native plugin uninstall and `claude plugin marketplace remove ... --scope user` both returned `outcome: "ok"`. Native removal leaves the manager-owned extracted directory on disk, so the demo guide identifies that specific optional cleanup path.
 
 The Linux run used the deterministic helper directly for add/install/update, so it did not exercise the manager's interactive confirmation, Claude permission prompt, actual `/plugin` screen, or visible session-start toast. T612 covers those interaction contracts with focused mod tests. The user confirmed the earlier T607 Mac feasibility UI, component invocation, and restart checks, but the final Mac run of the installed 0.6.0 manager remains required for T613.
+
+## T614 — Final demo guide (2026-10-15)
+
+**Result: Done (R15, POC acceptance guidance).** Replaced the provisional walkthrough with the verified same-repository setup: manager bootstrap on `main`, demo marketplace on `oci-demo-marketplace`, the raw Quay reference in `plugins[].source`, direct ORAS publication, native manager installation, marketplace add/list/install, v1/v2 responses, update review, and simple cleanup. README and copied-example instructions now use the same marketplace name and branch URL.
+
+The guide's CLI commands match the live T613 rehearsal. Native plugin uninstall and marketplace removal were exercised against the disposable profile and returned `outcome: "ok"`; the remaining generated directory is identified as manager-owned optional cleanup. Relative links in all updated Markdown files resolve and `git diff --check` passes. The guide reports that the final installed-manager Mac interaction is still required under T613; this documentation task is complete while that independent acceptance run remains in progress.
