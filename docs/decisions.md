@@ -13,7 +13,7 @@ The latest developer-flow clarification supersedes earlier manager-only OCI visi
 - Users install the manager by URL and use installed tools. No POC checkout, repository scripts, or custom packager is required; copying example plugins is allowed. The configured demo coordinates remain environment inputs. OpenShell is contributor tooling only.
 - Keep the spike and implementation small. Prove the native registration/install/update path before implementing it; retain the feasibility/report/approval workflow in AGENTS.md. Earlier packaging approval is retained, not treated as proof of the new flow.
 
-The current [requirements](requirements.md) and [plan](plan.md) govern implementation. The remaining evidence needed is remote direct-directory retrieval plus the generated marketplace's native install, persistence, and update behavior. Older open-question and status wording below is historical.
+The current [requirements](requirements.md) and [plan](plan.md) govern implementation. Remote direct-directory retrieval and native CLI installation/update now pass; the user also confirmed Mac marketplace visibility, component invocation, and restart behavior. T607 is complete and the active instruction to implement all tasks authorizes the next phase. Older open-question and status wording below is historical.
 
 ## Historical decisions
 

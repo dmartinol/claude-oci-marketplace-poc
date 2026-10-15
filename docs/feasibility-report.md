@@ -1158,3 +1158,9 @@ CLAUDE_CONFIG_DIR=/tmp/oci-registry-spike-policy-applied/profile claude -p '/oci
 ```
 
 The JSON result reported `subtype: "success"`, `is_error: false`, and `result: "OCI demo plugin version 0.2.0"`. This verifies actual invocation of the extracted and natively updated skill in a fresh Linux Claude session, beyond file/CLI-list checks. It does not replace the requested Mac `/plugin` and interactive restart check. No credentials or model configuration files are included in this report.
+
+### Mac manual verification confirmation (2026-10-15)
+
+After reporting that the executed validations passed, the user explicitly confirmed the remaining manual checks: `oci-demo-marketplace` appears in `/plugin` on the Mac, `/oci-demo-plugin:demo` responds with version 0.2.0, and both checks succeed again after restarting Claude with the same profile. This is user-reported Mac evidence; no fresh raw Mac transcript or additional version numbers were supplied, so none are invented here.
+
+Together with the recorded local/registry/native CLI evidence, this completes T607. The spike result has been reported. The user’s active instruction to implement all incomplete tasks authorizes the subsequent implementation; G3 is recorded as cleared without requesting duplicate approval.
