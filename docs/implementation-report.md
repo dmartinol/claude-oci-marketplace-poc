@@ -645,3 +645,47 @@ The strict validator was also run against `examples/claude-oci-demo-marketplace`
 T605 remains blocked because this sandbox lacks the supplied separate demo Git URL and current Quay authentication and cannot run the interactive macOS acceptance session. The earlier live reports record Quay HTTP 401 responses and missing Claude model login. No artifact was published during this revision. T606 remains dependent on T605; the root README now documents the current command contract and links to the plan, but a human-run `docs/demo/README.md` is deferred until the real acceptance flow can be replayed.
 
 The final local documentation scan resolved 53 relative Markdown links, and the bootstrap marketplace, manager plugin, demo marketplace, and guide marketplace JSON files parsed successfully.
+
+## T608 — Project-owned v1/v2 plugin source and Linux packaging
+
+This source/package work was authorized by the user on 2026-10-15 and run on the current Linux ARM64 host with Claude Code 2.1.299 and GNU tar 1.35. It does not clear the T607/G3 registry gate.
+
+Added complete plugin roots under `examples/oci-demo-plugin/v1` and `v2`. Each contains `.claude-plugin/plugin.json` and a `skills/demo/SKILL.md` component. The installed command is `/oci-demo-plugin:demo`, with version-specific responses. These are full plugin directories packaged together, not individual skillctl artifacts. The packaging and publish notes are in [the example README](../examples/oci-demo-plugin/README.md).
+
+Strict validation passed for both source versions and both extracted archives:
+
+```text
+$ claude plugin validate --strict ./examples/oci-demo-plugin/v1
+✔ Validation passed
+
+$ claude plugin validate --strict ./examples/oci-demo-plugin/v2
+✔ Validation passed
+
+$ claude plugin validate --strict /tmp/oci-demo-plugin-v1-extracted
+✔ Validation passed
+
+$ claude plugin validate --strict /tmp/oci-demo-plugin-v2-extracted
+✔ Validation passed
+```
+
+The deterministic packager uses GNU tar's sorted entries, fixed timestamps, and normalized ownership. Two v1 archive builds matched byte-for-byte; the v2 archive had a different digest:
+
+```text
+$ scripts/package-oci-plugin.sh examples/oci-demo-plugin/v1 /tmp/oci-demo-plugin-v1.tar.gz
+Packaged examples/oci-demo-plugin/v1 -> /tmp/oci-demo-plugin-v1.tar.gz
+
+$ scripts/package-oci-plugin.sh examples/oci-demo-plugin/v1 /tmp/oci-demo-plugin-v1-repeat.tar.gz
+Packaged examples/oci-demo-plugin/v1 -> /tmp/oci-demo-plugin-v1-repeat.tar.gz
+
+$ scripts/package-oci-plugin.sh examples/oci-demo-plugin/v2 /tmp/oci-demo-plugin-v2.tar.gz
+Packaged examples/oci-demo-plugin/v2 -> /tmp/oci-demo-plugin-v2.tar.gz
+
+$ sha256sum /tmp/oci-demo-plugin-v1.tar.gz /tmp/oci-demo-plugin-v1-repeat.tar.gz /tmp/oci-demo-plugin-v2.tar.gz
+7d5a86b89d34d7488feb5d4838d763386cd3b97604f40b00c713af94ae8afae1  /tmp/oci-demo-plugin-v1.tar.gz
+7d5a86b89d34d7488feb5d4838d763386cd3b97604f40b00c713af94ae8afae1  /tmp/oci-demo-plugin-v1-repeat.tar.gz
+48e5cdb159c5381e95ceb837a11c99bc1f0718fb9383935c67ca3cbf5e02935d  /tmp/oci-demo-plugin-v2.tar.gz
+```
+
+The archive contains `.claude-plugin/plugin.json` at its root, followed by the complete `skills/demo` component. Extracted v1 and v2 directories passed strict validation. A fresh temporary `CLAUDE_CONFIG_DIR` registered a temporary local marketplace and installed the extracted v1 plugin using native Claude commands; `claude plugin list --json` reported version `0.1.0`, `enabled: true`, and user scope under that profile. This verifies Linux local activation, not an OCI registry install or interactive skill invocation.
+
+Registry publication is not complete. The sandbox has no ORAS executable, Go toolchain, or network path to GitHub/Quay; see the [Linux T607 check](feasibility-report.md#linux-current-host-feasibility-check-2026-10-15). No artifact/layer media type was selected from registry evidence, no remote tag was written, and no registry digest was recorded.

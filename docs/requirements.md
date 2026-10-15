@@ -96,6 +96,9 @@ This POC demonstrates plugin distribution and updates, not a complete secure sup
 
 ## Technical references
 
+- [Claude Code system requirements](https://docs.anthropic.com/en/docs/claude-code/getting-started)
+- [Claude Code plugin creation](https://code.claude.com/docs/en/plugins/create)
+- [ORAS installation](https://oras.land/docs/installation/)
 - [ORAS push](https://oras.land/docs/1.1/commands/oras_push/)
 - [ORAS manifest fetch](https://oras.land/docs/1.1/commands/oras_manifest_fetch/)
 - [ORAS pull](https://oras.land/docs/1.1/commands/oras_pull/)

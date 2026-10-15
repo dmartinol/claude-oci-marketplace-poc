@@ -6,7 +6,7 @@ This is the ordered execution tracker for [requirements.md](requirements.md). Pr
 
 On 2026-10-15, the user clarified that skillctl builds OCI artifacts for individual skills, not complete Claude plugins, and requested ORAS integration instead. The current requirements now define each raw OCI marketplace source as a complete plugin bundle. The raw plugins[].source contract and retirement of oci-catalog.json remain in effect.
 
-The existing manager code and earlier skillctl evidence implement an individual-skill payload. They are historical inputs, not proof that the full-plugin ORAS requirements pass. The ORAS feasibility spike must precede full implementation. Earlier approval of the skillctl flow does not clear the new implementation gate. The POC owns all complete plugin source, packaging, and artifact tags: T607 uses the existing manager plugin for its spike artifact, and T608 creates the separate v1/v2 demo plugin. The supplied registry configuration provides the repository and credentials, not a prebuilt artifact or tag.
+The existing manager code and earlier skillctl evidence implement an individual-skill payload. They are historical inputs, not proof that the full-plugin ORAS requirements pass. The ORAS feasibility spike must precede full implementation. Earlier approval of the skillctl flow does not clear the new implementation gate. The POC owns all complete plugin source, packaging, and artifact tags: T607 uses the existing manager plugin for its spike artifact, and T608 creates the separate v1/v2 demo plugin. The supplied registry configuration provides the repository and credentials, not a prebuilt artifact or tag. Per D19, portable T607/T608 work uses the current Linux ARM64 host; macOS remains the first full demo and T613 acceptance target.
 
 ## Tracking rules
 
@@ -23,8 +23,9 @@ Keep each task's implementation, evidence report, and status together. Documenta
 ## Current status
 
 - **T600 — Update product documents:** Done. The requirements specify complete ORAS plugin bundles and make the POC responsible for building its own bundle source and tags; D17/D18 record the product direction and artifact ownership.
-- **T607 — ORAS and stock Claude feasibility spike:** Partially run; the Mac local artifact round-trip, strict validation, and native persistent installation pass. The offline raw-source parser/list/add checks also pass 21 tests, and T601 records local raw-source marketplace registration without an OCI request. Registry push/lookup/pull and media-type support remain unverified because no registry-backed ORAS operation has been run; the spike bundle and tag are owned by this project, while registry write access from the supplied configuration and interactive command/restart evidence remain outstanding. See the [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15) and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
-- **Gate G3:** Not cleared. Full implementation must wait for the spike evidence and explicit user approval.
+- **T607 — ORAS and stock Claude feasibility spike:** Blocked after partial run on the current Linux ARM64 host. Claude Code 2.1.299 validates and persistently installs the extracted complete demo plugin through a native local marketplace; the 21 raw-source/list/add tests and T601 registration evidence also pass. Existing Mac evidence covers local ORAS layout packaging and native installation. This sandbox has no ORAS binary or Go toolchain, cannot reach GitHub to fetch ORAS, and cannot reach Quay; registry push/lookup/pull and registry media-type support remain unverified. See the [Linux feasibility check](feasibility-report.md#linux-current-host-feasibility-check-2026-10-15), [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15), and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
+- **Gate G3:** User explicitly authorized T607/T608 work on the current platform on 2026-10-15; the gate is still not cleared because T607 registry evidence is incomplete. Full marketplace workflow implementation remains gated.
+- **T608 — Build and publish project-owned v1/v2 demo plugin:** In progress. The source, deterministic packager, strict CLI validation, reproducible archive creation, and Linux local marketplace installation are complete. Registry publication and final ORAS media-type checks are pending T607/G3 and network/tool access. See the [T608 source and packaging evidence](implementation-report.md#t608--project-owned-v1v2-plugin-source-and-linux-packaging).
 
 ## P1 — Product-document reset
 
@@ -45,42 +46,44 @@ Keep each task's implementation, evidence report, and status together. Documenta
 
 ### T607 — Verify ORAS artifact and Claude plugin feasibility
 
-- **Status:** Partially run; the macOS host, ORAS 1.3.4 local artifact round-trip, strict plugin validation, and persistent native installation of the extracted bundle are verified. The offline parser/list/add checks and local raw-source registration also pass without OCI retrieval. Registry push/lookup/pull and media-type support remain unverified because no registry-backed ORAS operation has been run; the project owns its spike bundle and tag, while registry write access from the supplied configuration and interactive command/restart evidence remain outstanding. See the [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15) and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
+- **Status:** Blocked after partial run on Linux ARM64. Current host and CLI versions, strict full-plugin validation, archive extraction, and persistent native local-marketplace installation are recorded. Existing Mac local-layout evidence remains supporting evidence. Registry publish/lookup/pull cannot run because ORAS is unavailable and network access to GitHub/Quay fails. See the [Linux feasibility check](feasibility-report.md#linux-current-host-feasibility-check-2026-10-15), [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15), and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
 - **Requirements:** R1–R9, R12, Feasibility spike
-- **Depends on:** T600; supplied macOS demo host, configured registry repository and credentials. The project uses `plugins/oci-marketplace` as its complete spike bundle and creates its own tag.
+- **Depends on:** T600; current Linux ARM64 host with stock Claude Code. The configured registry repository and supported local credentials are inputs; this project supplies the bundle and tag. Final Mac-first-demo acceptance remains under T613.
 - **Outcome:** Prove generic ORAS artifact publication, metadata-only digest lookup, digest-pinned retrieval, validation of the complete plugin, and persistent activation in stock Claude Code.
-- **Evidence:** Partial local evidence is in [feasibility-report.md](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15). Existing [raw-source compatibility evidence](feasibility-report.md#oci-source-marketplace-compatibility-spike) covers only historical source parsing and marketplace registration. The old [T501 registry evidence](implementation-report.md#t501--end-to-end-demo-rehearsal) is skillctl-specific.
+- **Evidence:** Partial Linux evidence is in [feasibility-report.md](feasibility-report.md#linux-current-host-feasibility-check-2026-10-15); Mac local OCI-layout evidence is in the [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15). Existing [raw-source compatibility evidence](feasibility-report.md#oci-source-marketplace-compatibility-spike) covers historical source parsing and marketplace registration. The old [T501 registry evidence](implementation-report.md#t501--end-to-end-demo-rehearsal) is skillctl-specific.
 - **Done when:**
-  - [x] The actual macOS, Claude Code, ORAS, and Git versions are recorded.
+  - [x] The current Linux OS/architecture, Claude Code, and Git versions are recorded; ORAS absence and the failed install attempt are recorded as blockers.
+  - [ ] ORAS is available on Linux ARM64 and its version is recorded.
   - [ ] The maintained manager plugin is packaged as a complete archive and published to the configured registry under a project-generated spike tag using the selected artifact type and layer media type.
   - [ ] ORAS manifest lookup returns the expected digest and version metadata without downloading artifact layers.
   - [ ] ORAS retrieves the artifact by digest using the supplied local credentials; the fetched archive matches the recorded digest.
-  - [x] Claude validates the locally extracted plugin directory and it activates persistently through the native local-marketplace install path. Registry-backed activation remains pending.
-  - [x] Raw-source marketplace registration and manager parsing succeed without OCI retrieval during registration or listing. Evidence: T601 local registration and the offline parser/list/add test check; Mac interactive confirmation remains pending.
-  - [ ] Commands, exact output, activation/reload behavior, and blockers are recorded without exposing credentials.
+  - [x] Claude 2.1.299 validates an extracted complete plugin and persistently installs it through a temporary native local marketplace on Linux. Registry-backed activation remains pending.
+  - [x] Raw-source marketplace registration and manager parsing succeed without OCI retrieval during registration or listing. Evidence: T601 local registration and the offline parser/list/add check; Mac first-demo interactive acceptance remains under T613.
+  - [ ] Interactive component invocation, session/restart behavior, and registry-backed activation are verified; current shell limitations are recorded.
+  - [ ] Commands, exact output, activation/reload behavior, and remaining blockers are recorded without exposing credentials.
 
 ### Gate G3 — Approve implementation of the ORAS flow
 
-- **Status:** Not cleared — awaiting completion of T607 and explicit user approval.
+- **Status:** Not cleared — the user explicitly authorized T607/T608 on Linux on 2026-10-15; T607 registry evidence is incomplete.
 - **Requirements:** Feasibility spike
 - **Depends on:** T607
 - **Entry condition:** T607 has complete evidence and all feasibility blockers are reported.
-- **Exit condition:** The user explicitly approves implementation of the verified ORAS package and activation path.
-- **Evidence:** User approval and the completed T607 report.
+- **Exit condition:** T607 is complete and the user has explicitly approved implementation of the verified ORAS package and activation path. User approval is recorded; completion of T607 remains pending.
+- **Evidence:** User's 2026-10-15 implementation instruction and the completed T607 report.
 
 ## P3 — Full-plugin OCI implementation
 
 ### T608 — Build and publish the project-owned v1/v2 demo plugin
 
-- **Status:** Backlog
+- **Status:** In progress; source and Linux packaging are implemented, registry publication is blocked by T607.
 - **Requirements:** R3–R5, Demo acceptance 1–2
-- **Depends on:** Gate G3
+- **Depends on:** T600 for project-owned source and packaging; T607 and Gate G3 for registry media types, publication, and ORAS inspection. User explicitly authorized the source/packaging work on Linux on 2026-10-15.
 - **Outcome:** Create the complete demo plugin source and both behavior versions in this repository, then package and publish them to the supplied repository using a project-owned mutable tag. No prebuilt source, artifact, or tag is requested from the demo operator.
-- **Evidence:** [Implementation report](implementation-report.md), after implementation.
+- **Evidence:** [T608 source and packaging evidence](implementation-report.md#t608--project-owned-v1v2-plugin-source-and-linux-packaging).
 - **Done when:**
-  - [ ] The repository contains the complete v1 and v2 plugin source, including `.claude-plugin/plugin.json` and a small component with visibly distinct behavior.
-  - [ ] The source lives at `examples/oci-demo-plugin/v1` and `examples/oci-demo-plugin/v2`; each version has a complete plugin manifest and a component with a documented, distinct response.
-  - [ ] Reproducible packaging instructions or deterministic packaging code archives each source directory with the plugin directory as archive root and preserves all files/components.
+  - [x] The repository contains complete v1/v2 plugin roots at `examples/oci-demo-plugin/v1` and `/v2`, each with `.claude-plugin/plugin.json` and a component with distinct version behavior.
+  - [x] `scripts/package-oci-plugin.sh` reproducibly archives each root with the plugin directory as archive root and preserves the complete plugin layout.
+  - [x] Claude Code 2.1.299 strict validation passes for v1, v2, and the extracted v1 archive; native local-marketplace installation of the extracted v1 bundle succeeds persistently on Linux.
   - [ ] The archive root and project-defined OCI artifact/layer media types match the T607 result.
   - [ ] OCI title and version annotations match the plugin manifest.
   - [ ] The ORAS publish instructions resolve the repository only from supplied demo configuration and push each archive to `<configured-repository>:oci-demo-plugin-draft` using the artifact/layer media types and title/version annotations selected by T607. Both versions use this same tag; the plugin version annotation changes with the source version.

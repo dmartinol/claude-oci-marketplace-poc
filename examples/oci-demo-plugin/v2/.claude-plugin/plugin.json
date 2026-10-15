@@ -1,0 +1,8 @@
+{
+  "name": "oci-demo-plugin",
+  "version": "0.2.0",
+  "description": "Complete plugin bundle used to demonstrate OCI plugin installation and updates.",
+  "author": {
+    "name": "Claude OCI Marketplace POC"
+  }
+}

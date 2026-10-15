@@ -24,6 +24,10 @@ The user clarified that skillctl builds OCI artifacts for individual skills, not
 
 The POC must not depend on someone else supplying a complete plugin source, prebuilt artifact, or OCI tag. T607 uses the maintained `plugins/oci-marketplace` bundle already in this repository for the ORAS feasibility publication; it creates a spike tag as `marketplace-manager-<plugin-version>-oras-spike` in the repository named by the supplied demo registry configuration (currently evidenced plugin version: `0.5.0`). T608 adds the complete v1/v2 demo plugin source to this repository, packages it, and uses the project-defined mutable tag `oci-demo-plugin-draft` for both versions. For OCI publication, the demo setup supplies the repository and local credentials; it does not supply plugin artifacts or tags. Historical skill artifact tags must not be reused. This decision does not authorize guessing a registry host, namespace, or repository, and it does not clear Gate G3.
 
+### D19 — Run T607 and T608 work on the current Linux host
+
+The user directed T607 and T608 to use the current platform if it meets the product constraints. The current host is Linux ARM64 with stock Claude Code 2.1.299; Claude Code documents Linux support in its [system requirements](https://docs.anthropic.com/en/docs/claude-code/getting-started), and the [ORAS installation guide](https://oras.land/docs/installation/) provides Linux ARM64 builds. Therefore, run platform-neutral feasibility, plugin validation, packaging, and registry checks on this Linux host when the required tools and network access are available. This does not change R1: the first end-to-end product demo and T613 acceptance remain macOS. The existing macOS local-layout and persistent-install results remain supporting evidence. The current sandbox lacks ORAS and cannot reach GitHub or Quay, so registry checks are blocked here; do not infer registry compatibility from the local Mac layout probe.
+
 ## Accepted decisions
 
 ### D1 — Standard marketplace visibility
@@ -88,5 +92,5 @@ Marketplace listing and source registration are the manager's general-purpose co
 
 ## Open feasibility questions
 
-- T607 has not tested ORAS against the demo registry. The supplied macOS demo host, configured registry repository, and valid registry authentication are still required; the complete bundle source and spike tag are project-owned and are not external prerequisites. The feasibility spike and explicit approval Gate G3 must be completed before full implementation. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
+- T607 has not tested ORAS against the demo registry. The current Linux ARM64 host can run portable checks, but this sandbox lacks ORAS and registry network access. The configured registry repository and local credentials remain required; the complete bundle source and spike tag are project-owned. The macOS first-demo acceptance and explicit approval Gate G3 remain in force. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
 

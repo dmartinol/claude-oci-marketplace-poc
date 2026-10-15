@@ -791,7 +791,7 @@ Strict validation rejects the raw source as expected, and the user directed impl
 
 The macOS host reports ORAS 1.3.4 and completed a local OCI-layout round-trip of the maintained manager plugin. No ORAS command against the configured registry has been recorded. The separate v1/v2 demo plugin is planned as project-owned source under T608. The previous T501 evidence reports HTTP 401 for supplied skillctl artifact references; that is not evidence that ORAS itself fails.
 
-**Required inputs:** supplied macOS demo host, registry repository and local credentials from the supplied demo configuration. The POC supplies the complete bundle and derives the tag: T607 uses `plugins/oci-marketplace`; T608 creates the v1/v2 demo plugin source. No prebuilt bundle or externally approved tag is required. Never expose credentials in this report.
+**Required inputs:** current Linux ARM64 host for the portable T607 checks, plus the registry repository and local credentials from the supplied demo configuration. The POC supplies the complete bundle and derives the tag: T607 uses `plugins/oci-marketplace`; T608 creates the v1/v2 demo plugin source. No prebuilt bundle or externally approved tag is required. The macOS first-demo acceptance remains under T613. Never expose credentials in this report.
 
 **Evidence to record:** OS, Claude Code, ORAS, and Git versions; exact ORAS push, manifest-fetch, and pull commands and output; artifact/layer media types; title/version annotations; resolved digest; proof manifest checks do not fetch layers; credential reuse behavior; Claude plugin validation; supported persistent activation and reload behavior; and all blockers.
 
@@ -944,9 +944,59 @@ Ran 21 tests across 2 files.
 
 `tests/marketplace.test.ts` covers raw tagged source parsing, malformed sources, mixed and standard-only marketplace entries, and marketplace-qualified identity. `tests/interaction.test.ts` verifies manager list/add paths with stubbed APIs; the list test asserts its only process call is `claude plugin marketplace list --json`. These tests perform no registry operation. The earlier T601 compatibility check records successful native registration of a local marketplace containing a raw OCI source, also without an OCI request. Together, the parser and local command behavior pass without OCI retrieval. This does not replace a fresh macOS interactive run against the supplied demo marketplace.
 
-The separate complete v1/v2 demo plugin source remains needed for end-to-end acceptance; it is not required to test this offline parser behavior.
+The separate complete v1/v2 demo plugin source is now maintained under `examples/oci-demo-plugin`; it is not required to test this offline parser behavior.
 
-Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
+### Linux current-host feasibility check (2026-10-15)
+
+Per D19, portable T607 checks are being run on this current Linux ARM64 host. This does not replace the macOS first-demo acceptance required by R1 and T613.
+
+```text
+$ uname -a
+Linux sandbox-codex-sandbox 6.12.7-200.fc41.aarch64 #1 SMP PREEMPT_DYNAMIC Fri Dec 27 17:14:27 UTC 2024 aarch64 GNU/Linux
+
+$ claude --version
+2.1.299 (Claude Code)
+
+$ git --version
+git version 2.43.0
+
+$ oras version
+/bin/bash: line 1: oras: command not found
+
+$ go version
+/bin/bash: line 1: go: command not found
+
+$ claude plugin validate --strict .
+Validating marketplace manifest: <repository>/.claude-plugin/marketplace.json
+✔ Validation passed
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+Validating plugin manifest: <repository>/plugins/oci-marketplace/.claude-plugin/plugin.json
+Validating hooks: <repository>/plugins/oci-marketplace/hooks/hooks.json
+✔ Validation passed
+```
+
+The official ORAS Linux ARM64 release could not be installed because this sandbox cannot connect to GitHub:
+
+```text
+$ curl --fail --location --retry 1 --max-time 30 --silent --show-error \
+    --output /tmp/oras_1.3.4_linux_arm64.tar.gz \
+    https://github.com/oras-project/oras/releases/download/v1.3.4/oras_1.3.4_linux_arm64.tar.gz
+curl: (7) Failed to connect to github.com port 443 after 86 ms: Couldn't connect to server
+```
+
+The local container authentication config has a `quay.io` registry key. Credential values were not emitted or tested. A registry connectivity probe failed before reaching the registry API:
+
+```text
+$ curl --silent --show-error --max-time 10 --output /dev/null \
+    --write-out 'quay status=%{http_code}\n' https://quay.io/v2/
+curl: (7) Failed to connect to quay.io port 443 after 73 ms: Couldn't connect to server
+quay status=000
+```
+
+No ORAS registry push, manifest lookup, or digest-pinned pull was attempted. The registry-backed artifact and layer media types therefore remain unverified. The previous macOS OCI-layout result is local-only evidence and does not prove Quay registry behavior.
+
+The user explicitly authorized T607/T608 work on the current Linux platform on 2026-10-15. Gate G3 remains uncleared until the registry-backed spike evidence is complete; no registry compatibility is inferred from local packaging. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 
 ### Artifact ownership clarification (2026-10-15)
 
