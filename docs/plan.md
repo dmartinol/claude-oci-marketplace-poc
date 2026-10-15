@@ -23,7 +23,7 @@ Keep each task's implementation, evidence report, and status together. Documenta
 ## Current status
 
 - **T600 — Update product documents:** Done. The requirements now specify complete ORAS plugin bundles; the plan places the feasibility spike before implementation; D17 records the scope decision.
-- **T607 — ORAS and stock Claude feasibility spike:** Blocked. The 2026-10-15 Linux check recorded Claude Code 2.1.299 and Git 2.43.0, validated the manager plugin, and confirmed the native CLI can persistently install it as enabled in a temporary profile. ORAS is unavailable; release download failed and GitHub source transport returned HTTP 403. Registry access and macOS interactive activation remain untested. See the [sandbox evidence](feasibility-report.md#sandbox-environment-check-2026-10-15) and [install-path probe](feasibility-report.md#supported-claude-install-path-probe). Obtain the supplied macOS demo host, usable registry authentication, an approved complete-plugin demo reference, and ORAS access before claiming this spike is complete.
+- **T607 — ORAS and stock Claude feasibility spike:** Partially run; the Mac local artifact round-trip, strict validation, and native persistent installation pass. The offline raw-source parser/list/add checks also pass 21 tests, and T601 records local raw-source marketplace registration without an OCI request. Registry push/lookup/pull and registry support for candidate media types remain blocked without an approved complete-plugin destination and working credentials; interactive command/restart behavior remains unverified. See the [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15) and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
 - **Gate G3:** Not cleared. Full implementation must wait for the spike evidence and explicit user approval.
 
 ## P1 — Product-document reset
@@ -44,7 +44,7 @@ Keep each task's implementation, evidence report, and status together. Documenta
 
 ### T607 — Verify ORAS artifact and Claude plugin feasibility
 
-- **Status:** Partially run; blocked on registry inputs — the macOS host, ORAS 1.3.4 local artifact round-trip, strict plugin validation, and persistent native installation of the extracted bundle are verified. Registry push/lookup/pull, registry support for the candidate media types, and raw-source manager parsing remain untested because no approved complete-plugin reference or v1/v2 plugin source is supplied. See the [macOS local artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15).
+- **Status:** Partially run; blocked on registry inputs and Mac-session behavior — the macOS host, ORAS 1.3.4 local artifact round-trip, strict plugin validation, and persistent native installation of the extracted bundle are verified. The offline parser/list/add checks and local raw-source registration also pass without OCI retrieval. Registry push/lookup/pull and registry support for the candidate media types remain untested without an approved complete-plugin destination and working credentials. See the [Mac artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15) and [offline parser check](feasibility-report.md#offline-raw-source-parser-and-manager-command-check-linux-2026-10-15).
 - **Requirements:** R1–R9, R12, Feasibility spike
 - **Depends on:** T600; demo host, artifact source, registry reference, and credentials supplied by the demo setup
 - **Outcome:** Prove generic ORAS artifact publication, metadata-only digest lookup, digest-pinned retrieval, validation of the complete plugin, and persistent activation in stock Claude Code.
@@ -55,7 +55,7 @@ Keep each task's implementation, evidence report, and status together. Documenta
   - [ ] ORAS manifest lookup returns the expected digest and version metadata without downloading artifact layers.
   - [ ] ORAS retrieves the artifact by digest using supplied local credentials; the fetched archive matches the recorded digest.
   - [x] Claude validates the locally extracted plugin directory and it activates persistently through the native local-marketplace install path. Registry-backed activation remains pending.
-  - [ ] Raw-source marketplace registration and manager parsing succeed without OCI retrieval during registration or listing.
+  - [x] Raw-source marketplace registration and manager parsing succeed without OCI retrieval during registration or listing. Evidence: T601 local registration and the offline parser/list/add test check; Mac interactive confirmation remains pending.
   - [ ] Commands, exact output, activation/reload behavior, and blockers are recorded without exposing credentials.
 
 ### Gate G3 — Approve implementation of the ORAS flow

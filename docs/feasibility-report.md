@@ -929,7 +929,22 @@ $ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin list --json
 {"id":"marketplace-manager@t607-local-probe","version":"0.5.0","scope":"user","enabled":true,"installPath":"<isolated-profile>/plugins/cache/t607-local-probe/marketplace-manager/0.5.0", ...}
 ```
 
-The registry-backed portion remains blocked: the repository has no approved complete-plugin OCI reference or separate complete v1/v2 demo bundle. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. Without an approved full-plugin destination/reference, authenticated push, registry manifest lookup, digest-pinned remote pull, registry media-type support, and raw-source manager parsing cannot be safely tested. No credentials were read or printed.
+The registry-backed portion remains blocked: the repository has no approved complete-plugin OCI reference or separate complete v1/v2 demo bundle. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. Without an approved full-plugin destination/reference and working registry credentials, authenticated push, registry manifest lookup, digest-pinned remote pull, and registry media-type support cannot be safely tested. No credentials were read or printed.
+
+### Offline raw-source parser and manager command check (Linux, 2026-10-15)
+
+The raw-source parser and manager listing behavior do not require a live OCI reference. I ran the existing Claude plugin test suite in the Linux workspace:
+
+```text
+$ claude plugin test ./plugins/oci-marketplace
+21 pass
+0 fail
+Ran 21 tests across 2 files.
+```
+
+`tests/marketplace.test.ts` covers raw tagged source parsing, malformed sources, mixed and standard-only marketplace entries, and marketplace-qualified identity. `tests/interaction.test.ts` verifies manager list/add paths with stubbed APIs; the list test asserts its only process call is `claude plugin marketplace list --json`. These tests perform no registry operation. The earlier T601 compatibility check records successful native registration of a local marketplace containing a raw OCI source, also without an OCI request. Together, the parser and local command behavior pass without OCI retrieval. This does not replace a fresh macOS interactive run against the supplied demo marketplace.
+
+The separate complete v1/v2 demo plugin source remains needed for end-to-end acceptance; it is not required to test this offline parser behavior.
 
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 
