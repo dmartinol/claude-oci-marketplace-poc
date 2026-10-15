@@ -22,7 +22,7 @@ The repository root is the bootstrap marketplace. Its manager plugin can be vali
     claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
     claude plugin install marketplace-manager@claude-oci-marketplace --scope user
 
-The demo marketplace and registry reference must be supplied by the demo setup. Never substitute an individual skill artifact reference for a complete plugin bundle or invent registry coordinates.
+The demo setup supplies registry configuration and credentials; the project supplies the complete plugin source, packaging instructions, and artifact tags. Never substitute an individual skill artifact reference for a complete plugin bundle or invent registry coordinates.
 
 ## OCI plugin workflow status
 

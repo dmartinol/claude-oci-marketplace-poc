@@ -20,6 +20,10 @@ The user clarified that skillctl builds OCI artifacts for individual skills, not
 
 **Supersession:** D17 supersedes D12's skillctl payload contract, D13's skill-directory installation target, and OCI-skill-specific language in D1, D2, D7–D9, D11, and D14. Their evidence remains historical and does not prove full-plugin OCI packaging or activation. D15's manager-owned raw-source decision and D16's catalog retirement remain active.
 
+### D18 — The project owns demo plugin sources and artifact tags
+
+The POC must not depend on someone else supplying a complete plugin source, prebuilt artifact, or OCI tag. T607 uses the maintained `plugins/oci-marketplace` bundle already in this repository for the ORAS feasibility publication; it creates a spike tag as `marketplace-manager-<plugin-version>-oras-spike` in the repository named by the supplied demo registry configuration (currently evidenced plugin version: `0.5.0`). T608 adds the complete v1/v2 demo plugin source to this repository, packages it, and uses the project-defined mutable tag `oci-demo-plugin-draft` for both versions. For OCI publication, the demo setup supplies the repository and local credentials; it does not supply plugin artifacts or tags. Historical skill artifact tags must not be reused. This decision does not authorize guessing a registry host, namespace, or repository, and it does not clear Gate G3.
+
 ## Accepted decisions
 
 ### D1 — Standard marketplace visibility
@@ -84,5 +88,5 @@ Marketplace listing and source registration are the manager's general-purpose co
 
 ## Open feasibility questions
 
-- T607 has not tested ORAS against the demo registry or a complete plugin bundle. The supplied macOS demo host, valid registry authentication, and a real plugin-bundle source/reference are required. The feasibility spike and explicit approval Gate G3 must be completed before implementation. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
+- T607 has not tested ORAS against the demo registry. The supplied macOS demo host, configured registry repository, and valid registry authentication are still required; the complete bundle source and spike tag are project-owned and are not external prerequisites. The feasibility spike and explicit approval Gate G3 must be completed before full implementation. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
 

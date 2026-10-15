@@ -787,11 +787,11 @@ Strict validation rejects the raw source as expected, and the user directed impl
 
 ## ORAS plugin bundle feasibility spike
 
-**Status:** Partially run; local ORAS packaging, digest-pinned round-trip, Claude validation, and persistent installation passed on macOS. Registry-backed checks remain blocked. This section tracks the revised requirement for complete Claude plugin bundles; earlier skillctl probes do not establish ORAS behavior.
+**Status:** Partially run; local ORAS packaging, digest-pinned round-trip, Claude validation, and persistent installation passed on macOS. Registry-backed checks remain unverified. This section tracks the revised requirement for complete Claude plugin bundles; earlier skillctl probes do not establish ORAS behavior.
 
-The macOS host reports ORAS 1.3.4 and completed a local OCI-layout round-trip of the maintained manager plugin. No ORAS command against a supplied registry reference or a separate v1/v2 demo plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for supplied skillctl artifact references; that is not evidence that ORAS itself fails.
+The macOS host reports ORAS 1.3.4 and completed a local OCI-layout round-trip of the maintained manager plugin. No ORAS command against the configured registry has been recorded. The separate v1/v2 demo plugin is planned as project-owned source under T608. The previous T501 evidence reports HTTP 401 for supplied skillctl artifact references; that is not evidence that ORAS itself fails.
 
-**Required inputs:** supplied macOS demo host, valid registry authentication, a complete plugin directory/archive, and its approved registry reference. Never expose credentials in this report.
+**Required inputs:** supplied macOS demo host, registry repository and local credentials from the supplied demo configuration. The POC supplies the complete bundle and derives the tag: T607 uses `plugins/oci-marketplace`; T608 creates the v1/v2 demo plugin source. No prebuilt bundle or externally approved tag is required. Never expose credentials in this report.
 
 **Evidence to record:** OS, Claude Code, ORAS, and Git versions; exact ORAS push, manifest-fetch, and pull commands and output; artifact/layer media types; title/version annotations; resolved digest; proof manifest checks do not fetch layers; credential reuse behavior; Claude plugin validation; supported persistent activation and reload behavior; and all blockers.
 
@@ -929,7 +929,7 @@ $ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin list --json
 {"id":"marketplace-manager@t607-local-probe","version":"0.5.0","scope":"user","enabled":true,"installPath":"<isolated-profile>/plugins/cache/t607-local-probe/marketplace-manager/0.5.0", ...}
 ```
 
-The registry-backed portion remains blocked: the repository has no approved complete-plugin OCI reference or separate complete v1/v2 demo bundle. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. Without an approved full-plugin destination/reference and working registry credentials, authenticated push, registry manifest lookup, digest-pinned remote pull, and registry media-type support cannot be safely tested. No credentials were read or printed.
+The registry-backed portion remains unverified. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. The missing complete-plugin source and tag are project work, not external blockers: T607 will publish the maintained manager bundle under a project-generated spike tag, and T608 will add and publish the separate v1/v2 demo bundle. The remaining registry dependency is usable write/read access to the repository in the supplied configuration; registry manifest lookup, digest-pinned remote pull, and registry media-type support still need evidence. No credentials were read or printed.
 
 ### Offline raw-source parser and manager command check (Linux, 2026-10-15)
 
@@ -947,4 +947,8 @@ Ran 21 tests across 2 files.
 The separate complete v1/v2 demo plugin source remains needed for end-to-end acceptance; it is not required to test this offline parser behavior.
 
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
+
+### Artifact ownership clarification (2026-10-15)
+
+The earlier spike note referred to an “approved complete-plugin destination/reference” and a separately supplied bundle as blockers. D18 and the revised plan resolve that dependency: the repository's demo registry configuration supplies the repository and local credentials, while this project creates both plugin sources, packages them, and derives the spike and demo tags. The Mac local OCI-layout evidence above already uses the maintained manager plugin as the spike bundle. No registry publication has yet been attempted, so registry permission and behavior remain open feasibility checks.
 
