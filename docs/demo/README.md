@@ -58,8 +58,8 @@ No second repository or local checkout is needed. If you publish a different OCI
 Install the manager from the repository's default branch with your existing Claude CLI:
 
 ```bash
-claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
-claude plugin install marketplace-manager@claude-oci-marketplace --scope user
+claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope project
+claude plugin install marketplace-manager@claude-oci-marketplace --scope project
 claude
 ```
 
@@ -104,8 +104,8 @@ The failed-update preservation path is covered by the recorded live CLI rehearsa
 Remove the demo plugin and marketplace with Claude's native commands:
 
 ```bash
-claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope user
-claude plugin marketplace remove claude-oci-demo-marketplace --scope user
+claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope project
+claude plugin marketplace remove claude-oci-demo-marketplace --scope project
 ```
 
 If you also want to remove the extracted files, delete the manager-owned `marketplace-manager/marketplaces/claude-oci-demo-marketplace` directory under your active Claude config directory after removing the native registration.
@@ -131,8 +131,8 @@ echo "$CLAUDE_CONFIG_DIR"
 Use the copied example files and publish v1 with step 1 above. Save the digest from `oras manifest fetch`. Then bootstrap and launch the manager in the empty profile:
 
 ```bash
-claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope user
-claude plugin install marketplace-manager@claude-oci-marketplace --scope user
+claude plugin marketplace add https://github.com/dmartinol/claude-oci-marketplace-poc.git --scope project
+claude plugin install marketplace-manager@claude-oci-marketplace --scope project
 claude plugin list --json
 claude
 ```
@@ -149,7 +149,7 @@ Approve the download confirmation and Claude permission prompt. Verify `claude-o
 To exercise the manager's install command too, exit Claude and run this in the same terminal:
 
 ```bash
-claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope user
+claude plugin uninstall oci-demo-plugin@claude-oci-demo-marketplace --scope project
 claude
 ```
 
