@@ -840,9 +840,12 @@ A protected local container-auth file is present, but its contents were not read
 ```text
 $ curl --fail --location --retry 2 --silent --show-error --output /tmp/oci-poc-oras-1.3.4/oras.tar.gz https://github.com/oras-project/oras/releases/download/v1.3.4/oras_1.3.4_linux_arm64.tar.gz
 curl: (7) Failed to connect to github.com port 443 after 66 ms: Couldn't connect to server
+
+$ git ls-remote https://github.com/oras-project/oras.git HEAD
+fatal: unable to access 'https://github.com/oras-project/oras.git/': The requested URL returned error: 403
 ```
 
-No registry request or artifact publication was attempted. The host is Linux rather than the supplied macOS demo machine, ORAS is unavailable, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or persistent activation on the demo host. T607 remains blocked.
+No ORAS executable was found in the available command path or searched standard locations. No registry request or artifact publication was attempted. Both the release download and GitHub source transport are unavailable from this sandbox. The host is Linux rather than the supplied macOS demo machine, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or persistent activation on the demo host. T607 remains blocked.
 
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 
