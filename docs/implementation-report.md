@@ -638,15 +638,15 @@ PASS: install/replacement, SessionStart skill reload, and fetch/digest/validatio
 
 The 21 plugin tests cover raw source parsing, malformed references, standard-only and mixed marketplaces, multiple marketplace identities, non-retrieval during listing and metadata checks, direct installation by qualified identity, approval and permission denial, update selection on a changed digest, installed-state output, and error handling. The installer fixture checks the SessionStart reloadSkills response and covers retrieval, digest, unpack/validation, activation, and rollback failures.
 
-The strict validator was also run against `examples/claude-oci-demo-marketplace`; it rejected the expected raw OCI `source` and the reserved `claude-oci-demo` plugin name. The manager parser accepts this entry; the source parser's deterministic tests exercise the same shape without invoking Claude's built-in validator.
+At the time of this earlier check, strict validation against `examples/claude-oci-demo-marketplace` rejected the expected raw OCI `source` and the then-used `claude-oci-demo` plugin name. The fixture now uses `oci-demo-plugin`. The manager parser accepts raw OCI entries; deterministic tests exercise that shape without invoking Claude's built-in validator.
 
 ### T605–T606 — Live rehearsal and demo guide
 
-T605 remains blocked because this sandbox lacks the supplied separate demo Git URL and current Quay authentication and cannot run the interactive macOS acceptance session. The earlier live reports record Quay HTTP 401 responses and missing Claude model login. No artifact was published during this revision. T606 remains dependent on T605; the root README now documents the current command contract and links to the plan, but a human-run `docs/demo/README.md` is deferred until the real acceptance flow can be replayed.
+The live acceptance rehearsal remains incomplete. Earlier Linux-sandbox reports record Quay HTTP 401 responses and missing Claude login; they do not establish the current Mac host's authentication state. The separate demo marketplace Git URL is still unresolved. A human-run guide now exists at `docs/demo/README.md`; it remains a draft until the registry-backed install/update flow is replayed successfully under T613.
 
 The final local documentation scan resolved 53 relative Markdown links, and the bootstrap marketplace, manager plugin, demo marketplace, and guide marketplace JSON files parsed successfully.
 
-## T608 — Project-owned v1/v2 plugin source and Linux packaging
+## T608 — Project-owned v1/v2 plugin source and initial Linux packaging probe (superseded)
 
 This source/package work was authorized by the user on 2026-10-15 and run on the current Linux ARM64 host with Claude Code 2.1.299 and GNU tar 1.35. It does not clear the T607/G3 registry gate.
 
@@ -689,3 +689,7 @@ $ sha256sum /tmp/oci-demo-plugin-v1.tar.gz /tmp/oci-demo-plugin-v1-repeat.tar.gz
 The archive contains `.claude-plugin/plugin.json` at its root, followed by the complete `skills/demo` component. Extracted v1 and v2 directories passed strict validation. A fresh temporary `CLAUDE_CONFIG_DIR` registered a temporary local marketplace and installed the extracted v1 plugin using native Claude commands; `claude plugin list --json` reported version `0.1.0`, `enabled: true`, and user scope under that profile. This verifies Linux local activation, not an OCI registry install or interactive skill invocation.
 
 Registry publication is not complete. The sandbox has no ORAS executable, Go toolchain, or network path to GitHub/Quay; see the [Linux T607 check](feasibility-report.md#linux-current-host-feasibility-check-2026-10-15). No artifact/layer media type was selected from registry evidence, no remote tag was written, and no registry digest was recorded.
+
+### Correction — Direct ORAS folder publication (2026-10-15)
+
+The Python/GNU-tar packaging script and reproducible-archive workflow above were an intermediate implementation and are superseded by [D20](decisions.md#d20--publish-plugin-directories-directly-with-oras). ORAS 1.3.4 publishes a plugin directory directly when run from that plugin root with `.`; it creates the gzip OCI layer and `oras pull` expands the plugin at the destination root. The script was removed. Current macOS local-layout evidence for v1/v2 and the manager plugin is in the [direct-directory ORAS check](feasibility-report.md#direct-directory-oras-check-macos-2026-10-15). Direct-directory publication and retrieval from the configured registry remain open T607/T608 checks.

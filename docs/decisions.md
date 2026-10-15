@@ -16,17 +16,25 @@ Do not parse or support root `oci-catalog.json`. Marketplace OCI declarations us
 
 ### D17 — ORAS distribution of complete Claude plugin bundles
 
-The user clarified that skillctl builds OCI artifacts for individual skills, not complete Claude plugins, and requested ORAS instead. Treat one raw OCI source entry as one complete Claude plugin bundle. Package the complete plugin root, including .claude-plugin/plugin.json and its components, as a compressed archive in a generic OCI artifact. Use ORAS for publication, metadata lookup, and retrieval; do not use skillctl for this plugin payload. The project-defined artifact and layer media types, archive layout, annotations, authenticated registry behavior, and persistent Claude activation path must be confirmed by the ORAS feasibility spike before implementation. Artifact title and version annotations must match plugin.json. Metadata checks must not retrieve artifact layers. The earlier G2 approval applied to skillctl-based individual skills and does not approve this changed workflow.
+The user clarified that skillctl builds OCI artifacts for individual skills, not complete Claude plugins, and selected ORAS for the plugin payload. Treat one raw OCI source entry as one complete Claude plugin directory. Publish from the plugin root with ORAS; ORAS creates the compressed layer, so the developer does not create a separate archive. Use ORAS for publication, metadata lookup, and retrieval; do not use skillctl for this plugin payload. The ORAS feasibility spike records the artifact type, standard layer type, directory layout, annotations, registry behavior, and persistent Claude activation path. Artifact title and version annotations must match plugin.json. Metadata checks must not retrieve artifact layers. The earlier G2 approval applied to skillctl-based individual skills and does not approve this changed workflow.
 
 **Supersession:** D17 supersedes D12's skillctl payload contract, D13's skill-directory installation target, and OCI-skill-specific language in D1, D2, D7–D9, D11, and D14. Their evidence remains historical and does not prove full-plugin OCI packaging or activation. D15's manager-owned raw-source decision and D16's catalog retirement remain active.
 
 ### D18 — The project owns demo plugin sources and artifact tags
 
-The POC must not depend on someone else supplying a complete plugin source, prebuilt artifact, or OCI tag. T607 uses the maintained `plugins/oci-marketplace` bundle already in this repository for the ORAS feasibility publication; it creates a spike tag as `marketplace-manager-<plugin-version>-oras-spike` in the repository named by the supplied demo registry configuration (currently evidenced plugin version: `0.5.0`). T608 adds the complete v1/v2 demo plugin source to this repository, packages it, and uses the project-defined mutable tag `oci-demo-plugin-draft` for both versions. For OCI publication, the demo setup supplies the repository and local credentials; it does not supply plugin artifacts or tags. Historical skill artifact tags must not be reused. This decision does not authorize guessing a registry host, namespace, or repository, and it does not clear Gate G3.
+The POC must not depend on someone else supplying a complete plugin source, prebuilt artifact, or OCI tag. T607 uses the maintained `plugins/oci-marketplace` bundle already in this repository for the ORAS feasibility publication; it creates a spike tag as `marketplace-manager-<plugin-version>-oras-spike` in the repository named by the supplied demo registry configuration (currently evidenced plugin version: `0.5.0`). T608 adds the complete v1/v2 demo plugin source to this repository and uses the project-defined mutable tag `oci-demo-plugin-draft` for both versions. Publish each version directly from its plugin root. For OCI publication, the demo setup supplies the repository and local credentials; it does not supply plugin artifacts or tags. Historical skill artifact tags must not be reused. This decision does not authorize guessing a registry host, namespace, or repository.
 
-### D19 — Run T607 and T608 work on the current Linux host
+### D19 — Initial Linux execution environment (superseded by D21)
 
-The user directed T607 and T608 to use the current platform if it meets the product constraints. The current host is Linux ARM64 with stock Claude Code 2.1.299; Claude Code documents Linux support in its [system requirements](https://docs.anthropic.com/en/docs/claude-code/getting-started), and the [ORAS installation guide](https://oras.land/docs/installation/) provides Linux ARM64 builds. Therefore, run platform-neutral feasibility, plugin validation, packaging, and registry checks on this Linux host when the required tools and network access are available. This does not change R1: the first end-to-end product demo and T613 acceptance remain macOS. The existing macOS local-layout and persistent-install results remain supporting evidence. The current sandbox lacks ORAS and cannot reach GitHub or Quay, so registry checks are blocked here; do not infer registry compatibility from the local Mac layout probe.
+This recorded the initial sandbox choice. The sandbox lacked ORAS and could not reach GitHub or Quay, so it did not complete registry checks. The user later clarified to run the work on the configured Mac host; see D21. This does not change R1: the first end-to-end product demo and T613 acceptance remain macOS.
+
+### D20 — Publish plugin directories directly with ORAS
+
+ORAS 1.3.4 accepts a directory operand. Run `oras push` from the plugin root with `.` so `oras pull` extracts `.claude-plugin/plugin.json` and all components directly into the destination root. ORAS creates a gzip-compressed layer using the standard media type `application/vnd.oci.image.layer.v1.tar+gzip` and marks it for unpacking. Use artifact type `application/vnd.dmartino.claude.plugin.v1` and manifest annotations `org.opencontainers.image.title` and `org.opencontainers.image.version`. Do not maintain a separate tarball or packaging script. The local OCI-layout check confirmed this behavior for v1 and v2; registry behavior for the direct-directory layer and digest-pinned pull remains to be recorded in T607.
+
+### D21 — Use the configured Mac host for current T607/T608 work
+
+After the Linux sandbox proved to lack ORAS and registry access, the user directed T607/T608 execution on this Mac host. ORAS 1.3.4, Claude Code 2.1.300, and Git 2.50.1 are available here. The local direct-directory OCI-layout check is recorded in the feasibility report. Linux sandbox results remain historical; Mac remains the first demo and acceptance target.
 
 ## Accepted decisions
 
@@ -72,7 +80,7 @@ The recorded `SessionStart`, `reloadSkills`, and `/reload-skills` behavior appli
 
 Agents complete the feasibility spike, report evidence and blockers, and stop for explicit approval before implementing the full workflow. Unsupported mod behavior is a blocker to report, not permission to silently replace the intended UX.
 
-The skill-distribution spike was approved for full implementation on 2026-10-14; Gate G1 is cleared for that historical workflow. D17 introduces Gate G3 for the ORAS full-plugin workflow. The earlier approval does not clear G3.
+The skill-distribution spike was approved for full implementation on 2026-10-14; Gate G1 is cleared for that historical workflow. D17 introduced Gate G3 for the ORAS full-plugin workflow. On 2026-10-15, the user approved the direct-directory ORAS approach. That approval establishes the packaging direction; T607 still tracks outstanding remote registry retrieval and activation evidence.
 
 ### D11 — Registered marketplace discovery
 
@@ -92,5 +100,5 @@ Marketplace listing and source registration are the manager's general-purpose co
 
 ## Open feasibility questions
 
-- T607 has not tested ORAS against the demo registry. The current Linux ARM64 host can run portable checks, but this sandbox lacks ORAS and registry network access. The configured registry repository and local credentials remain required; the complete bundle source and spike tag are project-owned. The macOS first-demo acceptance and explicit approval Gate G3 remain in force. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
+- T607 has an earlier successful remote publication and manifest descriptor lookup for the archived manager bundle, but has not verified the new direct-directory layer or fetched it by digest from the registry. The configured repository and local credentials remain the source of registry coordinates and authentication. The complete bundle source and tags are project-owned. See [plan.md](plan.md#t607--verify-oras-artifact-and-claude-plugin-feasibility).
 

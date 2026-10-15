@@ -789,9 +789,9 @@ Strict validation rejects the raw source as expected, and the user directed impl
 
 **Status:** Partially run; local ORAS packaging, digest-pinned round-trip, Claude validation, and persistent installation passed on macOS. Registry-backed checks remain unverified. This section tracks the revised requirement for complete Claude plugin bundles; earlier skillctl probes do not establish ORAS behavior.
 
-The macOS host reports ORAS 1.3.4 and completed a local OCI-layout round-trip of the maintained manager plugin. No ORAS command against the configured registry has been recorded. The separate v1/v2 demo plugin is planned as project-owned source under T608. The previous T501 evidence reports HTTP 401 for supplied skillctl artifact references; that is not evidence that ORAS itself fails.
+The macOS host reports ORAS 1.3.4 and completed both a local archive-based OCI-layout round-trip and a later direct-directory OCI-layout check of the maintained manager plugin and v1/v2 demo plugin. An archived manager bundle was also published to the configured registry and its manifest descriptor resolved. The T501 HTTP 401 responses were for historical skillctl artifact references and are not evidence that ORAS itself fails.
 
-**Required inputs:** current Linux ARM64 host for the portable T607 checks, plus the registry repository and local credentials from the supplied demo configuration. The POC supplies the complete bundle and derives the tag: T607 uses `plugins/oci-marketplace`; T608 creates the v1/v2 demo plugin source. No prebuilt bundle or externally approved tag is required. The macOS first-demo acceptance remains under T613. Never expose credentials in this report.
+**Required inputs:** the configured Mac host, plus the registry repository and local credentials from the supplied demo configuration. The POC supplies the complete bundle and derives the tag: T607 uses `plugins/oci-marketplace`; T608 creates the v1/v2 demo plugin source. No prebuilt bundle or externally approved tag is required. Never expose credentials in this report.
 
 **Evidence to record:** OS, Claude Code, ORAS, and Git versions; exact ORAS push, manifest-fetch, and pull commands and output; artifact/layer media types; title/version annotations; resolved digest; proof manifest checks do not fetch layers; credential reuse behavior; Claude plugin validation; supported persistent activation and reload behavior; and all blockers.
 
@@ -929,7 +929,86 @@ $ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin list --json
 {"id":"marketplace-manager@t607-local-probe","version":"0.5.0","scope":"user","enabled":true,"installPath":"<isolated-profile>/plugins/cache/t607-local-probe/marketplace-manager/0.5.0", ...}
 ```
 
-The registry-backed portion remains unverified. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. The missing complete-plugin source and tag are project work, not external blockers: T607 will publish the maintained manager bundle under a project-generated spike tag, and T608 will add and publish the separate v1/v2 demo bundle. The remaining registry dependency is usable write/read access to the repository in the supplied configuration; registry manifest lookup, digest-pinned remote pull, and registry media-type support still need evidence. No credentials were read or printed.
+At the time of this local archive probe, the complete v1/v2 demo plugin source had not yet been added. It now exists at `examples/oci-demo-plugin`. Later, the maintained manager archive was published to the supplied Quay repository and its manifest descriptor resolved; the direct-directory layer and digest-pinned registry pull remain unverified. No credentials were read or printed.
+
+### Direct-directory ORAS check (macOS, 2026-10-15)
+
+This check used ORAS 1.3.4 and a temporary local OCI layout. It verifies the new direct-folder approach without a registry request. Run the push from inside the plugin root and use `.` as the operand: passing a parent path such as `plugins/oci-marketplace` preserves that path under the pull destination, while `.` makes the pulled directory itself the Claude plugin root.
+
+The selected local contract is:
+
+- Artifact type: `application/vnd.dmartino.claude.plugin.v1`
+- Layer media type: `application/vnd.oci.image.layer.v1.tar+gzip`
+- Manifest annotations: `org.opencontainers.image.title` and `org.opencontainers.image.version`
+- ORAS layer annotations include `io.deis.oras.content.unpack=true`; `oras pull` expands the directory at the output root.
+
+The v1 command and result were:
+
+```text
+$ cd examples/oci-demo-plugin/v1
+$ oras push --oci-layout <temporary-layout>/demo-layout:oci-demo-plugin-draft \
+    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+    --annotation org.opencontainers.image.title=oci-demo-plugin \
+    --annotation org.opencontainers.image.version=0.1.0 .
+ArtifactType: application/vnd.dmartino.claude.plugin.v1
+Digest: sha256:026b433946629431f86f2b242fd21c11d4f32f0adf1937387327dc2fde6924cd
+
+$ oras pull --oci-layout <temporary-layout>/demo-layout@sha256:026b433946629431f86f2b242fd21c11d4f32f0adf1937387327dc2fde6924cd \
+    --output <temporary-output>/demo-v1-pulled/
+Digest: sha256:026b433946629431f86f2b242fd21c11d4f32f0adf1937387327dc2fde6924cd
+
+$ claude plugin validate --strict <temporary-output>/demo-v1-pulled
+✔ Validation passed
+```
+
+The same local tag was then moved to v2:
+
+```text
+$ cd examples/oci-demo-plugin/v2
+$ oras push --oci-layout <temporary-layout>/demo-layout:oci-demo-plugin-draft \
+    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+    --annotation org.opencontainers.image.title=oci-demo-plugin \
+    --annotation org.opencontainers.image.version=0.2.0 .
+ArtifactType: application/vnd.dmartino.claude.plugin.v1
+Digest: sha256:4654982b374fa47a92059d6af55176c9fee7ee9ebf56ce3ff5e34ccf38def00f
+
+$ oras manifest fetch --oci-layout <temporary-layout>/demo-layout:oci-demo-plugin-draft --format json
+"artifactType": "application/vnd.dmartino.claude.plugin.v1"
+"org.opencontainers.image.title": "oci-demo-plugin"
+"org.opencontainers.image.version": "0.2.0"
+"layers[0].mediaType": "application/vnd.oci.image.layer.v1.tar+gzip"
+"layers[0].annotations.io.deis.oras.content.unpack": "true"
+
+$ oras pull --oci-layout <temporary-layout>/demo-layout:oci-demo-plugin-draft \
+    --output <temporary-output>/demo-v2-pulled/
+Digest: sha256:4654982b374fa47a92059d6af55176c9fee7ee9ebf56ce3ff5e34ccf38def00f
+
+$ claude plugin validate --strict <temporary-output>/demo-v2-pulled
+✔ Validation passed
+```
+
+Both pulls placed `.claude-plugin/plugin.json` at the output root and passed strict Claude validation. The local tag resolved to different v1 and v2 manifest digests. This confirms direct folder publication, metadata annotations, same-tag local updates, and extraction layout. It does not prove the registry accepts this exact layer type or that the manager can retrieve it remotely.
+
+The maintained manager plugin was also pushed from its root with `.` and pulled locally. Its manifest digest was `sha256:65986b61a6d9337ef1bfc7d2b376fb4a0f4fdb0aa4567275dff0bbefafb13348`; the extracted plugin passed `claude plugin validate --strict`. This local bundle check is separate from the earlier archive-based Quay push.
+
+### Earlier Quay archive publication
+
+The maintained manager bundle was previously published to the supplied Quay repository using a prebuilt gzip archive and the custom layer type `application/vnd.dmartino.claude.plugin.bundle.v1.tar+gzip`:
+
+```text
+$ oras push quay.io/dmartino/claude-oci-demo:marketplace-manager-0.5.0-oras-spike \
+    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+    --annotation org.opencontainers.image.title=marketplace-manager \
+    --annotation org.opencontainers.image.version=0.5.0 \
+    marketplace-manager-0.5.0.tar.gz:application/vnd.dmartino.claude.plugin.bundle.v1.tar+gzip
+ArtifactType: application/vnd.dmartino.claude.plugin.v1
+Digest: sha256:72c4af1a511ef917267b062c2d171112cfda930ae122cbb0da581e7e857d2ec3
+
+$ oras manifest fetch --descriptor quay.io/dmartino/claude-oci-demo:marketplace-manager-0.5.0-oras-spike
+{"mediaType":"application/vnd.oci.image.manifest.v1+json","digest":"sha256:72c4af1a511ef917267b062c2d171112cfda930ae122cbb0da581e7e857d2ec3","size":738}
+```
+
+This verifies remote publication and descriptor lookup for the earlier archive representation. A follow-up request to fetch the full remote manifest content was not approved, so no registry pull by digest was run. The earlier result does not verify remote support for the direct-directory layer selected in D20.
 
 ### Offline raw-source parser and manager command check (Linux, 2026-10-15)
 
@@ -948,7 +1027,7 @@ The separate complete v1/v2 demo plugin source is now maintained under `examples
 
 ### Linux current-host feasibility check (2026-10-15)
 
-Per D19, portable T607 checks are being run on this current Linux ARM64 host. This does not replace the macOS first-demo acceptance required by R1 and T613.
+This section records the initial Linux ARM64 sandbox attempt before the user directed current T607/T608 work to the configured Mac host in D21. It does not replace the macOS first-demo acceptance required by R1 and T613.
 
 ```text
 $ uname -a
@@ -996,9 +1075,9 @@ quay status=000
 
 No ORAS registry push, manifest lookup, or digest-pinned pull was attempted. The registry-backed artifact and layer media types therefore remain unverified. The previous macOS OCI-layout result is local-only evidence and does not prove Quay registry behavior.
 
-The user explicitly authorized T607/T608 work on the current Linux platform on 2026-10-15. Gate G3 remains uncleared until the registry-backed spike evidence is complete; no registry compatibility is inferred from local packaging. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
+This records the initial Linux sandbox attempt only. The user later directed work to the configured Mac host after the sandbox lacked ORAS and registry access; see [D21](decisions.md#d21--use-the-configured-mac-host-for-current-t607t608-work) and the direct-directory check above. Local OCI-layout results do not establish registry compatibility.
 
 ### Artifact ownership clarification (2026-10-15)
 
-The earlier spike note referred to an “approved complete-plugin destination/reference” and a separately supplied bundle as blockers. D18 and the revised plan resolve that dependency: the repository's demo registry configuration supplies the repository and local credentials, while this project creates both plugin sources, packages them, and derives the spike and demo tags. The Mac local OCI-layout evidence above already uses the maintained manager plugin as the spike bundle. No registry publication has yet been attempted, so registry permission and behavior remain open feasibility checks.
+The earlier spike note referred to an “approved complete-plugin destination/reference” and a separately supplied bundle as blockers. D18 and the revised plan resolve that dependency: the repository's demo registry configuration supplies the repository and local credentials, while this project creates both plugin sources and tags. An archive-based manager bundle was pushed to the configured Quay repository and its manifest descriptor resolved; the direct-directory layer and digest-pinned remote pull remain open feasibility checks. The local direct-directory evidence uses the maintained manager plugin and the v1/v2 demo source.
 
