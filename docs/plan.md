@@ -6,7 +6,7 @@ Follow [requirements.md](requirements.md). Product choices are in [decisions.md]
 
 The clarified developer flow requires a generated native-compatible local marketplace, visible in both `/plugin` and `/marketplace-manager`, with no developer checkout of this repository. Earlier manager-only OCI discovery is superseded.
 
-Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux spike also passes registry push/pull by digest, generated marketplace registration, native v1 install/v2 update, and failed-pull preservation. macOS interactive behavior and the complete manager workflow remain unverified. The current manager still uses the legacy individual-skill backend.
+Existing evidence: direct-directory ORAS push/pull and Claude validation pass locally on macOS. The current Linux spike also passes registry push/pull by digest, generated marketplace registration, native v1 install/v2 update, and failed-pull preservation. macOS interactive behavior and the complete manager workflow remain unverified. The manager now uses the bundled ORAS/native-marketplace helper; the full developer rehearsal remains T613.
 
 Use Done, In progress, Backlog, or Blocked. Only mark work Done with evidence. Keep one task In progress. Do not repeat unchanged checks or add production infrastructure.
 
@@ -72,13 +72,15 @@ Evidence: [T610 native lifecycle](implementation-report.md#t610--native-installa
 
 ## T611 — Connect the manager UI
 
-**Status:** In progress. **Requirements:** R5, R9–R10, R13–R14. **Depends on:** T610.
+**Status:** Done. **Requirements:** R5, R9–R10, R13–R14. **Depends on:** T610.
+
+Evidence: [T611 UI wiring](implementation-report.md#t611--manager-ui-and-native-tool-integration-2026-10-15).
 
 Reuse the current mod command, confirmation, and SessionStart architecture. Align labels/state with complete plugins; expose list, add, install, installed state, and update review. Show a non-blocking notice, allow plugin selection, and honor session dismissal. Downloads during add and update require approval.
 
 ## T612 — Focused checks
 
-**Status:** Backlog. **Requirements:** R3–R15. **Depends on:** T609–T611.
+**Status:** In progress. **Requirements:** R3–R15. **Depends on:** T609–T611.
 
 Cover source parsing, generated local paths and provenance, native registration/install calls, standard compatibility, native-installed plugin discovery, metadata-only checks, approval before pulls, selected digest-pinned updates, and keeping the working plugin on failure. Prefer focused deterministic helper tests; no broad production test framework.
 

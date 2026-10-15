@@ -126,6 +126,51 @@ class ManagerCases(unittest.TestCase):
         self.assertEqual(pulls[0][2], 'quay.io/example/demo@' + DIGEST_V1)
         self.assertEqual(len(self.runner.registrations), 1)
 
+    def test_branch_url_is_cloned_at_ref_and_preserved_in_provenance(self):
+        source = 'https://github.com/example/marketplace.git#demo-branch'
+        self.helper.add(source)
+        clone = next(call for call in self.runner.calls if call[:2] == ['git', 'clone'])
+        self.assertEqual(clone[:-1], ['git', 'clone', '--depth', '1', '--branch', 'demo-branch',
+                                     '--', 'https://github.com/example/marketplace.git'])
+        target = self.helper.marketplaces / 'demo-marketplace'
+        self.assertEqual(json.loads((target / manager.STATE_FILE).read_text())['gitSource'], source)
+        self.assertEqual(self.helper.list()['marketplaces'][0]['source'], source)
+
+    def test_mixed_standard_plugin_lists_and_installs_through_manager(self):
+        self.materialize()
+        self.runner.calls.clear()
+        rows = {row['identity']: row for row in self.helper.list()['plugins']}
+        self.assertEqual(rows[IDENTITY]['kind'], 'oci')
+        standard = rows['standard@demo-marketplace']
+        self.assertEqual(standard['kind'], 'standard')
+        self.assertEqual(standard['version'], '1.0.0')
+        self.helper.install('standard@demo-marketplace')
+        self.assertIn(['claude', 'plugin', 'install', 'standard@demo-marketplace', '--scope', 'user', '--json'],
+                      self.runner.calls)
+        self.assertFalse(any(call[0] == 'oras' for call in self.runner.calls))
+        with self.assertRaises(ValueError):
+            self.helper.update('standard@demo-marketplace', DIGEST_V2, '2.0.0')
+
+    def test_native_standard_marketplace_lists_installed_and_checks_no_oci(self):
+        target = self.helper.config / 'native-standard'
+        write_json(target / '.claude-plugin/marketplace.json', {
+            'name': 'native-marketplace', 'plugins': [
+                {'name': 'standard', 'description': 'Native plugin', 'source': './standard'}]})
+        bundle(target / 'standard', name='standard')
+        self.runner.registrations = [{'name': 'native-marketplace', 'installLocation': str(target),
+                                      'url': 'https://github.com/example/native.git'}]
+        identity = 'standard@native-marketplace'
+        self.runner.installed = [{'id': identity, 'scope': 'user', 'version': '1.0.0'}]
+        result = self.helper.list()
+        self.assertEqual(result['marketplaces'][0]['classification'], 'standard-only')
+        self.assertEqual(result['plugins'][0]['identity'], identity)
+        self.assertTrue(result['plugins'][0]['installed'])
+        self.assertEqual(self.helper.installed()['plugins'][0]['identity'], identity)
+        self.assertEqual(self.helper.updates(), {'updates': [], 'errors': []})
+        self.helper.install(identity)
+        self.assertIn(['claude', 'plugin', 'install', identity, '--scope', 'user', '--json'], self.runner.calls)
+        self.assertFalse(any(call[0] in ('oras', 'git') for call in self.runner.calls))
+
     def test_listing_is_local_and_recognizes_native_installs(self):
         self.materialize()
         self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]

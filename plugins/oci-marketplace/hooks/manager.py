@@ -129,12 +129,25 @@ class Manager:
                 row = {'name': registration['name'], 'source': state['gitSource'] if state else registration.get('url') or registration.get('repo') or registration.get('path') or str(registration.get('source', 'native')),
                        'classification': 'OCI-enabled' if state else 'standard-only'}
                 marketplaces.append(row)
-                if not state:
-                    continue
-                for name, record in state['plugins'].items():
+                manifest = read_json(Path(registration['installLocation']) / '.claude-plugin/marketplace.json')
+                for entry in manifest['plugins']:
+                    name = entry['name']
                     identity = name + '@' + registration['name']
-                    plugins.append(dict(record, name=name, marketplace=registration['name'], identity=identity,
-                                        installed=identity in installed))
+                    record = state['plugins'].get(name) if state else None
+                    if record:
+                        record = dict(record, kind='oci')
+                    else:
+                        source = entry.get('source')
+                        version = installed.get(identity, {}).get('version') or entry.get('version', '')
+                        if not version and isinstance(source, str) and source.startswith('./'):
+                            local_manifest = Path(registration['installLocation']) / source / '.claude-plugin/plugin.json'
+                            if local_manifest.is_file():
+                                version = read_json(local_manifest).get('version', '')
+                        record = {'kind': 'standard', 'source': source if isinstance(source, str) else json.dumps(source),
+                                  'description': entry.get('description', ''), 'version': version,
+                                  'registry': '', 'digest': ''}
+                    plugins.append(dict(record, name=name, marketplace=registration['name'],
+                                        identity=identity, installed=identity in installed))
             except (ValueError, KeyError, OSError) as error:
                 errors.append(safe_error(f"{registration.get('name')}: {error}"))
         return {'marketplaces': marketplaces, 'plugins': plugins, 'errors': errors}
@@ -148,12 +161,14 @@ class Manager:
         for plugin in result['plugins']:
             if plugin['identity'] == identity:
                 return plugin
-        raise ValueError('No materialized OCI plugin named ' + identity)
+        raise ValueError('No registered plugin named ' + identity)
 
     def updates(self):
         result = self.list()
         updates, errors = [], result['errors']
         for plugin in result['plugins']:
+            if plugin['kind'] != 'oci':
+                continue
             try:
                 metadata = self.inspect(plugin['source'])
                 if metadata['name'] != plugin['name']:
@@ -171,6 +186,8 @@ class Manager:
 
     def update(self, identity, digest, version):
         plugin = self.plugin(identity)
+        if plugin['kind'] != 'oci':
+            raise ValueError('Use /plugin for standard plugin updates')
         # Inspect the reviewed digest, never re-resolve the mutable tag after approval.
         metadata = self.inspect(plugin['source'], digest)
         if metadata['version'] != version:
@@ -255,7 +272,10 @@ class Manager:
         self.marketplaces.mkdir(parents=True, exist_ok=True)
         with tempfile.TemporaryDirectory(prefix='.add-', dir=self.root) as temporary:
             checkout = Path(temporary) / 'checkout'
-            self.run(['git', 'clone', '--depth', '1', '--', source, str(checkout)])
+            # Match Claude's supported Git URL#branch-or-tag convention.
+            git_source, separator, ref = source.partition('#')
+            branch = ['--branch', ref] if separator and ref else []
+            self.run(['git', 'clone', '--depth', '1', *branch, '--', git_source, str(checkout)])
             manifest_path = checkout / '.claude-plugin/marketplace.json'
             manifest = read_json(manifest_path)
             entries = oci_plugins(manifest)
