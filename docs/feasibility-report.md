@@ -1148,3 +1148,13 @@ CLAUDE_CONFIG_DIR=/tmp/oci-mac-spike/profile claude
 ```
 
 In that Claude session, verify `oci-demo-marketplace` in `/plugin` and invoke `/oci-demo-plugin:demo`; expect `OCI demo plugin version 0.2.0`. Exit and relaunch with the same profile and repeat. The script itself records Mac versions and the v1/v2 CLI install/update outputs. Use a new work-directory name if the example directory already exists. This is contributor feasibility work, not an end-user checkout requirement.
+
+### Fresh Claude component invocation on Linux (2026-10-15)
+
+After the registry-backed probe, launched a new noninteractive Claude process with the retained profile and existing local Vertex launch settings:
+
+```text
+CLAUDE_CONFIG_DIR=/tmp/oci-registry-spike-policy-applied/profile claude -p '/oci-demo-plugin:demo' --output-format json
+```
+
+The JSON result reported `subtype: "success"`, `is_error: false`, and `result: "OCI demo plugin version 0.2.0"`. This verifies actual invocation of the extracted and natively updated skill in a fresh Linux Claude session, beyond file/CLI-list checks. It does not replace the requested Mac `/plugin` and interactive restart check. No credentials or model configuration files are included in this report.
