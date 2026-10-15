@@ -44,17 +44,17 @@ Keep each task's implementation, evidence report, and status together. Documenta
 
 ### T607 — Verify ORAS artifact and Claude plugin feasibility
 
-- **Status:** Blocked — the sandbox recheck confirms this is Linux, ORAS is unavailable, and ORAS-specific registry behavior has not been tested. Completion requires the supplied macOS demo host, usable demo registry authentication, and an approved complete-plugin artifact source/reference. See the [partial environment evidence](feasibility-report.md#sandbox-environment-check-2026-10-15).
+- **Status:** Partially run; blocked on registry inputs — the macOS host, ORAS 1.3.4 local artifact round-trip, strict plugin validation, and persistent native installation of the extracted bundle are verified. Registry push/lookup/pull, registry support for the candidate media types, and raw-source manager parsing remain untested because no approved complete-plugin reference or v1/v2 plugin source is supplied. See the [macOS local artifact and activation check](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15).
 - **Requirements:** R1–R9, R12, Feasibility spike
 - **Depends on:** T600; demo host, artifact source, registry reference, and credentials supplied by the demo setup
 - **Outcome:** Prove generic ORAS artifact publication, metadata-only digest lookup, digest-pinned retrieval, validation of the complete plugin, and persistent activation in stock Claude Code.
-- **Evidence:** Pending; record the completed spike in [feasibility-report.md](feasibility-report.md#oras-plugin-bundle-feasibility-spike). Existing [raw-source compatibility evidence](feasibility-report.md#oci-source-marketplace-compatibility-spike) covers only source parsing and marketplace registration. The old [T501 registry evidence](implementation-report.md#t501--end-to-end-demo-rehearsal) is skillctl-specific.
+- **Evidence:** Partial local evidence is in [feasibility-report.md](feasibility-report.md#macos-local-artifact-and-activation-check-2026-10-15). Existing [raw-source compatibility evidence](feasibility-report.md#oci-source-marketplace-compatibility-spike) covers only historical source parsing and marketplace registration. The old [T501 registry evidence](implementation-report.md#t501--end-to-end-demo-rehearsal) is skillctl-specific.
 - **Done when:**
-  - [ ] The actual macOS, Claude Code, ORAS, and Git versions are recorded.
+  - [x] The actual macOS, Claude Code, ORAS, and Git versions are recorded.
   - [ ] A complete plugin archive with .claude-plugin/plugin.json is published to the supplied registry using the selected artifact type and layer media type.
   - [ ] ORAS manifest lookup returns the expected digest and version metadata without downloading artifact layers.
   - [ ] ORAS retrieves the artifact by digest using supplied local credentials; the fetched archive matches the recorded digest.
-  - [ ] Claude validates the extracted plugin directory and the plugin activates persistently through a supported Claude install path.
+  - [x] Claude validates the locally extracted plugin directory and it activates persistently through the native local-marketplace install path. Registry-backed activation remains pending.
   - [ ] Raw-source marketplace registration and manager parsing succeed without OCI retrieval during registration or listing.
   - [ ] Commands, exact output, activation/reload behavior, and blockers are recorded without exposing credentials.
 

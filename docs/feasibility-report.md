@@ -787,9 +787,9 @@ Strict validation rejects the raw source as expected, and the user directed impl
 
 ## ORAS plugin bundle feasibility spike
 
-**Status:** Partially run; blocked before any ORAS operation. This section tracks the revised requirement for complete Claude plugin bundles; the earlier skillctl probes do not establish ORAS behavior.
+**Status:** Partially run; local ORAS packaging, digest-pinned round-trip, Claude validation, and persistent installation passed on macOS. Registry-backed checks remain blocked. This section tracks the revised requirement for complete Claude plugin bundles; earlier skillctl probes do not establish ORAS behavior.
 
-No ORAS version or ORAS command against the supplied registry or a complete demo plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for the supplied skillctl artifact references; that is not evidence that ORAS itself fails.
+The macOS host reports ORAS 1.3.4 and completed a local OCI-layout round-trip of the maintained manager plugin. No ORAS command against a supplied registry reference or a separate v1/v2 demo plugin bundle has been recorded. The previous T501 evidence reports HTTP 401 for supplied skillctl artifact references; that is not evidence that ORAS itself fails.
 
 **Required inputs:** supplied macOS demo host, valid registry authentication, a complete plugin directory/archive, and its approved registry reference. Never expose credentials in this report.
 
@@ -845,7 +845,91 @@ $ git ls-remote https://github.com/oras-project/oras.git HEAD
 fatal: unable to access 'https://github.com/oras-project/oras.git/': The requested URL returned error: 403
 ```
 
-No ORAS executable was found in the available command path or searched standard locations. No registry request or artifact publication was attempted. Both the release download and GitHub source transport are unavailable from this sandbox. The host is Linux rather than the supplied macOS demo machine, and no approved complete-plugin demo reference is present in this workspace. Consequently, this check does not establish the selected artifact or layer media types, authenticated digest-pinned pull, metadata-only lookup, registry compatibility, or persistent activation on the demo host. T607 remains blocked.
+At the time of this Linux-only check, no ORAS executable was available and no registry request or artifact publication was attempted. Both the release download and GitHub source transport were unavailable from that sandbox. This check does not establish registry compatibility or macOS activation.
+
+### macOS local artifact and activation check (2026-10-15)
+
+This check ran on the requested Mac host. It used the maintained `plugins/oci-marketplace` plugin as a complete local bundle because the repository does not yet contain a separate complete v1/v2 demo plugin. No registry reference was used, no registry request was made, and no artifact was published to a registry.
+
+```text
+$ uname -a
+Darwin 25.6.0 arm64
+
+$ claude --version
+2.1.300 (Claude Code)
+
+$ git --version
+git version 2.50.1 (Apple Git-155)
+
+$ oras version
+Version:    1.3.4+Homebrew
+Go version: go1.27.0
+OS/Arch:    darwin/arm64
+
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
+```
+
+The initial archive kept the plugin directory as its root, so extraction produced `.claude-plugin/plugin.json` at the plugin root. Claude strict validation also passed against the extracted directory.
+
+The following candidate media types were used for a **local OCI-layout probe only**. They are not yet confirmed for the supplied registry or finalized as the product contract:
+
+- Artifact type: `application/vnd.dmartino.claude.plugin.v1`
+- Archive layer type: `application/vnd.dmartino.claude.plugin.bundle.v1.tar+gzip`
+- Title annotation: `org.opencontainers.image.title=marketplace-manager`
+- Version annotation: `org.opencontainers.image.version=0.5.0`, matching `.claude-plugin/plugin.json`
+
+Commands run from a temporary directory containing the archive:
+
+```text
+$ tar -czf marketplace-manager-0.5.0.tar.gz -C <repository>/plugins/oci-marketplace .
+
+$ oras push --oci-layout layout:0.5.0 \
+    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+    --annotation org.opencontainers.image.title=marketplace-manager \
+    --annotation org.opencontainers.image.version=0.5.0 \
+    marketplace-manager-0.5.0.tar.gz:application/vnd.dmartino.claude.plugin.bundle.v1.tar+gzip
+Pushed [oci-layout] layout:0.5.0
+ArtifactType: application/vnd.dmartino.claude.plugin.v1
+Digest: sha256:6612690be28f91c5ca0b402191b101774a1e1943e8162471e1c55179292b673b
+
+$ oras manifest fetch --oci-layout --pretty layout:0.5.0
+"mediaType": "application/vnd.oci.image.manifest.v1+json"
+"artifactType": "application/vnd.dmartino.claude.plugin.v1"
+"config.mediaType": "application/vnd.oci.empty.v1+json"
+"layers[0].mediaType": "application/vnd.dmartino.claude.plugin.bundle.v1.tar+gzip"
+"layers[0].digest": "sha256:f38f7a56ba7d043eafa1e903b217d967df34204cd7b7d7ad123252ad78fff2a5"
+"org.opencontainers.image.title": "marketplace-manager"
+"org.opencontainers.image.version": "0.5.0"
+
+$ oras pull --oci-layout \
+    layout@sha256:6612690be28f91c5ca0b402191b101774a1e1943e8162471e1c55179292b673b \
+    -o pulled
+Pulled [oci-layout] layout@sha256:6612690be28f91c5ca0b402191b101774a1e1943e8162471e1c55179292b673b
+
+$ shasum -a 256 marketplace-manager-0.5.0.tar.gz pulled/marketplace-manager-0.5.0.tar.gz
+f38f7a56ba7d043eafa1e903b217d967df34204cd7b7d7ad123252ad78fff2a5  marketplace-manager-0.5.0.tar.gz
+f38f7a56ba7d043eafa1e903b217d967df34204cd7b7d7ad123252ad78fff2a5  pulled/marketplace-manager-0.5.0.tar.gz
+```
+
+The digest-pinned pull returned the same archive bytes. The fetched local manifest exposed the title/version annotations and layer metadata. This demonstrates ORAS CLI support for the candidate artifact layout, not metadata-only behavior over a registry or registry support for the candidate media types.
+
+To check Claude's persistent activation path, the pulled archive was extracted under a disposable local marketplace and validated. With a fresh `CLAUDE_CONFIG_DIR`, native marketplace registration and installation succeeded; `claude plugin list --json` reported `marketplace-manager@t607-local-probe`, version `0.5.0`, `enabled: true`, with its install path under that profile's plugin cache. This proves the native local-marketplace install path for the extracted bundle. Interactive command execution and restart/reload behavior were not checked.
+
+The isolated profile commands and relevant output were:
+
+```text
+$ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin marketplace add <temporary-marketplace> --scope user --json
+{"command":"marketplace-add","outcome":"ok","marketplace":"t607-local-probe", ...}
+
+$ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin install marketplace-manager@t607-local-probe --scope user --json
+{"command":"install","outcome":"ok","plugin":"marketplace-manager@t607-local-probe","pluginId":"marketplace-manager@t607-local-probe","scope":"user", ...}
+
+$ CLAUDE_CONFIG_DIR=<isolated-profile> claude plugin list --json
+{"id":"marketplace-manager@t607-local-probe","version":"0.5.0","scope":"user","enabled":true,"installPath":"<isolated-profile>/plugins/cache/t607-local-probe/marketplace-manager/0.5.0", ...}
+```
+
+The registry-backed portion remains blocked: the repository has no approved complete-plugin OCI reference or separate complete v1/v2 demo bundle. Existing `examples/claude-oci-demo` and `examples/claude-oci-guide` are individual skills, and their skill artifact references must not be reused for this workflow. Without an approved full-plugin destination/reference, authenticated push, registry manifest lookup, digest-pinned remote pull, registry media-type support, and raw-source manager parsing cannot be safely tested. No credentials were read or printed.
 
 Stop after recording the spike and wait for explicit approval before implementing the ORAS workflow. See [T607 and Gate G3](plan.md#p2--oras-feasibility-and-approval-gate).
 
