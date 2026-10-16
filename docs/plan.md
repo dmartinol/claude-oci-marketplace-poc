@@ -104,6 +104,20 @@ Evidence: [T614 final demo guide](demo/README.md) and [T614 guide review](implem
 
 Evidence: [T615 configurable polling](implementation-report.md#t615--configurable-session-update-polling-2026-10-15). The plugin exposes a five-minute default and one-minute demo choice, checks tag metadata on Claude's session timer, stops the timer at session end, and avoids repeating a notice for an unchanged digest. No daemon or layer download was added.
 
+## T616 — Browse marketplace details in the mod UI
+
+**Status:** Backlog. **Requirements:** R1, R7, R9–R12, R17. **Depends on:** T611; use the current Mac Claude Code installation for the UI feasibility check before implementing the pane.
+
+The manager currently returns marketplace and plugin metadata as JSON from its deterministic helper, while the mod presents a text list and native question dialogs. Add a read-only browser using Claude Code's supported mod UI. Keep native `/plugin`, existing manager commands, local-only inspection, and the standard Claude permission path intact.
+
+- [ ] First verify that the target stock macOS Claude Code version can open and render the supported mod pane from an installed marketplace-manager plugin. Record the exact version and observed behavior. If this surface is unavailable, report the blocker and keep the text command usable; do not reach into undocumented Claude UI internals.
+- [ ] Add `/marketplace-manager browse` to open the registered marketplace list and select a marketplace for details. Handle empty lists, invalid marketplace data, long names/references, and multiple marketplace/plugin entries.
+- [ ] Render marketplace source and classification, then its plugin identities, descriptions, versions, installed state/scope, and sources. For OCI plugins show original tagged reference, registry, and recorded digest from local provenance; label it as the recorded digest, not a live registry check.
+- [ ] Keep browsing local-only: no Git fetches, ORAS manifest calls, or layer downloads. Preserve `/marketplace-manager list` as a text fallback and do not override `/plugin`.
+- [ ] Keep browse read-only. Existing install/update actions continue through their existing confirmations, permission prompts, and commands.
+- [ ] Add focused UI/helper coverage for selecting a marketplace, rendering standard and OCI entries, project-scoped installed state, and no network/ORAS call during inspection. On the supported Mac, manually confirm pane rendering and that native `/plugin` still lists and installs the generated marketplace.
+- [ ] Record implementation and Mac verification evidence in the existing implementation report before marking T616 Done.
+
 ## Historical work
 
 Earlier catalog, individual-skill, and manager-only raw-source implementation remains historical evidence. Its approval and passing tests do not establish the generated-marketplace workflow. OpenShell is an optional contributor environment, not a developer prerequisite for using this POC.

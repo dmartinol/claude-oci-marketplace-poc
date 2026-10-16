@@ -34,6 +34,7 @@ The developer never needs to clone this POC repository or run its development sc
 | R14 | Dismissing an update notice suppresses it for the current session. A new session or manual refresh can show it again while the update remains available. |
 | R15 | All developer operations shall work with installed tools and the installed manager, without a POC checkout or repository scripts. Provide short publishing instructions and copyable v1/v2 example plugins. |
 | R16 | Configure `marketplace-manager.poll_interval_minutes` through Claude's plugin `/config` panel. Default to five minutes; offer one minute for demos. Apply a changed interval when the next session starts. |
+| R17 | Provide a marketplace browser in the manager's Claude Code mod UI. `/marketplace-manager browse` opens the registered marketplace list; selecting a marketplace shows its name, registered Git/source URL, standard-only or OCI-enabled classification, and its plugin entries. Each plugin entry shows identity, description, version, installed state and scope, and source. OCI entries also show the original tagged OCI reference, registry, and recorded resolved digest from manager provenance. Inspection uses registered marketplace data and local generated/provenance files only; it makes no registry requests and downloads no layers. Keep `/marketplace-manager list` available as a text fallback and do not replace or modify Claude's native `/plugin` UI or its install flow. |
 
 ## POC acceptance
 
@@ -68,3 +69,5 @@ Out of scope: native OCI support in Claude, standalone skill artifacts, command-
 - [ORAS push](https://oras.land/docs/commands/oras_push/)
 - [ORAS manifest fetch](https://oras.land/docs/commands/oras_manifest_fetch/)
 - [ORAS pull](https://oras.land/docs/commands/oras_pull/)
+- [Claude Code mods overview](https://code.claude.com/docs/en/plugins/mods/overview)
+- [Claude Code mod UI reference](https://code.claude.com/docs/en/plugins/mods/reference)

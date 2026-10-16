@@ -20,6 +20,10 @@ The current [requirements](requirements.md) and [plan](plan.md) govern implement
 
 Check OCI tag metadata while a Claude session is active using Claude's in-process clock. The manager plugin exposes a `poll_interval_minutes` user setting with values `1` and `5`, defaults to five minutes, and starts the timer with the selected value at session start. A session timer is canceled at session end; no daemon or separate polling service is added. Polling remains metadata-only and honors the existing per-session dismissal behavior. A changed digest can produce a new notice; an unchanged digest does not repeat the notice. The user selected the one-minute interval for demos and five minutes for normal use.
 
+### D25 — Inspect registered marketplaces in the manager mod
+
+Add a marketplace browser using Claude Code's supported mod-rendered UI, launched by `/marketplace-manager browse`. Claude's registered marketplace list remains authoritative, and the browser reads locally available marketplace and manager provenance data only. Show the selected marketplace's source, classification, plugins, and installed state; show the original OCI reference, registry, and recorded digest for OCI plugins. Keep `/plugin` unchanged as Claude's native marketplace and installation interface, retain `/marketplace-manager list` as a text fallback, and preserve the current confirmation and permission flow for any existing operations. Do not add registry calls, layer downloads, an external frontend, or a second marketplace store to browsing.
+
 ## Historical decisions
 
 The sections below retain superseded product choices and tool names for traceability. They are not current setup instructions or dependencies for the intended ORAS workflow.
