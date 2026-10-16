@@ -92,16 +92,16 @@ Evidence: [T612 focused checks](implementation-report.md#t612--focused-checks-20
 
 ## T613 — Rehearse the developer flow
 
-**Status:** In progress. **Requirements:** R1–R16. **Depends on:** T608–T612, T615.
+**Status:** Done. **Requirements:** R1–R16. **Depends on:** T608–T612, T615.
 
 The supplied Quay demo tag was found to contain the POC repository root and has been republished from the v2 plugin directory; see the [artifact-root correction](implementation-report.md#t613--correct-the-demo-artifact-root-2026-10-15). The remaining Mac acceptance steps below still need an interactive run.
 
 - [x] Complete the fresh-profile Linux rehearsal: validate both registered marketplace rows, native install, v1/v2 invocation, metadata-only update detection, and failed-update preservation. See [T613 same-repository developer flow](implementation-report.md#t613--same-repository-developer-flow-2026-10-15).
-- [ ] On Mac, install the manager by URL in a fresh Claude profile; add the demo branch through `/marketplace-manager` and approve its confirmation/permission prompts; verify the generated marketplace in `/plugin` and the manager; invoke v1 after restart.
-- [ ] Select the one-minute poll setting in `/config`; publish v2 to the same tag while the Claude session remains open; observe and approve the periodic update notice; restart and invoke v2.
-- [ ] Confirm the standard-only bootstrap remains listed and the manager recognizes native installed state.
+- [x] On Mac, install the manager in a fresh Claude profile; add the demo branch and approve its confirmation/permission prompts; verify the generated marketplace in `/plugin` and the manager; invoke v1 after restart.
+- [x] Select the one-minute poll setting in `/config`; publish v2 to the same tag while the Claude session remains open; observe and approve the periodic update notice; restart and invoke v2.
+- [x] Confirm the standard-only bootstrap remains listed and the manager recognizes native installed state. Exercise both native and manager install paths.
 
-Follow the step-by-step [Mac acceptance run](demo/README.md#mac-acceptance-run-t613); no developer checkout is part of this flow.
+Mac evidence: [T613 execution log](demo/oci-demo-plugin-execution-log.md) and [implementation report](implementation-report.md#t613--mac-acceptance-run-2026-10-16). No developer checkout was used.
 
 ## T614 — Finalize the short demo guide
 
@@ -111,14 +111,14 @@ Follow the step-by-step [Mac acceptance run](demo/README.md#mac-acceptance-run-t
 
 ## T615 — Add configurable session update polling
 
-**Status:** Done for implementation and focused checks; the live Mac `/config`/same-session demonstration remains in T613. **Requirements:** R7, R9, R13–R14, R16. **Depends on:** T611.
+**Status:** Done. **Requirements:** R7, R9, R13–R14, R16. **Depends on:** T611.
 
 - [x] Implement and focused-check a five-minute default and one-minute demo choice; check tag metadata on Claude's session timer, stop the timer at session end, and avoid repeating a notice for an unchanged digest. No daemon or layer download was added. See [T615 configurable polling](implementation-report.md#t615--configurable-session-update-polling-2026-10-15).
-- [ ] Complete the live Mac `/config` and same-session demonstration as part of T613.
+- [x] Complete the live Mac `/config` and same-session demonstration as part of T613; see the [T613 execution log](demo/oci-demo-plugin-execution-log.md).
 
 ## T616 — Browse marketplace details in the mod UI
 
-**Status:** Backlog. **Requirements:** R1, R7, R9–R12, R17. **Depends on:** T611; use the current Mac Claude Code installation for the UI feasibility check before implementing the pane.
+**Status:** In progress. **Requirements:** R1, R7, R9–R12, R17. **Depends on:** T611, T613.
 
 The manager currently returns marketplace and plugin metadata as JSON from its deterministic helper, while the mod presents a text list and native question dialogs. Add a read-only browser using Claude Code's supported mod UI. Keep native `/plugin`, existing manager commands, local-only inspection, and the standard Claude permission path intact.
 

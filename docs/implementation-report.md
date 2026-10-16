@@ -829,3 +829,11 @@ Digest: sha256:8dd8d0e74df05179679bbec78644c604426ad74eb42326177d735c01dccd4c19
 ```
 
 The tag now resolves to that digest. A digest-pinned `oras pull` placed `.claude-plugin/plugin.json` at the output root; the manifest identifies `oci-demo-plugin` version `0.2.0`. This corrects the artifact that caused the missing-file error. It does not complete the remaining interactive manager confirmation/permission and `/plugin` Mac rehearsal tracked by T613. The example publishing guide now explicitly warns that `.` packages the current directory and must be run from the plugin root.
+
+## T613 — Mac acceptance run (2026-10-16)
+
+**Result: Passed (R1–R16 and POC acceptance).** The complete Mac rerun is recorded in the [OCI demo plugin execution log](demo/oci-demo-plugin-execution-log.md). It used macOS 26.7.1, Claude Code 2.1.301, ORAS 1.3.4+Homebrew, Git 2.50.1, and Python 3.11.9 with a fresh Claude profile and project.
+
+The run published v1 to the configured `quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft` tag at digest `sha256:e39be852068725c5553dca8c310e8e4d8df29f45ee8808f0201ecb1fbb0e7750`. The manager added the same-repository demo branch after both confirmation and permission approval. `/plugin` showed the generated OCI marketplace and standard-only bootstrap. The native project-scope install was recognized by `/marketplace-manager installed`; after restart, the skill returned `OCI demo plugin version 0.1.0`. The run also exercised manager installation and confirmed its permission flow.
+
+The user set `marketplace-manager.poll_interval_minutes` to `1` in `/config`. While that Claude session remained open, v2 was published to the same tag at digest `sha256:4c82deec269aca076edd06861c8026b66adf5dc658fd68146c1f79e0767f28ea`. The one-minute poll surfaced the update notice; the reviewed update and permission prompt succeeded. After restart the skill returned `OCI demo plugin version 0.2.0`, and the native list and manager reported the v2 digest. The demo plugin, marketplace registrations, and temporary profile were removed afterward. No credentials were recorded.

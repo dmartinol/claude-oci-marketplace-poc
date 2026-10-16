@@ -114,7 +114,7 @@ If you also want to remove the extracted files, delete the manager-owned `market
 
 ## Rehearsal status
 
-The same-repository Linux rehearsal passed registry publication, manager installation, branch retrieval, native marketplace validation/registration, v1 install and invocation, same-tag v2 detection and update, and failed-update preservation. The final Mac check of the manager's interactive confirmation, permission prompt, `/plugin` view, and update notice remains in the plan; see the [implementation report](../implementation-report.md#t613--same-repository-developer-flow-2026-10-15).
+The same-repository Linux and Mac rehearsals passed. The Mac run used a fresh profile, confirmed the manager's download and permission prompts, verified the standard-only bootstrap and generated marketplace in `/plugin`, exercised native and manager installation, and observed/applied the same-session v2 update using the one-minute `/config` setting. See the [Mac execution log](oci-demo-plugin-execution-log.md) and [implementation report](../implementation-report.md#t613--mac-acceptance-run-2026-10-16).
 
 ## Mac acceptance run (T613)
 
