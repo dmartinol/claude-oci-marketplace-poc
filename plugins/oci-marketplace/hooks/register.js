@@ -1,10 +1,12 @@
 const DISMISS_KEY = 'dismissedSessionId'
 const COMMAND_NAME = 'marketplace-manager'
+const BROWSE_PANE_ID = 'marketplace-manager-browser'
 const DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000
 const POLL_INTERVAL_CONFIG = `${COMMAND_NAME}.poll_interval_minutes`
 
 let announcementInProgress = false
 let lastNoticeFingerprint
+let browseState = { data: null, selectedMarketplace: null, error: null }
 
 function errorText(error) {
   return error instanceof Error ? error.message : String(error)
@@ -37,10 +39,12 @@ function usage() {
   return [
     'Claude Marketplace Manager', '', 'Commands:',
     '  /marketplace-manager list',
+    '  /marketplace-manager browse',
     '  /marketplace-manager add <git-url>',
     '  /marketplace-manager install <plugin@marketplace>',
     '  /marketplace-manager updates',
     '  /marketplace-manager installed', '',
+    'Use list for a text overview or browse to inspect marketplace details.',
     'Registered marketplaces and their plugins are also available through /plugin.',
   ].join('\n')
 }
@@ -58,6 +62,119 @@ async function listMarketplaces($) {
 async function showInstalled($) {
   const { plugins = [], errors = [] } = await read($, 'installed')
   return (plugins.length ? ['Installed plugins:', ...plugins.map(pluginLine)].join('\n') : 'No marketplace plugins are installed.') + warnings(errors)
+}
+
+function displayValue(value) {
+  if (value === undefined || value === null || value === '') return '—'
+  if (typeof value === 'string') return value
+  try { return JSON.stringify(value) } catch { return String(value) }
+}
+
+function wrapText(Text, label, value, props = {}) {
+  return Text({ children: [`${label}: ${displayValue(value)}`], wrap: 'wrap', ...props })
+}
+
+function browseMarketplaces() {
+  return Array.isArray(browseState.data?.marketplaces)
+    ? browseState.data.marketplaces.filter((item) => item && typeof item === 'object' && typeof item.name === 'string')
+    : []
+}
+
+function browsePlugins(marketplaceName) {
+  return Array.isArray(browseState.data?.plugins)
+    ? browseState.data.plugins.filter((item) => item && typeof item === 'object' && item.marketplace === marketplaceName)
+    : []
+}
+
+function browseWarnings(Text) {
+  const errors = Array.isArray(browseState.data?.errors) ? browseState.data.errors : []
+  return errors.map((error, index) => wrapText(Text, `Warning ${index + 1}`, error))
+}
+
+function shortLabel(value, limit = 46) {
+  return value.length > limit ? `${value.slice(0, limit - 1)}…` : value
+}
+
+function browseTree($, event) {
+  const { Box, Text, Button } = $.ui.resolve(event)
+  const redraw = () => $.ui.invalidate('ui.render')
+  const selected = browseMarketplaces().find((item) => item.name === browseState.selectedMarketplace)
+  const children = []
+
+  if (browseState.error) {
+    children.push(Text({ children: [`Marketplace data could not be loaded: ${browseState.error}`], wrap: 'wrap' }))
+  } else if (selected) {
+    children.push(Button({
+      key: 'back-to-marketplaces',
+      label: '← Marketplaces',
+      onPress: async () => {
+        browseState.selectedMarketplace = null
+        await redraw()
+      },
+    }))
+    children.push(Text({ children: [`Marketplace: ${selected.name}`], bold: true, wrap: 'wrap' }))
+    children.push(wrapText(Text, 'Registered source', selected.source))
+    children.push(wrapText(Text, 'Classification', selected.classification))
+
+    const plugins = browsePlugins(selected.name)
+    children.push(Text({ children: [`Plugins (${plugins.length})`], bold: true }))
+    if (!plugins.length) children.push(Text({ children: ['No plugin entries are available.'] }))
+    for (const [index, plugin] of plugins.entries()) {
+      const installed = plugin.installed ? 'Installed' : 'Not installed'
+      children.push(Box({
+        key: `plugin-${index}`,
+        flexDirection: 'column',
+        children: [
+          Text({ children: [displayValue(plugin.identity || plugin.name)], bold: true, wrap: 'wrap' }),
+          wrapText(Text, 'Description', plugin.description),
+          wrapText(Text, 'Version', plugin.version ? `v${plugin.version}` : 'unknown'),
+          wrapText(Text, 'Installed', installed),
+          wrapText(Text, 'Installed scope', plugin.installedScope),
+          wrapText(Text, 'Source', plugin.entrySource ?? plugin.source),
+          ...(plugin.kind === 'oci' ? [
+            wrapText(Text, 'Original OCI reference', plugin.source),
+            wrapText(Text, 'Registry', plugin.registry),
+            wrapText(Text, 'Recorded digest', plugin.digest),
+          ] : []),
+          Text({ children: [' '] }),
+        ],
+      }))
+    }
+  } else {
+    const marketplaces = browseMarketplaces()
+    children.push(Text({ children: ['Registered Claude marketplaces'], bold: true }))
+    if (!marketplaces.length) children.push(Text({ children: ['No Claude marketplaces are registered.'] }))
+    for (const [index, marketplace] of marketplaces.entries()) {
+      const count = browsePlugins(marketplace.name).length
+      children.push(Button({
+        key: `marketplace-${index}`,
+        label: shortLabel(marketplace.name),
+        onPress: async () => {
+          browseState.selectedMarketplace = marketplace.name
+          await redraw()
+        },
+      }))
+      children.push(Text({
+        children: [`${displayValue(marketplace.classification)} · ${count} plugin${count === 1 ? '' : 's'}`],
+        dimColor: true,
+        wrap: 'wrap',
+      }))
+    }
+  }
+
+  children.push(...browseWarnings(Text))
+  return Box({ flexDirection: 'column', rowGap: 1, children })
+}
+
+async function openBrowser($) {
+  browseState = { data: null, selectedMarketplace: null, error: null }
+  try {
+    browseState.data = await read($, 'list')
+  } catch (error) {
+    browseState.error = errorText(error)
+  }
+  await $.ui.open({ id: BROWSE_PANE_ID, title: 'Marketplace browser', focus: true, closeOnEscape: true })
+  return ''
 }
 
 async function perform($, action, args, description) {
@@ -193,6 +310,7 @@ async function dispatch($, args) {
   const [action, ...rest] = args.split(/\s+/)
   const value = rest.join(' ')
   if (action === 'list' && !value) return listMarketplaces($)
+  if (action === 'browse' && !value) return openBrowser($)
   if (action === 'installed' && !value) return showInstalled($)
   if (action === 'updates' && !value) return reviewUpdates($)
   if (action === 'install' && value) return installByIdentity($, value)
@@ -202,8 +320,12 @@ async function dispatch($, args) {
 
 export function register(on) {
   let updateTimer
+  on('ui.render', { component: 'Pane' }, async ($, event, next) => {
+    if (event.requestId !== BROWSE_PANE_ID) return next(event)
+    return browseTree($, event)
+  })
   on('session.start', async ($, event, next) => {
-    await $.command.register({ name: COMMAND_NAME, description: 'List and add Claude marketplaces, install plugins, and review OCI plugin updates', argumentHint: '[list|add <git-url>|install <plugin@marketplace>|updates|installed]' })
+    await $.command.register({ name: COMMAND_NAME, description: 'List and browse Claude marketplaces, install plugins, and review OCI plugin updates', argumentHint: '[list|browse|add <git-url>|install <plugin@marketplace>|updates|installed]' })
     const result = await next(event)
     updateTimer?.cancel()
     lastNoticeFingerprint = undefined

@@ -837,3 +837,30 @@ The tag now resolves to that digest. A digest-pinned `oras pull` placed `.claude
 The run published v1 to the configured `quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft` tag at digest `sha256:e39be852068725c5553dca8c310e8e4d8df29f45ee8808f0201ecb1fbb0e7750`. The manager added the same-repository demo branch after both confirmation and permission approval. `/plugin` showed the generated OCI marketplace and standard-only bootstrap. The native project-scope install was recognized by `/marketplace-manager installed`; after restart, the skill returned `OCI demo plugin version 0.1.0`. The run also exercised manager installation and confirmed its permission flow.
 
 The user set `marketplace-manager.poll_interval_minutes` to `1` in `/config`. While that Claude session remained open, v2 was published to the same tag at digest `sha256:4c82deec269aca076edd06861c8026b66adf5dc658fd68146c1f79e0767f28ea`. The one-minute poll surfaced the update notice; the reviewed update and permission prompt succeeded. After restart the skill returned `OCI demo plugin version 0.2.0`, and the native list and manager reported the v2 digest. The demo plugin, marketplace registrations, and temporary profile were removed afterward. No credentials were recorded.
+
+## T616 — Read-only marketplace browser and Mac verification (2026-10-16)
+
+**Result: Passed (R1, R7, R9–R12, R17).** Added `/marketplace-manager browse` using Claude Code's supported pane API. The manager first reads the existing deterministic `list` result, then displays the registered marketplace source and classification. Selecting a marketplace shows plugin identities, descriptions, versions, installed state and scope, and local entry sources. OCI records additionally show their original tagged reference, registry, and **recorded digest** from local provenance. The pane makes no Git or ORAS calls, offers no mutations, handles empty/malformed data with warnings, wraps long details, and shortens long marketplace buttons. `/marketplace-manager list` remains the text overview and fallback; `/plugin` remains the native marketplace interface. The command help explains the distinction between the two manager views.
+
+Feasibility and integration were verified on macOS 26.7.1 with stock Claude Code 2.1.301. A disposable pane probe opened and rendered through the installed CLI. Then an isolated `CLAUDE_CONFIG_DIR` and temporary project were used to install the marketplace manager, add the same-repository `oci-demo-marketplace` branch, and run `/marketplace-manager browse`. The pane displayed `claude-oci-demo-marketplace`, its Git source and OCI-enabled classification, `oci-demo-plugin@claude-oci-demo-marketplace`, version 0.2.0, source `./.oci-plugins/oci-demo-plugin`, the original reference `quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft`, registry `quay.io`, and recorded digest `sha256:4c82deec269aca076edd06861c8026b66adf5dc658fd68146c1f79e0767f28ea`.
+
+The native `/plugin` discover view still listed the generated marketplace with one plugin. Opening the plugin detail/install flow from `/plugin` installed `oci-demo-plugin`; Claude reported “Installed oci-demo-plugin. Plugin is now active.” In the isolated profile, `claude plugin list --json` reported version 0.2.0, `enabled: true`, and user scope. This also confirms native installation remains available alongside the manager browser.
+
+Focused coverage exercises marketplace selection, mixed standard and OCI entries, project-scoped installed state, OCI provenance labels, empty/malformed data, and the single read-only helper `list` call. Validation results:
+
+```text
+$ claude plugin validate --strict ./plugins/oci-marketplace
+✔ Validation passed
+
+$ claude plugin test ./plugins/oci-marketplace
+15 pass
+0 fail
+
+$ python3 -m unittest discover -s plugins/oci-marketplace/tests -p 'test_*.py'
+Ran 32 tests
+OK
+
+$ git diff --check
+```
+
+No registry operation, project checkout, or credential was used for browsing. The temporary test profile and marketplace lived under `/private/tmp`.

@@ -141,9 +141,12 @@ class ManagerCases(unittest.TestCase):
         self.runner.calls.clear()
         rows = {row['identity']: row for row in self.helper.list()['plugins']}
         self.assertEqual(rows[IDENTITY]['kind'], 'oci')
+        self.assertEqual(rows[IDENTITY]['source'], SOURCE)
+        self.assertEqual(rows[IDENTITY]['entrySource'], './.oci-plugins/demo')
         standard = rows['standard@demo-marketplace']
         self.assertEqual(standard['kind'], 'standard')
         self.assertEqual(standard['version'], '1.0.0')
+        self.assertEqual(standard['entrySource'], './standard')
         self.helper.install('standard@demo-marketplace')
         self.assertIn(['claude', 'plugin', 'install', 'standard@demo-marketplace', '--scope', 'user', '--json'],
                       self.runner.calls)

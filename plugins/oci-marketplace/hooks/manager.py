@@ -163,7 +163,7 @@ class Manager:
                                   'description': entry.get('description', ''), 'version': version,
                                   'registry': '', 'digest': ''}
                     native = installed.get(identity)
-                    plugins.append(dict(record, name=name, marketplace=registration['name'],
+                    plugins.append(dict(record, entrySource=entry.get('source'), name=name, marketplace=registration['name'],
                                         identity=identity, installed=native is not None,
                                         installedScope=native.get('scope') if native else None))
             except (ValueError, KeyError, OSError) as error:

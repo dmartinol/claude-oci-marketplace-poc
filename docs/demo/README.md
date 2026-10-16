@@ -68,9 +68,10 @@ In Claude, add and inspect the demo marketplace:
 ```text
 /marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace
 /marketplace-manager list
+/marketplace-manager browse
 ```
 
-Approve the manager's download confirmation and Claude permission prompt. The manager retrieves the branch, pulls and validates the OCI plugin, and registers a generated local marketplace named `claude-oci-demo-marketplace`. The published Git marketplace keeps its raw OCI source; the generated marketplace points to the extracted plugin directory.
+Approve the manager's download confirmation and Claude permission prompt. The manager retrieves the branch, pulls and validates the OCI plugin, and registers a generated local marketplace named `claude-oci-demo-marketplace`. The published Git marketplace keeps its raw OCI source; the generated marketplace points to the extracted plugin directory. Use `list` for the compact text overview or fallback; `browse` opens a read-only pane for selecting a marketplace and inspecting plugin details from local registered data.
 
 Open `/plugin` and verify the marketplace and `oci-demo-plugin` appear. Install the plugin there, or through the manager:
 
@@ -114,7 +115,7 @@ If you also want to remove the extracted files, delete the manager-owned `market
 
 ## Rehearsal status
 
-The same-repository Linux and Mac rehearsals passed. The Mac run used a fresh profile, confirmed the manager's download and permission prompts, verified the standard-only bootstrap and generated marketplace in `/plugin`, exercised native and manager installation, and observed/applied the same-session v2 update using the one-minute `/config` setting. See the [Mac execution log](oci-demo-plugin-execution-log.md) and [implementation report](../implementation-report.md#t613--mac-acceptance-run-2026-10-16).
+The same-repository Linux and Mac rehearsals passed. The Mac run used a fresh profile, confirmed the manager's download and permission prompts, verified the standard-only bootstrap and generated marketplace in `/plugin`, exercised native and manager installation, and observed/applied the same-session v2 update using the one-minute `/config` setting. The T616 Mac check also confirmed the installed browser pane and native `/plugin` installation. See the [Mac execution log](oci-demo-plugin-execution-log.md), the [T613 implementation report](../implementation-report.md#t613--mac-acceptance-run-2026-10-16), and the [T616 report](../implementation-report.md#t616--read-only-marketplace-browser-and-mac-verification-2026-10-16).
 
 ## Mac acceptance run (T613)
 
@@ -144,6 +145,7 @@ In Claude, add the demo branch and check both marketplace views:
 ```text
 /marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace
 /marketplace-manager list
+/marketplace-manager browse
 ```
 
 Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. In `/config`, set `marketplace-manager.poll_interval_minutes` to `1` for this demo. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that project-scoped native installation for the active project.

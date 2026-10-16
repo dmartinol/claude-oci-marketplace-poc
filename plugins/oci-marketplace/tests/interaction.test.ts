@@ -3,11 +3,34 @@ import { expect, mock, test } from 'claude-code/testing'
 const digest = `sha256:${'b'.repeat(64)}`
 const plugin = {
   identity: 'demo@demo-marketplace', name: 'demo', marketplace: 'demo-marketplace',
-  description: 'Demo plugin', source: 'quay.io/example/demo:latest', registry: 'quay.io',
-  version: '0.1.0', digest: `sha256:${'a'.repeat(64)}`, installed: true,
+  description: 'Demo plugin', entrySource: './.oci-plugins/demo',
+  source: 'quay.io/example/demo:latest', registry: 'quay.io',
+  version: '0.1.0', digest: `sha256:${'a'.repeat(64)}`, installed: true, installedScope: 'project', kind: 'oci',
 }
-const listing = { marketplaces: [{ name: 'demo-marketplace', source: 'https://example.invalid/demo.git', classification: 'OCI-enabled' }], plugins: [plugin], errors: [] }
+const standardPlugin = {
+  identity: 'standard-demo@demo-marketplace', name: 'standard-demo', marketplace: 'demo-marketplace',
+  description: 'Standard demo plugin', entrySource: './standard-demo', source: './standard-demo',
+  version: '1.2.0', registry: '', digest: '', installed: false, installedScope: null, kind: 'standard',
+}
+const secondStandardPlugin = {
+  identity: 'plain@plain-marketplace', name: 'plain', marketplace: 'plain-marketplace',
+  description: 'Plain marketplace plugin', entrySource: './plain', source: './plain',
+  version: '2.0.0', registry: '', digest: '', installed: false, installedScope: null, kind: 'standard',
+}
+const listing = {
+  marketplaces: [
+    { name: 'demo-marketplace', source: 'https://example.invalid/demo.git', classification: 'OCI-enabled' },
+    { name: 'plain-marketplace', source: 'https://example.invalid/plain.git', classification: 'standard-only' },
+  ],
+  plugins: [plugin, standardPlugin, secondStandardPlugin], errors: [],
+}
 const updates = { updates: [{ ...plugin, installedVersion: '0.1.0', metadata: { version: '0.2.0', digest } }], errors: [] }
+const browsePane = {
+  plugin: 'marketplace-manager', component: 'Pane', requestId: 'marketplace-manager-browser',
+  viewport: { columns: 100, rows: 30 },
+  props: { title: 'Marketplace browser', isFocused: true, bodyColumns: 60,
+    placement: 'inline', scroll: { offset: 0, bodyRows: 20 }, view: {} },
+} as const
 const processResult = (data: unknown) => ({ value: { exitCode: 0, stdout: JSON.stringify(data), stderr: '', isStdoutTruncated: false, isStderrTruncated: false } })
 const askResult = (event: any, answer: string) => ({ result: { questions: event.questions, answers: { [event.questions[0].question]: answer } } })
 
@@ -26,6 +49,57 @@ test('lists local marketplaces and plugin metadata through only the read-only he
   expect(calls[0][1]).toContain('/hooks/manager.py')
   expect(calls[0][2]).toBe('list')
   expect(mutations).toBe(0)
+})
+
+test('browse opens a local-only pane and shows marketplace and OCI plugin provenance', async ($, on) => {
+  const calls: string[][] = []
+  let pane: any
+  on('process.run', (_, event) => { calls.push(event.argv); return processResult(listing) })
+  on('ui.open', (_, event) => { pane = event; return { value: { isPlaced: true } } })
+
+  await $.command.run({ command: 'marketplace-manager', args: 'browse' })
+  expect(pane.id).toBe('marketplace-manager-browser')
+  expect(pane.title).toBe('Marketplace browser')
+  expect(calls).toHaveLength(1)
+  expect(calls[0][2]).toBe('list')
+
+  const ui = await $.ui.mount({ ...browsePane, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: 'Registered Claude marketplaces' })).toBeDefined()
+  await ui.press({ key: 'marketplace-0' })
+  expect(await ui.find({ type: 'Text', text: 'Marketplace: demo-marketplace' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Registered source: https://example.invalid/demo.git' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Classification: OCI-enabled' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Description: Demo plugin' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Installed scope: project' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Source: ./.oci-plugins/demo' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Original OCI reference: quay.io/example/demo:latest' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Registry: quay.io' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: `Recorded digest: ${plugin.digest}` })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'standard-demo@demo-marketplace' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Description: Standard demo plugin' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Version: v1.2.0' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Installed: Not installed' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Source: ./standard-demo' })).toBeDefined()
+
+  await ui.press({ key: 'back-to-marketplaces' })
+  expect(await ui.find({ type: 'Text', text: 'Registered Claude marketplaces' })).toBeDefined()
+  await ui.press({ key: 'marketplace-1' })
+  expect(await ui.find({ type: 'Text', text: 'Marketplace: plain-marketplace' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Classification: standard-only' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'plain@plain-marketplace' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Description: Plain marketplace plugin' })).toBeDefined()
+  await ui.unmount()
+})
+
+test('browse handles empty and malformed marketplace data with a text fallback intact', async ($, on) => {
+  on('process.run', () => processResult({ marketplaces: [{ name: 42 }], plugins: null, errors: ['broken marketplace entry'] }))
+  on('ui.open', () => ({ value: { isPlaced: true } }))
+  const answer = await $.command.run({ command: 'marketplace-manager', args: 'browse' })
+  expect(answer.text).toBe('')
+  const ui = await $.ui.mount({ ...browsePane, surface: 'terminal' })
+  expect(await ui.find({ type: 'Text', text: 'No Claude marketplaces are registered.' })).toBeDefined()
+  expect(await ui.find({ type: 'Text', text: 'Warning 1: broken marketplace entry' })).toBeDefined()
+  await ui.unmount()
 })
 
 test('confirms downloads before invoking permission-checked marketplace add', async ($, on) => {

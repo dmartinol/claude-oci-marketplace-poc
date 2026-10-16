@@ -107,7 +107,7 @@ Mac evidence: [T613 execution log](demo/oci-demo-plugin-execution-log.md) and [i
 
 **Status:** Done. **Requirements:** R15–R16, POC acceptance. **Depends on:** T608–T612; the T613 Linux rehearsal supplies command evidence.
 
-- [x] Finalize and review the short walkthrough with the same-repository branch URL, direct ORAS commands, native UI expectations, verified v1/v2 responses, and simple cleanup. See [T614 final demo guide](demo/README.md) and [T614 guide review](implementation-report.md#t614--final-demo-guide-2026-10-15). README and example guidance are consistent. The final Mac manager UI check remains in T613 and does not change the published commands or cleanup path.
+- [x] Finalize and review the short walkthrough with the same-repository branch URL, direct ORAS commands, native UI expectations, verified v1/v2 responses, and simple cleanup. See [T614 final demo guide](demo/README.md) and [T614 guide review](implementation-report.md#t614--final-demo-guide-2026-10-15). README and example guidance are consistent. Mac acceptance is complete under T613; T616 adds the read-only browser guidance without changing the publishing or cleanup path.
 
 ## T615 — Add configurable session update polling
 
@@ -118,17 +118,16 @@ Mac evidence: [T613 execution log](demo/oci-demo-plugin-execution-log.md) and [i
 
 ## T616 — Browse marketplace details in the mod UI
 
-**Status:** In progress. **Requirements:** R1, R7, R9–R12, R17. **Depends on:** T611, T613.
+**Status:** Done. **Requirements:** R1, R7, R9–R12, R17. **Depends on:** T611, T613.
 
-The manager currently returns marketplace and plugin metadata as JSON from its deterministic helper, while the mod presents a text list and native question dialogs. Add a read-only browser using Claude Code's supported mod UI. Keep native `/plugin`, existing manager commands, local-only inspection, and the standard Claude permission path intact.
+Evidence: [T616 read-only browser and Mac verification](implementation-report.md#t616--read-only-marketplace-browser-and-mac-verification-2026-10-16).
 
-- [ ] First verify that the target stock macOS Claude Code version can open and render the supported mod pane from an installed marketplace-manager plugin. Record the exact version and observed behavior. If this surface is unavailable, report the blocker and keep the text command usable; do not reach into undocumented Claude UI internals.
-- [ ] Add `/marketplace-manager browse` to open the registered marketplace list and select a marketplace for details. Handle empty lists, invalid marketplace data, long names/references, and multiple marketplace/plugin entries.
-- [ ] Render marketplace source and classification, then its plugin identities, descriptions, versions, installed state/scope, and sources. For OCI plugins show original tagged reference, registry, and recorded digest from local provenance; label it as the recorded digest, not a live registry check.
-- [ ] Keep browsing local-only: no Git fetches, ORAS manifest calls, or layer downloads. Preserve `/marketplace-manager list` as a text fallback and do not override `/plugin`.
-- [ ] Keep browse read-only. Existing install/update actions continue through their existing confirmations, permission prompts, and commands.
-- [ ] Add focused UI/helper coverage for selecting a marketplace, rendering standard and OCI entries, project-scoped installed state, and no network/ORAS call during inspection. On the supported Mac, manually confirm pane rendering and that native `/plugin` still lists and installs the generated marketplace.
-- [ ] Record implementation and Mac verification evidence in the existing implementation report before marking T616 Done.
+- [x] Verified the supported pane on macOS 26.7.1 with stock Claude Code 2.1.301, first with a disposable probe and then with the installed marketplace manager. `/marketplace-manager browse` opened and rendered the pane.
+- [x] Added `/marketplace-manager browse` with marketplace selection, empty/malformed-data handling, wrapped long details, and support for multiple plugin entries.
+- [x] Rendered marketplace source/classification and plugin identities, descriptions, versions, installed state/scope, and local source. OCI entries show original tagged reference, registry, and recorded digest from local provenance.
+- [x] Kept browse local-only and read-only. It calls the deterministic helper's `list` action; `/marketplace-manager list` remains the text overview/fallback, and `/plugin` remains native.
+- [x] Focused tests cover selecting a marketplace, standard and OCI plugin entries, project-scoped installed state, empty/malformed data, and a single read-only helper call. On Mac, `/plugin` listed the generated marketplace and successfully installed its OCI plugin.
+- [x] Recorded implementation, test, and Mac verification evidence in the implementation report.
 
 ## Historical work
 
