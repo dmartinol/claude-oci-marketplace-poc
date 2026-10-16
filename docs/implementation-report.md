@@ -811,3 +811,21 @@ $ git diff --check
 ```
 
 The one-minute setting in Claude's `/config` panel and a live update arriving in the same open Mac session have not been manually rehearsed; T613 now tracks those acceptance checks. No daemon, external poller, registry coordinates, or OCI layer download was introduced by this change.
+
+## T613 — Correct the demo artifact root (2026-10-15)
+
+The Mac `/marketplace-manager add https://github.com/dmartinol/claude-oci-marketplace-poc.git#oci-demo-marketplace` run failed because the supplied Quay tag contained the POC repository root instead of the complete demo plugin root. The original tag resolved to `sha256:35a0bbfa418030307f9d6822bbed75e319822108e6e2d36327e5da220907b87b`; its layer had the expected artifact and media types and v2 annotations, but the pulled tree had no root `.claude-plugin/plugin.json`. The plugin manifests were nested under `examples/oci-demo-plugin/v1` and `v2`, explaining the reported missing path.
+
+With ORAS 1.3.4, republished the existing configured tag from `examples/oci-demo-plugin/v2` using the documented direct-directory command:
+
+```text
+$ oras push quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft \
+    --artifact-type application/vnd.dmartino.claude.plugin.v1 \
+    --annotation org.opencontainers.image.title=oci-demo-plugin \
+    --annotation org.opencontainers.image.version=0.2.0 .
+Pushed [registry] quay.io/dmartino/claude-oci-demo:oci-demo-plugin-draft
+ArtifactType: application/vnd.dmartino.claude.plugin.v1
+Digest: sha256:8dd8d0e74df05179679bbec78644c604426ad74eb42326177d735c01dccd4c19
+```
+
+The tag now resolves to that digest. A digest-pinned `oras pull` placed `.claude-plugin/plugin.json` at the output root; the manifest identifies `oci-demo-plugin` version `0.2.0`. This corrects the artifact that caused the missing-file error. It does not complete the remaining interactive manager confirmation/permission and `/plugin` Mac rehearsal tracked by T613. The example publishing guide now explicitly warns that `.` packages the current directory and must be run from the plugin root.

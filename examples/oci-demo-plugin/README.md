@@ -65,3 +65,5 @@ For the project rehearsal, use the already published `.claude-plugin/marketplace
 ```
 
 Use the raw tagged Quay reference without `oci://`. The manager retrieves the marketplace branch, extracts the OCI plugin, and registers a generated native-compatible marketplace. Follow the [developer walkthrough](../../docs/demo/README.md) to add it by its Git URL without cloning this repository.
+
+The `.` operand packages the current directory. Run each push from inside the corresponding `v1` or `v2` plugin root; do not run it from the POC repository root. A pulled artifact must contain `.claude-plugin/plugin.json` at its root.

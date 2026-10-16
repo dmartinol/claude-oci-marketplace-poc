@@ -90,6 +90,8 @@ The focused deterministic helper and UI tests cover source parsing, generated lo
 
 **Status:** In progress. **Requirements:** R1–R16. **Depends on:** T608–T612, T615.
 
+The supplied Quay demo tag was found to contain the POC repository root and has been republished from the v2 plugin directory; see the [artifact-root correction](implementation-report.md#t613--correct-the-demo-artifact-root-2026-10-15). The remaining Mac acceptance steps below still need an interactive run.
+
 Linux rehearsal evidence: [T613 same-repository developer flow](implementation-report.md#t613--same-repository-developer-flow-2026-10-15). The bootstrap and demo marketplace use the same repository on separate branches. The fresh-profile Linux run validated both registered marketplace rows, native install, v1/v2 invocation, metadata-only update detection, and failed-update preservation. The remaining Mac check is to install the manager by URL in a fresh Claude profile, add the demo branch through `/marketplace-manager` and approve its confirmation/permission prompts, verify the generated marketplace in `/plugin` and the manager, invoke v1 after restart, select the one-minute poll setting in `/config`, publish v2 to the same tag while that Claude session remains open, observe and approve the periodic update notice, restart, and invoke v2. Also confirm the standard-only bootstrap remains listed and the manager recognizes native installed state. Follow the step-by-step [Mac acceptance run](demo/README.md#mac-acceptance-run-t613); no developer checkout is part of this flow.
 
 ## T614 — Finalize the short demo guide
