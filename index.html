@@ -72,17 +72,17 @@
         <article class="step-card">
           <span class="step-number">03</span>
           <h3>Register and install</h3>
-          <p>A GitHub marketplace points to the OCI tag. The manager resolves it, checks the bundle, and prepares a native-compatible marketplace.</p>
+          <p>The marketplace entry names the OCI tag to check. The manager resolves its current digest, validates the bundle, and prepares a native-compatible marketplace.</p>
           <div class="code-card"><code>marketplace source → OCI tag</code><code>OCI tag → sha256 digest</code></div>
         </article>
         <article class="step-card">
           <span class="step-number">04</span>
           <h3>Review updates</h3>
-          <p>Metadata checks notice a changed digest. The user reviews the version and approves before the replacement is downloaded and activated.</p>
+          <p>At startup, on manual refresh, and periodically while Claude is open, the manager checks that tag. A changed digest is shown for review; approval is required before downloading, and a restart activates the update.</p>
           <div class="code-card"><code>inspect → review → approve</code><code>restart to activate</code></div>
         </article>
       </div>
-      <div class="flow-note"><span aria-hidden="true">↳</span> Claude Code stays the user-facing install and permission surface; the manager automates the OCI handoff and update checks.</div>
+      <div class="flow-note"><span aria-hidden="true">↳</span> Checks inspect metadata only. The interval is configurable: five minutes by default, one minute for demos. The manager follows only the configured tag; publishing a different tag does not trigger an update. Polling stops when the Claude session ends.</div>
     </section>
 
     <section class="controls-section" id="controls">
