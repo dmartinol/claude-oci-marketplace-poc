@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="A practical proof of concept for validating, publishing, reviewing, and updating Claude Code plugins as OCI artifacts.">
-  <title>AI Asset Supply Chain — Claude OCI Marketplace PoC</title>
+  <meta name="description" content="Package Claude plugins with ORAS, inspect their resolved digests, and approve installs and updates in Claude Code.">
+  <title>Claude Plugin Supply Chain — OCI Marketplace PoC</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -14,9 +14,9 @@
       <span>AI Asset Supply Chain</span>
     </a>
     <nav aria-label="Main navigation">
-      <a href="#workflow">Workflow</a>
+      <a href="#workflow">How it works</a>
       <a href="#controls">Controls</a>
-      <a href="#evidence">Evidence</a>
+      <a href="#evidence">Demo</a>
       <a class="nav-link" href="https://github.com/dmartinol/claude-oci-marketplace-poc">Repository <span aria-hidden="true">↗</span></a>
     </nav>
   </header>
@@ -24,90 +24,90 @@
   <main id="top">
     <section class="hero page-width">
       <div class="hero-copy">
-        <p class="eyebrow"><span class="status-dot"></span> Working proof of concept · Claude Code + OCI</p>
-        <h1>Deliver AI assets with a reviewable chain from source to install.</h1>
-        <p class="hero-lede">This PoC packages Claude plugins as OCI artifacts, checks package structure and identity, and puts digest-specific updates behind user approval.</p>
+        <p class="eyebrow"><span class="status-dot"></span> Package, install, and update Claude plugins with OCI</p>
+        <h1>Distribute Claude plugins through OCI. Approve every update.</h1>
+        <p class="hero-lede">Validate a plugin directory, publish it with ORAS, and install it through Claude Code. Resolve its OCI tag to a digest; approve before downloading a changed version.</p>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/README.md">Run the demo <span aria-hidden="true">→</span></a>
-          <a class="button button-secondary" href="#workflow">See how it works</a>
+          <a class="button button-primary" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/README.md">Follow the walkthrough <span aria-hidden="true">→</span></a>
+          <a class="button button-secondary" href="#workflow">See the steps</a>
         </div>
       </div>
-      <aside class="hero-card" aria-label="PoC delivery chain">
-        <div class="card-heading"><span class="tiny-label">SAMPLE DELIVERY RECORD</span><span class="live-pill">OCI</span></div>
+      <aside class="hero-card" aria-label="Example plugin install record">
+        <div class="card-heading"><span class="tiny-label">PLUGIN INSTALL RECORD</span><span class="live-pill">OCI</span></div>
         <div class="artifact-name"><span class="file-icon" aria-hidden="true">◇</span><span><strong>oci-demo-plugin</strong><small>Claude plugin bundle</small></span></div>
-        <div class="record-row"><span>Package check</span><strong class="good">Passed</strong></div>
-        <div class="record-row"><span>Registry identity</span><code>sha256:…</code></div>
-        <div class="record-row"><span>Update action</span><strong>Approval required</strong></div>
-        <div class="card-foot"><span class="lock-icon" aria-hidden="true">▣</span> Exact digest reviewed before install</div>
+        <div class="record-row"><span>Structure check</span><strong class="good">Passed</strong></div>
+        <div class="record-row"><span>Resolved OCI digest</span><code>sha256:…</code></div>
+        <div class="record-row"><span>Changed version</span><strong>Approval required</strong></div>
+        <div class="card-foot"><span class="lock-icon" aria-hidden="true">▣</span> Approve before the new version downloads</div>
       </aside>
     </section>
 
-    <section class="signal-strip" aria-label="What the PoC demonstrates">
-      <div><strong>Validate</strong><span>Plugin structure and identity</span></div>
-      <div><strong>Track</strong><span>OCI tags and resolved digests</span></div>
-      <div><strong>Review</strong><span>Approve each update</span></div>
-      <div><strong>Recover</strong><span>Keep the working version on failure</span></div>
+    <section class="signal-strip" aria-label="What you can do">
+      <div><strong>Validate</strong><span>Check plugin structure and metadata</span></div>
+      <div><strong>Pin</strong><span>Resolve an OCI tag to its exact digest</span></div>
+      <div><strong>Approve</strong><span>Confirm before a download or update</span></div>
+      <div><strong>Recover</strong><span>Keep the last working version on failure</span></div>
     </section>
 
     <section class="section page-width" id="workflow">
       <div class="section-intro">
-        <p class="eyebrow">A practical supply chain</p>
-        <h2>From a plugin folder to a controlled update</h2>
-        <p>Agent skills and plugins are software artifacts. The PoC connects familiar software delivery steps to the AI assets a team installs in Claude Code.</p>
+        <p class="eyebrow">Your workflow</p>
+        <h2>Package, publish, install, update</h2>
+        <p>Package one complete Claude plugin and point a Git marketplace to its OCI tag. Add the marketplace in Claude Code, then install and update through <code>/plugin</code> or the manager.</p>
       </div>
 
       <div class="workflow-grid">
         <article class="step-card">
           <span class="step-number">01</span>
-          <h3>Build the asset</h3>
-          <p>Keep the plugin manifest and its skills together as one complete directory.</p>
+          <h3>Prepare your plugin</h3>
+          <p>Keep the plugin manifest and its skills together in one directory.</p>
           <div class="code-card"><code>.claude-plugin/plugin.json</code><code>skills/demo/SKILL.md</code></div>
         </article>
         <article class="step-card">
           <span class="step-number">02</span>
           <h3>Validate and publish</h3>
-          <p>Run Claude's strict plugin validation, then publish the directory to an OCI registry with ORAS.</p>
-          <div class="code-card"><code>claude plugin validate --strict .</code><code>oras push … .</code></div>
+          <p>Check the plugin with Claude's validator, then publish the directory to an OCI registry with <a href="https://oras.land/docs/">ORAS</a>.</p>
+          <div class="code-card"><code>claude plugin validate --strict .</code><code><a href="https://oras.land/docs/commands/oras_push/">oras push</a> … .</code></div>
         </article>
         <article class="step-card">
           <span class="step-number">03</span>
-          <h3>Register and install</h3>
-          <p>The marketplace entry names the OCI tag to check. The manager resolves its current digest, validates the bundle, and prepares a native-compatible marketplace.</p>
+          <h3>Add the marketplace</h3>
+          <p>Run <code>/marketplace-manager add &lt;git-url&gt;</code>. Approve the download; the manager validates the bundle and registers a marketplace Claude Code can use.</p>
           <div class="code-card"><code>marketplace source → OCI tag</code><code>OCI tag → sha256 digest</code></div>
         </article>
         <article class="step-card">
           <span class="step-number">04</span>
-          <h3>Review updates</h3>
-          <p>At startup, on manual refresh, and periodically while Claude is open, the manager checks that tag. A changed digest is shown for review; approval is required before downloading, and a restart activates the update.</p>
-          <div class="code-card"><code>inspect → review → approve</code><code>restart to activate</code></div>
+          <h3>Install and update</h3>
+          <p>Install from <code>/plugin</code> or the manager. When the tag points to a new digest, approve the download, then restart Claude Code to use the update.</p>
+          <div class="code-card"><code>check → approve → download</code><code>restart to use the update</code></div>
         </article>
       </div>
-      <div class="flow-note"><span aria-hidden="true">↳</span> Checks inspect metadata only. The interval is configurable: five minutes by default, one minute for demos. The manager follows only the configured tag; publishing a different tag does not trigger an update. Polling stops when the Claude session ends.</div>
+      <div class="flow-note"><span aria-hidden="true">↳</span> Refresh at startup or on demand, or set automatic checks to every five minutes (one minute for demos). The manager checks registry metadata only and stops when your Claude Code session ends.</div>
     </section>
 
     <section class="controls-section" id="controls">
       <div class="page-width controls-layout">
         <div>
-          <p class="eyebrow">What this adds to the chain</p>
-          <h2>Make package delivery repeatable and inspectable.</h2>
-          <p class="section-copy">The point is to give teams a controlled route for getting AI assets from a maintainer to a user's agent, using the same kind of identity, validation, and release discipline used for other software.</p>
+          <p class="eyebrow">Your controls</p>
+          <h2>See what you install. Approve what changes.</h2>
+          <p class="section-copy">Check the plugin package, see the source reference and exact digest, and approve downloads before Claude Code uses a new version.</p>
         </div>
         <div class="control-list">
           <article>
             <span class="control-icon">01</span>
-            <div><h3>Package checks before use</h3><p>Validate the plugin layout and ensure the package identity and version agree with the OCI metadata.</p></div>
+            <div><h3>Check the plugin package</h3><p>Validate its layout and confirm the plugin name and version match the OCI metadata.</p></div>
           </article>
           <article>
             <span class="control-icon">02</span>
-            <div><h3>Know which bytes were reviewed</h3><p>Resolve mutable tags to a SHA-256 digest and retrieve the exact digest selected for installation or update.</p></div>
+            <div><h3>Know which bytes you selected</h3><p>Resolve a mutable tag to a SHA-256 digest. Download that exact digest after approval.</p></div>
           </article>
           <article>
             <span class="control-icon">03</span>
-            <div><h3>Put a person at the release gate</h3><p>Show an update notice and require confirmation plus Claude's permission approval before downloading a replacement.</p></div>
+            <div><h3>Approve each change</h3><p>Select the plugins to update and confirm before downloads start. Claude Code also asks for permission.</p></div>
           </article>
           <article>
             <span class="control-icon">04</span>
-            <div><h3>Keep the known working version</h3><p>Stage and validate replacements first. A retrieval, validation, or activation failure preserves the prior plugin.</p></div>
+            <div><h3>Keep your working version</h3><p>The manager stages and validates a replacement first. If retrieval or activation fails, your previous plugin remains usable.</p></div>
           </article>
         </div>
       </div>
@@ -115,29 +115,29 @@
 
     <section class="demo-section page-width" id="evidence">
       <div class="demo-copy">
-        <p class="eyebrow">See it run</p>
-        <h2>One artifact. Two versions. A user-approved update.</h2>
-        <p>The demo publishes v1, installs it through the native Claude marketplace, publishes v2 to the same tag, and applies v2 after review. The skill response changes so the result is easy to verify.</p>
+        <p class="eyebrow">Try the demo</p>
+        <h2>Publish v1. Approve v2. See it change.</h2>
+        <p>Install v1 through Claude Code, publish v2 to the same OCI tag, approve the update, and restart Claude Code. Invoke the skill to confirm the new version is active.</p>
         <div class="version-pair">
           <div><span>v1 · 0.1.0</span><code>OCI demo plugin version 0.1.0</code></div>
           <span class="version-arrow" aria-hidden="true">→</span>
           <div><span>v2 · 0.2.0</span><code>OCI demo plugin version 0.2.0</code></div>
         </div>
         <div class="hero-actions">
-          <a class="button button-primary" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/README.md">Open the walkthrough <span aria-hidden="true">↗</span></a>
-          <a class="text-link" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/oci-demo-plugin-execution-log.md">Read the execution log</a>
+          <a class="button button-primary" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/README.md">Run the walkthrough <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/demo/oci-demo-plugin-execution-log.md">See the run log</a>
         </div>
       </div>
       <aside class="evidence-card">
-        <p class="tiny-label">RECORDED REHEARSAL</p>
+        <p class="tiny-label">MAC DEMO EVIDENCE</p>
         <h3>macOS · Claude Code 2.1.301</h3>
         <ul>
-          <li>Native marketplace visibility and installation</li>
-          <li>One-minute update polling during the session</li>
-          <li>Digest recorded after the approved update</li>
-          <li>Failure handling covered in focused checks</li>
+          <li>Add the marketplace and install through <code>/plugin</code></li>
+          <li>Detect and approve v2 during a one-minute session check</li>
+          <li>Confirm the new digest after restart</li>
+          <li>Focused checks show a failed update keeps v1 usable</li>
         </ul>
-        <a href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/implementation-report.md#t613--mac-acceptance-run-2026-10-16">Open the acceptance evidence <span aria-hidden="true">→</span></a>
+        <a href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/implementation-report.md#t613--mac-acceptance-run-2026-10-16">Read the Mac acceptance report <span aria-hidden="true">→</span></a>
       </aside>
     </section>
 
@@ -145,17 +145,18 @@
       <div class="page-width boundary-layout">
         <div class="boundary-mark" aria-hidden="true">!</div>
         <div>
-          <p class="eyebrow">Scope of the claim</p>
-          <h2>Package validation is a useful control, not a safety verdict.</h2>
-          <p>This PoC checks Claude plugin structure, metadata consistency, and the identity of the OCI bytes being installed. It does not evaluate whether a skill's instructions are safe or correct, verify publisher signatures or build provenance, scan dependencies, or certify behavior. Signing, provenance attestations, policy checks, and content evaluation would add further supply-chain controls.</p>
+          <p class="eyebrow">Know what these checks cover</p>
+          <h2>Check the package and exact digest.</h2>
+          <p>A digest identifies the bytes you install; it does not authenticate the publisher. This demo checks plugin structure and metadata. It does not verify signatures or build provenance, scan dependencies or advisories, assess whether instructions are safe or correct, or certify behavior at runtime. Use those as separate checks when your supply-chain policy requires them.</p>
         </div>
       </div>
     </section>
 
     <section class="closing page-width">
       <p class="eyebrow">Current scope</p>
-      <h2>A working Claude Code integration for OCI-distributed plugins.</h2>
-      <p>The bundle format, registry declaration, and manager experience in this PoC are Claude-specific. The example skill is portable content, while broader agent interoperability would need a shared package and catalog contract plus client adapters.</p>
+      <h2>Use OCI to deliver complete Claude plugins.</h2>
+      <p>Install these plugins with Claude Code. Reuse the example skill elsewhere, but add a package format and adapter for each client.</p>
+      <p>Compare this workflow with the broader <a href="https://slsa.dev/spec/v1.2/">SLSA 1.2 specification</a> and <a href="https://docs.redhat.com/en/documentation/red_hat_advanced_developer_suite_-_software_supply_chain/1.9">RHADS-SSC 1.9 documentation</a>. This PoC does not claim SLSA compliance or integrate with RHADS-SSC.</p>
       <div class="closing-links">
         <a href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/requirements.md">Product requirements</a>
         <a href="https://github.com/dmartinol/claude-oci-marketplace-poc/blob/main/docs/plan.md">Plan and evidence status</a>
@@ -167,7 +168,7 @@
   <footer class="site-footer">
     <div class="page-width footer-inner">
       <span>AI Asset Supply Chain PoC</span>
-      <span>Built with stock Claude Code, ORAS, and OCI registries.</span>
+      <span>Run with stock Claude Code, ORAS, and an OCI registry.</span>
     </div>
   </footer>
 </body>
