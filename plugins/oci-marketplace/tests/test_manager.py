@@ -181,6 +181,33 @@ class ManagerCases(unittest.TestCase):
         self.assertEqual(result['plugins'][0]['identity'], IDENTITY)
         self.assertFalse(any(call[0] in ('oras', 'git') for call in self.runner.calls))
         self.assertEqual(len(self.helper.installed()['plugins']), 1)
+        self.assertEqual(self.helper.installed()['plugins'][0]['installedScope'], 'user')
+
+    def test_listing_recognizes_project_and_local_installs_for_active_project(self):
+        self.materialize()
+        project = Path(self.temp.name) / 'working-project'
+        project.mkdir()
+        self.helper.env['CLAUDE_PROJECT_DIR'] = str(project)
+        for scope in ('project', 'local'):
+            with self.subTest(scope=scope):
+                self.runner.installed = [{'id': IDENTITY, 'scope': scope, 'version': '1.0.0',
+                                          'projectPath': str(project), 'projectEnabled': False}]
+                plugin = self.helper.installed()['plugins'][0]
+                self.assertTrue(plugin['installed'])
+                self.assertEqual(plugin['installedScope'], scope)
+
+    def test_listing_ignores_project_install_from_another_project(self):
+        self.materialize()
+        active_project = Path(self.temp.name) / 'active-project'
+        other_project = Path(self.temp.name) / 'other-project'
+        active_project.mkdir()
+        other_project.mkdir()
+        self.helper.env['CLAUDE_PROJECT_DIR'] = str(active_project)
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'project', 'version': '1.0.0',
+                                  'projectPath': str(other_project), 'projectEnabled': True}]
+        plugin = self.helper.list()['plugins'][0]
+        self.assertFalse(plugin['installed'])
+        self.assertIsNone(plugin['installedScope'])
 
     def test_claude_registrations_remain_authoritative(self):
         self.materialize()
@@ -240,6 +267,17 @@ class ManagerCases(unittest.TestCase):
                          ['quay.io/example/demo@' + DIGEST_V2])
         self.assertIn(['claude', 'plugin', 'update', IDENTITY, '--scope', 'user', '--json'], self.runner.calls)
 
+    def test_project_scoped_update_uses_native_project_scope(self):
+        self.materialize()
+        project = Path(self.temp.name) / 'working-project'
+        project.mkdir()
+        self.helper.env['CLAUDE_PROJECT_DIR'] = str(project)
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'project', 'version': '1.0.0',
+                                  'projectPath': str(project)}]
+        self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
+        self.assertIn(['claude', 'plugin', 'update', IDENTITY, '--scope', 'project', '--json'],
+                      self.runner.calls)
+
     def test_uninstalled_update_materializes_without_native_install(self):
         self.materialize()
         self.runner.calls.clear()
@@ -288,13 +326,19 @@ class ManagerCases(unittest.TestCase):
 
     def test_native_partial_change_is_recovered_against_restored_bundle(self):
         target = self.materialize()
-        self.runner.installed = [{'id': IDENTITY, 'scope': 'user', 'version': '1.0.0'}]
+        project = Path(self.temp.name) / 'working-project'
+        project.mkdir()
+        self.helper.env['CLAUDE_PROJECT_DIR'] = str(project)
+        self.runner.installed = [{'id': IDENTITY, 'scope': 'project', 'version': '1.0.0',
+                                  'projectPath': str(project)}]
         previous = self.snapshot(target)
         original = self.runner
         attempts = []
+        scopes = []
 
         def partial_native_change(argv, cwd=None):
             if argv[:3] == ['claude', 'plugin', 'update']:
+                scopes.append(argv[argv.index('--scope') + 1])
                 version = json.loads((target / '.oci-plugins/demo/.claude-plugin/plugin.json').read_text())['version']
                 attempts.append(version)
                 original.installed[0]['version'] = version
@@ -307,6 +351,7 @@ class ManagerCases(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'previous plugin and digest restored'):
             self.helper.update(IDENTITY, DIGEST_V2, '2.0.0')
         self.assertEqual(attempts, ['2.0.0', '1.0.0'])
+        self.assertEqual(scopes, ['project', 'project'])
         self.assertEqual(self.runner.installed[0]['version'], '1.0.0')
         self.assertEqual(self.snapshot(target), previous)
 

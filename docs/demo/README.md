@@ -146,7 +146,7 @@ In Claude, add the demo branch and check both marketplace views:
 /marketplace-manager list
 ```
 
-Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. In `/config`, set `marketplace-manager.poll_interval_minutes` to `1` for this demo. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that native installation.
+Approve the download confirmation and Claude permission prompt. Verify `claude-oci-demo-marketplace` and the standard-only bootstrap marketplace are listed. Open `/plugin`, confirm the OCI marketplace and plugin are visible, and install `oci-demo-plugin` there. In `/config`, set `marketplace-manager.poll_interval_minutes` to `1` for this demo. Restart Claude, invoke `/oci-demo-plugin:demo` and confirm it returns `OCI demo plugin version 0.1.0`; `/marketplace-manager installed` should recognize that project-scoped native installation for the active project.
 
 To exercise the manager's install command too, exit Claude and run this in the same terminal:
 

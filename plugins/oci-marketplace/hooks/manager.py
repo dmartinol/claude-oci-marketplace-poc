@@ -106,7 +106,23 @@ class Manager:
     def native_installed(self):
         value = json.loads(self.run(['claude', 'plugin', 'list', '--json']))
         entries = value if isinstance(value, list) else value.get('plugins', [])
-        return {entry['id']: entry for entry in entries if entry.get('scope') == 'user'}
+        project = Path(self.env.get('CLAUDE_PROJECT_DIR') or os.getcwd()).expanduser().resolve()
+        priorities = {'user': 1, 'project': 2, 'local': 3}
+        installed = {}
+        for entry in entries:
+            identity = entry.get('id')
+            scope = entry.get('scope')
+            if not identity or scope not in priorities:
+                continue
+            if scope in ('project', 'local'):
+                entry_project = entry.get('projectPath')
+                if not entry_project or Path(entry_project).expanduser().resolve() != project:
+                    continue
+            previous = installed.get(identity)
+            if previous and priorities[previous['scope']] >= priorities[scope]:
+                continue
+            installed[identity] = entry
+        return installed
 
     def owned(self, registration):
         name = registration['name']
@@ -146,8 +162,10 @@ class Manager:
                         record = {'kind': 'standard', 'source': source if isinstance(source, str) else json.dumps(source),
                                   'description': entry.get('description', ''), 'version': version,
                                   'registry': '', 'digest': ''}
+                    native = installed.get(identity)
                     plugins.append(dict(record, name=name, marketplace=registration['name'],
-                                        identity=identity, installed=identity in installed))
+                                        identity=identity, installed=native is not None,
+                                        installedScope=native.get('scope') if native else None))
             except (ValueError, KeyError, OSError) as error:
                 errors.append(safe_error(f"{registration.get('name')}: {error}"))
         return {'marketplaces': marketplaces, 'plugins': plugins, 'errors': errors}
@@ -203,6 +221,7 @@ class Manager:
         state = json.loads(previous_state)
         manifest = json.loads(previous_manifest)
         was_installed = plugin['installed']
+        installed_scope = plugin.get('installedScope') or 'user'
         with tempfile.TemporaryDirectory(prefix='.update-', dir=self.root) as temporary:
             stage = Path(temporary) / 'plugin'
             backup = Path(temporary) / 'previous'
@@ -216,7 +235,7 @@ class Manager:
                 atomic_json(manifest_path, manifest)
                 self.run(['claude', 'plugin', 'validate', '--strict', str(marketplace)])
                 if was_installed:
-                    self.run(['claude', 'plugin', 'update', identity, '--scope', 'user', '--json'])
+                    self.run(['claude', 'plugin', 'update', identity, '--scope', installed_scope, '--json'])
                 state['plugins'][plugin['name']].update(version=version, digest=digest)
                 atomic_json(state_path, state)
             except Exception as error:
@@ -231,7 +250,7 @@ class Manager:
                     try:
                         native = self.native_installed().get(identity)
                         if native and native.get('version') != plugin['version']:
-                            self.run(['claude', 'plugin', 'update', identity, '--scope', 'user', '--json'])
+                            self.run(['claude', 'plugin', 'update', identity, '--scope', installed_scope, '--json'])
                     except Exception as recovery:
                         raise RuntimeError(safe_error(f'{error}; previous bundle restored, but native recovery failed: {recovery}')) from error
                 raise RuntimeError(safe_error(f'{error}; previous plugin and digest restored')) from error
