@@ -14,6 +14,10 @@ Proof of concept for managing Claude marketplaces in stock Claude Code. The revi
 - [Implementation evidence](docs/implementation-report.md)
 - [Project-owned v1/v2 OCI demo plugin](examples/oci-demo-plugin/README.md)
 
+## Project overview site
+
+The concise public overview is authored in [`site/`](site/index.html) and deployed from the `gh-pages` branch root. To enable it, open **Settings → Pages**, choose **Deploy from a branch**, then select `gh-pages` and `/(root)`. When updating the site, copy `site/index.html` and `site/styles.css` to the root of `gh-pages` and push that branch. The project URL is `https://dmartinol.github.io/claude-oci-marketplace-poc/`.
+
 ## Install the manager bootstrap
 
 Install the manager by URL using your installed Claude CLI. No clone or commands run from this repository are required:
